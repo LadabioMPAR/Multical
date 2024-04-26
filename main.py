@@ -1,5 +1,5 @@
 
-
+from arquivos import spec
 
 class Modelo:
     def __init__(self, X=[], y=[],comprimentos=[],analitos=''):
