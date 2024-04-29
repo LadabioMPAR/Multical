@@ -1,5 +1,6 @@
 
-from arquivos import spec
+from arquivos import spec as s
+from arquivos import ref as r
 
 class Modelo:
     def __init__(self, X=[], y=[],comprimentos=[],analitos=''):
