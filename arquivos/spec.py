@@ -38,7 +38,7 @@ def txt(file_name, **kwargs):
     
     # Checando se o arquivo existe
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Arquivo '{file_name}' não encontrado na pasta {directory_path}. Por favor, verifique se o arquivo esttá na pasta correta.")
+        raise FileNotFoundError(f"Arquivo '{file_name}' não encontrado na pasta {directory_path}. Por favor, verifique se o arquivo está na pasta correta.")
     
     # Lendo o texto em um DataFrame
     comprimentos = kwargs.get('comprimentos', None)
