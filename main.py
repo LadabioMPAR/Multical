@@ -15,8 +15,16 @@ class Modelo:
     Alternativamente, podem ser utilizados outros arquivos .json como workspace, contanto que o arquivo fornecido possua as chaves 'comprimentos' e 'referencias'.
     As chaves devem conter, cada uma, um array de strings com os caminhos dos respectivos arquivos.
 
+    Atributos:
+        X - Contém as absorbâncias (Dataframe do pandas)
+        Y - Contém as referências (Dataframe do pandas)
+        comprimentos -  Contém uma lista com os comprimentos de onda utilizados (lista de inteiros)
+        analitos - Contém uma lista com os nomes dos analitos no modelo (lista de strings)
+
     '''
     def __init__(self, arquivo_json='workspace.json', comprimentos=None, analitos=None):
+        self.comprimentos=comprimentos
+        self.analitos=analitos
         if os.path.getsize(arquivo_json) == 0:
             subprocess.run(["python", "Import.py"])
         self.X, self.Y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
@@ -100,5 +108,3 @@ class Modelo:
             self.comprimentos.append(comprimento)
         if analito is not None:
             self.analitos.append(analito)
-
-        
