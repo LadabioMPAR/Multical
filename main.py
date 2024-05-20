@@ -1,11 +1,11 @@
-
 import json
 import os
 import pandas as pd
 from arquivos import spec as spc
 from arquivos import ref
 import subprocess
-
+import time
+start=time.time()
 class Modelo:
     '''
     Classe principal do repositório, ela armazena os dados de referência e absorbâncias.
@@ -108,3 +108,26 @@ class Modelo:
             self.comprimentos.append(comprimento)
         if analito is not None:
             self.analitos.append(analito)
+    def stack_x(self):
+        '''
+        Empilha os valores de X
+        Retorna:
+            - Dataframe: valores das absorbâncias de todos os arquivos em um único dataframe
+        Levanta:
+            ValueError: Se não houverem absorbâncias
+        '''
+        if not self.X:
+            raise ValueError("A lista de absorbâncias está vazia.")
+        return pd.concat(self.X, axis=0, ignore_index=True)
+    def stack_y(self):
+        '''
+        Empilha os valores de X
+        Retorna:
+            - Dataframe: valores das referências de todos os arquivos em um único dataframe
+        Levanta:
+            ValueError: Se não houverem referências
+        '''
+        if not self.Y:
+            raise ValueError("A lista de referências está vazia.")
+        return pd.concat(self.Y, axis=0, ignore_index=True)
+
