@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fb395ab8-d652-4fbf-93e5-0226ae71b1fe" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Pretreat/moving average.py" beforeDir="false" afterPath="$PROJECT_DIR$/Pretreat/moving average.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Pretreat/teste_abs01.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Pretreat/teste_abs01.txt" afterDir="false" />
     </list>
@@ -103,7 +104,7 @@
       <workItem from="1716404954167" duration="233000" />
       <workItem from="1716494995214" duration="777000" />
       <workItem from="1716496268015" duration="14000" />
-      <workItem from="1716572334352" duration="1079000" />
+      <workItem from="1716572334352" duration="4696000" />
     </task>
     <servers />
   </component>
@@ -111,9 +112,10 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Multical$moving_average.coverage" NAME="moving average Coverage Results" MODIFIED="1716312982863" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
+    <SUITE FILE_PATH="coverage/Multical$moving_average.coverage" NAME="moving average Coverage Results" MODIFIED="1716576983487" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
     <SUITE FILE_PATH="coverage/Multical$média_móvel.coverage" NAME="média móvel Coverage Results" MODIFIED="1716228195968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
     <SUITE FILE_PATH="coverage/Multical$teste1.coverage" NAME="teste1 Coverage Results" MODIFIED="1716313345172" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
     <SUITE FILE_PATH="coverage/Multical$TESTE___plot.coverage" NAME="TESTE - plot Coverage Results" MODIFIED="1716227534321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Plot" />
+    <SUITE FILE_PATH="coverage/Multical$sav_gol.coverage" NAME="sav_gol Coverage Results" MODIFIED="1716573652038" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
   </component>
 </project>
