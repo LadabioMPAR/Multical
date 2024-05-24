@@ -1,12 +1,13 @@
-import numpy as np
 import pandas as pd
-from scipy.signal import savgol_filter
 
-def normalizar(df):
-    return (df - df.mean()) / df.std()
+def media_movel(x, window_size):
+    """
 
-def media_movel(df, window_size):
-    return df.apply(lambda x: x.rolling(window=window_size, min_periods=1).mean())
-
-def derivada_savitsky_golay(df, window_length, polyorder):
-    return df.apply(lambda x: savgol_filter(x, window_length, polyorder, deriv=1))
+    """
+    x_copiado = x.copy()
+    try:
+        # Aplicando a média móvel em cada coluna
+        df_moving_avg = x_copiado.apply(lambda x_copiado: x_copiado.rolling(window=window_size, min_periods=1).mean())
+    except Exception as e:
+        print(f"Erro ao calcular a média móvel: {e}")
+    return df_moving_avg

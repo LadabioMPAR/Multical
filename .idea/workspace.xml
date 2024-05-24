@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="fb395ab8-d652-4fbf-93e5-0226ae71b1fe" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Pretreat/moving average.py" beforeDir="false" afterPath="$PROJECT_DIR$/Pretreat/moving average.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Pretreat/teste_abs01.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Pretreat/teste_abs01.txt" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Arturmarinho21&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/LadabioMPAR/Multical.git&quot;,
+    &quot;accountId&quot;: &quot;4b5eaa92-1815-412d-90eb-9032a555b0cf&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2fvlzHWGvNK8EnM0XAMna3nAu5J" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.TESTE - plot.executor": "Run",
+    "Python.moving average.executor": "Run",
+    "Python.média móvel.executor": "Run",
+    "Python.sav_gol.executor": "Run",
+    "Python.teste1.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "artur---teste",
+    "last_opened_file_path": "C:/Users/artur/OneDrive/Documentos/GitHub/Multical/Pretreat",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\artur\OneDrive\Documentos\GitHub\Multical\Pretreat" />
+      <recent name="C:\Users\artur\OneDrive\Documentos\GitHub\Multical\Plot" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-1d06a55b98c1-74d2a5396914-JavaScript-PY-241.14494.241" />
+        <option value="bundled-python-sdk-0509580d9d50-28c9f5db9ffe-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-241.14494.241" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="fb395ab8-d652-4fbf-93e5-0226ae71b1fe" name="Changes" comment="" />
+      <created>1714689695031</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1714689695031</updated>
+      <workItem from="1714689697537" duration="421000" />
+      <workItem from="1714690435595" duration="208000" />
+      <workItem from="1714743602183" duration="279000" />
+      <workItem from="1715092079314" duration="1762000" />
+      <workItem from="1715102767978" duration="1187000" />
+      <workItem from="1715104653584" duration="4167000" />
+      <workItem from="1715115500125" duration="3178000" />
+      <workItem from="1715294882964" duration="4532000" />
+      <workItem from="1715967204733" duration="4334000" />
+      <workItem from="1716225442030" duration="2794000" />
+      <workItem from="1716229456028" duration="14000" />
+      <workItem from="1716229502786" duration="6000" />
+      <workItem from="1716229546377" duration="116000" />
+      <workItem from="1716303373604" duration="3186000" />
+      <workItem from="1716313430563" duration="2110000" />
+      <workItem from="1716404661084" duration="282000" />
+      <workItem from="1716404954167" duration="233000" />
+      <workItem from="1716494995214" duration="777000" />
+      <workItem from="1716496268015" duration="14000" />
+      <workItem from="1716572334352" duration="4696000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Multical$moving_average.coverage" NAME="moving average Coverage Results" MODIFIED="1716576983487" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
+    <SUITE FILE_PATH="coverage/Multical$média_móvel.coverage" NAME="média móvel Coverage Results" MODIFIED="1716228195968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
+    <SUITE FILE_PATH="coverage/Multical$teste1.coverage" NAME="teste1 Coverage Results" MODIFIED="1716313345172" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
+    <SUITE FILE_PATH="coverage/Multical$TESTE___plot.coverage" NAME="TESTE - plot Coverage Results" MODIFIED="1716227534321" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Plot" />
+    <SUITE FILE_PATH="coverage/Multical$sav_gol.coverage" NAME="sav_gol Coverage Results" MODIFIED="1716573652038" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Pretreat" />
+  </component>
+</project>
