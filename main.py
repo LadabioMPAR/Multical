@@ -30,6 +30,7 @@ class Dados_exp:
         analitos - Contém uma lista com os nomes dos analitos nos dados experimentais (lista de strings)
 
     '''
+
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
         self.comprimentos=comprimentos
         self.analitos=analitos
@@ -221,6 +222,4 @@ class Dados_exp:
             json.dump(json_data, json_file, indent=4)
 
 
-string= "oi"
-string2="tchau"
-lista=[[],[]]
+
