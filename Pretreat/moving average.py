@@ -24,7 +24,7 @@ def apply_moving_average_to_csv(input_file, output_file, window_size):
     try:
         # Salvando o DataFrame resultante em um arquivo CSV não compactado
         df_moving_avg.to_csv(output_file, index=False)
-        output_file
+        output_file = 'teste_abs01.txt'
         print(f"Média móvel salva com sucesso em {output_file}")
     except Exception as e:
         print(f"Erro ao salvar o arquivo {output_file}: {e}")
