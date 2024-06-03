@@ -6,6 +6,8 @@ from arquivos import ref
 import Pretreat as pt
 import subprocess
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
 '''
 Lista de bugs ^^
@@ -142,9 +144,9 @@ class Dados_exp:
         Levanta:
             ValueError: Se não houverem referências
         '''
-        if not self.Y:
+        if not self.y:
             raise ValueError("A lista de referências está vazia.")
-        return pd.concat(self.Y, axis=0, ignore_index=True)
+        return pd.concat(self.y, axis=0, ignore_index=True)
 
     def pretreat(self, pretratamentos,salvar=False):
         '''
@@ -221,5 +223,38 @@ class Dados_exp:
         with open(f'{workspace}.json', 'w') as json_file:
             json.dump(json_data, json_file, indent=4)
 
+teste= Dados_exp()
+absor= teste.stack_x()
+x=teste.stack_y()
 
+nd, nl = absor.shape
 
+# Lambert-Beer without independent term
+xone = x
+K = np.linalg.lstsq(xone, absor, rcond=None)[0]
+absorc = np.dot(xone, K)
+
+# Convert to numpy arrays to avoid ambiguous Series error
+xymax = max(np.max(absor.values), np.max(absorc))
+xymin = min(np.min(absor.values), np.min(absorc))
+
+plt.figure(1)
+plt.plot(absor, absorc, 'o')
+plt.plot([xymin, xymax], [xymin, xymax], '-k')
+plt.xlabel('absor')
+plt.ylabel('absor calculada L-B')
+plt.title('ajuste absorbância SEM termo idependente')
+
+# Lambert-Beer with independent term
+xone = np.hstack((np.ones((nd, 1)), x))
+K = np.linalg.lstsq(xone, absor, rcond=None)[0]
+absorc = np.dot(xone, K)
+
+plt.figure(2)
+plt.plot(absor, absorc, 'o')
+plt.plot([xymin, xymax], [xymin, xymax], '-k')
+plt.xlabel('absor')
+plt.ylabel('absor calculada L-B')
+plt.title('ajuste absorbância COM termo idependente')
+
+plt.show()
