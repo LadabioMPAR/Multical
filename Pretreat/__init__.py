@@ -25,7 +25,7 @@ def media_movel(x, tam_janela):
     return df_media_movel
 
 
-def sav_gol(df, janela, polyorder):
+def sav_gol(df, janela, polyorder,derivada=0):
     """
     Função que aplica o filtro Savitzky-Golay em cada coluna de um DataFrame.
 
@@ -52,6 +52,6 @@ def sav_gol(df, janela, polyorder):
 
     # Aplica o filtro de Savitzky-Golay a cada coluna do Dataframe
     for column in df_filtrada:
-        df_filtrada[column] = savgol_filter(df_filtrada[column], janela, polyorder)
+        df_filtrada[column] = savgol_filter(df_filtrada[column], janela, polyorder,deriv=derivada)
 
     return df_filtrada
