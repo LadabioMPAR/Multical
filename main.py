@@ -6,7 +6,10 @@ from arquivos import ref
 import Pretreat as pt
 import subprocess
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.decomposition import PCA
 '''
 Lista de bugs ^^
 
@@ -142,9 +145,9 @@ class Dados_exp:
         Levanta:
             ValueError: Se não houverem referências
         '''
-        if not self.Y:
+        if not self.y:
             raise ValueError("A lista de referências está vazia.")
-        return pd.concat(self.Y, axis=0, ignore_index=True)
+        return pd.concat(self.y, axis=0, ignore_index=True)
 
     def pretreat(self, pretratamentos,salvar=False):
         '''
@@ -220,6 +223,23 @@ class Dados_exp:
 
         with open(f'{workspace}.json', 'w') as json_file:
             json.dump(json_data, json_file, indent=4)
+
+
+def plot_espectros(lista_dfs,nome="fig"):
+    colors = ['y', 'm', 'c', 'r', 'g', 'b']
+    plt.figure(figsize=(10, 6))
+    for df,color in zip(lista_dfs,colors):
+        df_t=df.transpose()
+        plt.plot(df_t.index,df_t,color=color,linewidth=0.3)
+    legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
+    plt.legend(handles=legend_elements, fontsize=14)   
+    plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
+    plt.ylabel('Absorbância', fontsize=22)
+    plt.xticks(df_t.index[::500], rotation=45)
+    plt.tight_layout()
+    plt.savefig(nome)
+    plt.show()
+
 
 
 
