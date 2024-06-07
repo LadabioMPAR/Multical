@@ -55,3 +55,29 @@ def sav_gol(df, janela, polyorder,derivada=0):
         df_filtrada[column] = savgol_filter(df_filtrada[column], janela, polyorder,deriv=derivada)
 
     return df_filtrada
+
+
+def cut(df, lower_bound, upper_bound):
+    """
+    Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.
+
+    Parâmetros:
+    df (pd.DataFrame): O DataFrame original.
+    lower_bound (float): O limite inferior do corte.
+    upper_bound (float): O limite superior do corte.
+
+    Retorna:
+    pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.
+    """
+    # Assumindo que a primeira linha são os valores do eixo das abcissas
+    df_copy = df.copy()
+    x_values = df_copy.iloc[0]
+
+    # Identificar as colunas que estão dentro dos limites especificados
+    cols_bounds = (x_values >= lower_bound) & (x_values <= upper_bound)
+
+    # Selecionar as colunas que estão dentro dos limites
+    df_cortado = df_copy.loc[:, cols_bounds]
+
+    return df_cortado
+
