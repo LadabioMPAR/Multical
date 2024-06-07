@@ -12,8 +12,8 @@ import tkinter as tk
 from tkinter import ttk
 import time
 from matplotlib.lines import Line2D
-from sklearn.cross_decomposition import PLSRegression
 from sklearn.decomposition import PCA
+
 '''
 Lista de bugs ^^
 
@@ -247,7 +247,7 @@ class Dados_exp:
         plt.savefig(nome)
         plt.show()
     
-    def LB(self):
+    def LB(self,plots=False):
 
         '''
         Método faz a análise de mínimos quadrados clássicos para verificar a aplicabilidade da lei de lambert-beer
@@ -263,32 +263,35 @@ class Dados_exp:
         # Lambert-Beer sem termo independente
         xone = x
         Ks = np.linalg.lstsq(xone, absor, rcond=None)[0]
-        absorc = np.dot(xone, Ks)
+        absorc1 = np.dot(xone, Ks)
 
         # convertendo para arrays
-        xymax = max(np.max(absor.values), np.max(absorc))
-        xymin = min(np.min(absor.values), np.min(absorc))
+        xymax = max(np.max(absor.values), np.max(absorc1))
+        xymin = min(np.min(absor.values), np.min(absorc1))
 
-        plt.figure(1)
-        plt.plot(absor, absorc, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-        plt.plot([xymin, xymax], [xymin, xymax], '-k')
-        plt.xlabel('Absorbância de referência')
-        plt.ylabel('Absorbância calculada L-B')
-        plt.title('ajuste absorbância SEM termo idependente')
+
 
         # Lambert-Beer com termo independente
         xone = np.hstack((np.ones((nd, 1)), x))
         Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
-        absorc = np.dot(xone, Kc)
+        absorc2 = np.dot(xone, Kc)
+        if plots:
 
-        plt.figure(2)
-        plt.plot(absor, absorc, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-        plt.plot([xymin, xymax], [xymin, xymax], '-k')
-        plt.xlabel('Absorbância de referência')
-        plt.ylabel('Absorbância calculada L-B')
-        plt.title('ajuste absorbância COM termo idependente')
+            plt.figure(1)
+            plt.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            plt.plot([xymin, xymax], [xymin, xymax], '-k')
+            plt.xlabel('Absorbância de referência')
+            plt.ylabel('Absorbância calculada L-B')
+            plt.title('ajuste absorbância SEM termo idependente')
 
-        plt.show()
+            plt.figure(2)
+            plt.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            plt.plot([xymin, xymax], [xymin, xymax], '-k')
+            plt.xlabel('Absorbância de referência')
+            plt.ylabel('Absorbância calculada L-B')
+            plt.title('ajuste absorbância COM termo idependente')
+
+            plt.show()
         return (Ks,Kc)
     
     def PCA(self,plots=False):
@@ -356,6 +359,7 @@ class Dados_exp:
             plt.ylabel('PC2')
             plt.title('Componentes principais')
             plt.show(block=False)
+
             # Criando uma janela com tkinter
             root = tk.Tk()
             root.title('Variância Explicada')
@@ -378,15 +382,15 @@ class Dados_exp:
         return eigvec, eigval, var_rel, var_ac[:maxind]
     
 teste=Dados_exp()
-print(teste.stack_x().shape)
+
 t0 = time.time()
 
-varac=teste.PCA(plots=True)[3]
+varac=teste.PCA()[3]
 
 t1 = time.time()
 
 norm = (teste.stack_x() - teste.stack_x().mean()) / teste.stack_x().std()
-from sklearn.decomposition import PCA
+
 pca_ = PCA()
 principalComponents_ = pca_.fit_transform(norm)
 
@@ -394,6 +398,5 @@ t2 = time.time()
 
 print(f"tempo para o meu codigo: {t1-t0}")
 print(f"tempo para o scikit learn: {t2-t1}")
-print(len(varac))
-print(len(pca_.explained_variance_ratio_))
-#usando o scikit learn, nós não normalizamos, por isso os resultados dão diferentes
+
+
