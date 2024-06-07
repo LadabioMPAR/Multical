@@ -12,13 +12,24 @@ from scipy.stats import f
 import csv
 
 
-def multical(Xtot,ytot,select_teste):
+def multical(Xtot,ytot):
+    '''
+    Xtot e ytot são listas de mesmo tamanho, contendo as matrizes de absorbância X e concentrações de HPLC
+    das espécies y correspondentes com mesmo # de linhas. Ambos fazem parte do conjunto de dados de treinamento. 
+    
+    A multicalibração é feita via PLS. Para a escolha de regressores do PLS, é feita a validação cruzada por k-fold.
+    Os dados são juntados em duas matrizes Xs e ys, e embaralhados, 
+    
+    
+    '''
+
     
     y = ytot[0]
     X = Xtot[0]
     cname = ['lac', 'gli', 'gal', 'gos3', 'gos4']
     nesp = y.shape[1] ## n  de especies medidas
-       
+      
+    #a
 
 
     #%% PLS
