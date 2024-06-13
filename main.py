@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import ttk
 import time
 from matplotlib.lines import Line2D
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA as sklearnPCA
 
 '''
 Lista de bugs ^^
@@ -294,7 +294,7 @@ class Dados_exp:
             plt.show()
         return (Ks,Kc)
     
-    def PCA(self,plots=False):
+    def PCA_manual(self,plots=False):
         """
         Código para implementação do PCA
 
@@ -380,23 +380,106 @@ class Dados_exp:
             # Iniciando a interface
             root.mainloop()
         return eigvec, eigval, var_rel, var_ac[:maxind]
-    
+    def PCA(self, plots=False):
+        """
+        Código para implementação do PCA usando scikit-learn
+
+        Parâmetros:
+
+            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
+
+        Retorna:
+            eigvec, eigval, var_rel, var_ac
+            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
+            eigval (numpy.ndarray): autovalores da matriz de covariância
+            var_rel (numpy.ndarray): Lista de variância relativa das PCs
+            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
+
+        """
+        absor = self.stack_x()
+        lambda_values = self.comprimentos
+
+        # Normalizando
+        anorm = (absor - np.mean(absor, axis=0)) / np.std(absor, axis=0)
+
+        # Realizando PCA
+        pca = sklearnPCA()
+        pca.fit(anorm)
+
+        eigvec = pca.components_.T
+        eigval = pca.explained_variance_
+        var_rel = pca.explained_variance_ratio_
+        var_ac = np.cumsum(var_rel)
+
+        # Selecionando as variâncias até um certo limite para print
+        limite = 0.9999
+        maxind = np.argmax(var_ac >= limite) + 1
+
+        if plots:
+            # Plotando as 3 primeiras PC's
+            plt.figure(1)
+            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
+            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
+            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
+            plt.axhline(0, color='k')
+            plt.xlabel('Comprimento')
+            plt.ylabel('PC')
+            plt.title('Componentes principais')
+            plt.legend()
+
+            # plot para as duas primeiras componentes principais
+            pc1 = pca.transform(anorm)[:, 0]
+            pc2 = pca.transform(anorm)[:, 1]
+            plt.figure(2)
+            plt.scatter(pc1, pc2, marker='x')
+            plt.xlabel('PC1')
+            plt.ylabel('PC2')
+            plt.title('Componentes principais')
+            plt.show(block=False)
+
+            # Criando uma janela com tkinter
+            root = tk.Tk()
+            root.title('Variância Explicada')
+
+            # Criando a tabela
+            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
+            tree = ttk.Treeview(root, columns=cols, show='headings')
+
+            for col in cols:
+                tree.heading(col, text=col)
+
+            # Inserindo os dados na tabela
+            for i in range(maxind):
+                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
+
+            tree.pack(expand=True, fill='both')
+            
+            # Iniciando a interface
+            root.mainloop()
+
+        return eigvec, eigval, var_rel, var_ac[:maxind]
+
 teste=Dados_exp()
+df=teste.X[0]
+print(df.shape)
+def cut(df, lower_bound, upper_bound):
+    """
+    Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.
 
-t0 = time.time()
+    Parâmetros:
+    df (pd.DataFrame): O DataFrame original.
+    lower_bound (float): O limite inferior do corte.
+    upper_bound (float): O limite superior do corte.
 
-varac=teste.PCA()[3]
+    Retorna:
+    pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.
+    """
+    # 
+    df_cut = df.copy()
+    x_values = [int(x) for x in df.columns.values]
+    lista_para_drop=[str(i) for i in list(filter(lambda i : i < (lower_bound) or i >= (upper_bound+1), x_values))]
+    # Identificar as colunas que estão dentro dos limites especificados
+    return df_cut.drop(columns=lista_para_drop)
 
-t1 = time.time()
-
-norm = (teste.stack_x() - teste.stack_x().mean()) / teste.stack_x().std()
-
-pca_ = PCA()
-principalComponents_ = pca_.fit_transform(norm)
-
-t2 = time.time()
-
-print(f"tempo para o meu codigo: {t1-t0}")
-print(f"tempo para o scikit learn: {t2-t1}")
-
-
+cort_df=cut(df,7000,8000)
+print(cort_df)
