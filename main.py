@@ -182,7 +182,7 @@ class Dados_exp:
         if salvar: #não testei ainda
             self.salvar(nome_x="abs-pretratadas",nome_y="refs-pretratadas",workspace="workspace-pretratado")
             
-        return Dados_exp(X=X_tratado,y=self.y,comprimentos=self.comprimentos,analitos=self.analitos)
+        return Dados_exp(X=X_tratado,y=self.y,comprimentos=[int(coluna) for coluna in X_tratado[0].columns.tolist()] if X_tratado else [],analitos=self.analitos)
 
     def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
         '''
@@ -234,6 +234,7 @@ class Dados_exp:
         atualmente funciona para até 6 arquivos diferentes
         '''
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
+        
         plt.figure(figsize=(10, 6))
         for df,color in zip(self.X,colors):
             df_t=df.transpose()
@@ -380,6 +381,7 @@ class Dados_exp:
             # Iniciando a interface
             root.mainloop()
         return eigvec, eigval, var_rel, var_ac[:maxind]
+    
     def PCA(self, plots=False):
         """
         Código para implementação do PCA usando scikit-learn
@@ -460,26 +462,8 @@ class Dados_exp:
         return eigvec, eigval, var_rel, var_ac[:maxind]
 
 teste=Dados_exp()
-df=teste.X[0]
-print(df.shape)
-def cut(df, lower_bound, upper_bound):
-    """
-    Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.
 
-    Parâmetros:
-    df (pd.DataFrame): O DataFrame original.
-    lower_bound (float): O limite inferior do corte.
-    upper_bound (float): O limite superior do corte.
 
-    Retorna:
-    pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.
-    """
-    # 
-    df_cut = df.copy()
-    x_values = [int(x) for x in df.columns.values]
-    lista_para_drop=[str(i) for i in list(filter(lambda i : i < (lower_bound) or i >= (upper_bound+1), x_values))]
-    # Identificar as colunas que estão dentro dos limites especificados
-    return df_cut.drop(columns=lista_para_drop)
-
-cort_df=cut(df,7000,8000)
-print(cort_df)
+teste.PCA_manual(plots=True)
+time.sleep(5)
+teste.PCA(plots=True)
