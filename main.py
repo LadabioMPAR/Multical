@@ -13,12 +13,17 @@ from tkinter import ttk
 import time
 from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
+from matplotlib.gridspec import GridSpec
+from contextlib import contextmanager
+
 
 '''
 Lista de bugs ^^
 
 1- se o workspace estiver definido mas com as chaves vazias, o objeto quebra na hora de ler
     provavelmente a condição para rodar o subprocesso no __init__ pode ser melhorada
+
+2- No PCA, se você fechar a tabela antes de fechar os gráficos, o python quebra xDD
 '''
 
 class Dados_exp:
@@ -245,8 +250,11 @@ class Dados_exp:
         plt.ylabel('Absorbância', fontsize=22)
         plt.xticks(df_t.index[::500], rotation=45)
         plt.tight_layout()
-        plt.savefig(nome)
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)  # pause para deixar renderizar
+
+        # input pra dar um pouse
+        input("Aperte enter para continuar") 
     
     def LB(self,plots=False):
 
@@ -270,29 +278,34 @@ class Dados_exp:
         xymax = max(np.max(absor.values), np.max(absorc1))
         xymin = min(np.min(absor.values), np.min(absorc1))
 
-
-
         # Lambert-Beer com termo independente
         xone = np.hstack((np.ones((nd, 1)), x))
         Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
         absorc2 = np.dot(xone, Kc)
         if plots:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-            plt.figure(1)
-            plt.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            plt.plot([xymin, xymax], [xymin, xymax], '-k')
-            plt.xlabel('Absorbância de referência')
-            plt.ylabel('Absorbância calculada L-B')
-            plt.title('ajuste absorbância SEM termo idependente')
+            # Plot for Lambert-Beer sem termo independente
+            ax1.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            ax1.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc1), np.max(absorc1)], '-k')
+            ax1.set_xlabel('Absorbância de referência')
+            ax1.set_ylabel('Absorbância calculada L-B')
+            ax1.set_title('Ajuste absorbância SEM termo independente')
 
-            plt.figure(2)
-            plt.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            plt.plot([xymin, xymax], [xymin, xymax], '-k')
-            plt.xlabel('Absorbância de referência')
-            plt.ylabel('Absorbância calculada L-B')
-            plt.title('ajuste absorbância COM termo idependente')
+            # Plot for Lambert-Beer com termo independente
+            ax2.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            ax2.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc2), np.max(absorc2)], '-k')
+            ax2.set_xlabel('Absorbância de referência')
+            ax2.set_ylabel('Absorbância calculada L-B')
+            ax2.set_title('Ajuste absorbância COM termo independente')
 
-            plt.show()
+            # ajustando layout
+            fig.tight_layout()
+            plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
+
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
         return (Ks,Kc)
     
     def PCA_manual(self,plots=False):
@@ -338,29 +351,58 @@ class Dados_exp:
         maxind = np.argmax(var_ac >= limite) + 1
         
         if plots:
-            
-            # Plotando as 3 primeiras PC's
-            plt.figure(1)
-            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
-            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
-            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
-            plt.axhline(0, color='k')
-            plt.xlabel('Comprimento')
-            plt.ylabel('PC')
-            plt.title('Componentes principais')
-            plt.legend()
+
+            fig = plt.figure(figsize=(12, 10))
+            gs = GridSpec(3, 2, figure=fig, height_ratios=[1, 1, 0.1],width_ratios=[1, 1])
+
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax5 = fig.add_subplot(gs[1:, :])
+
+            # Plotando as 3 primeiras PCs
+            ax1.plot(lambda_values, eigvec[:, 0], label='PC1')
+            ax1.plot(lambda_values, eigvec[:, 1], label='PC2')
+            ax1.plot(lambda_values, eigvec[:, 2], label='PC3')
+            ax1.axhline(0, color='k')
+            ax1.set_xlabel('Comprimento')
+            ax1.set_ylabel('PC')
+            ax1.set_title('Componentes principais')
+            ax1.legend()
             
 
             # plot para as duas primeiras componentes principais
             pc1 = np.dot(anorm, eigvec[:, 0])
             pc2 = np.dot(anorm, eigvec[:, 1])
-            plt.figure(2)
-            plt.scatter(pc1, pc2, marker='x')
-            plt.xlabel('PC1')
-            plt.ylabel('PC2')
-            plt.title('Componentes principais')
-            plt.show(block=False)
+            ax2.scatter(pc1, pc2, marker='x')
+            ax2.set_xlabel('PC1')
+            ax2.set_ylabel('PC2')
+            ax2.set_title('Componentes principais')
 
+            # Plotando a variância explicada e a variância acumulada
+            ax6 = ax5.twinx()
+
+            color = 'tab:blue'
+            ax5.set_xlabel('Componente Principal')
+            ax5.set_ylabel('Variância Explicada', color=color)
+            ax5.plot(range(1, len(var_rel[:maxind]) + 1), var_rel[:maxind], color=color, label='Variância Explicada')
+            ax5.tick_params(axis='y')
+
+            color = 'tab:red'
+            ax6.set_ylabel('Variância Acumulada', color=color)
+            ax6.plot(range(1, len(var_ac[:maxind]) + 1), var_ac[:maxind], color=color, label='Variância Acumulada')
+            ax6.tick_params(axis='y')
+            ax5.set_title('Variância Explicada e Acumulada por Componente Principal')
+
+            fig.tight_layout(pad=2.0)
+            fig.suptitle('Análise de PCA manual', fontsize=16)
+            plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
+
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
+
+
+            '''
             # Criando uma janela com tkinter
             root = tk.Tk()
             root.title('Variância Explicada')
@@ -380,7 +422,9 @@ class Dados_exp:
             
             # Iniciando a interface
             root.mainloop()
-        return eigvec, eigval, var_rel, var_ac[:maxind]
+            '''
+
+        return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
     def PCA(self, plots=False):
         """
@@ -405,7 +449,7 @@ class Dados_exp:
         anorm = (absor - np.mean(absor, axis=0)) / np.std(absor, axis=0)
 
         # Realizando PCA
-        pca = sklearnPCA()
+        pca = sklearnPCA(svd_solver="covariance_eigh")
         pca.fit(anorm)
 
         eigvec = pca.components_.T
@@ -416,54 +460,81 @@ class Dados_exp:
         # Selecionando as variâncias até um certo limite para print
         limite = 0.9999
         maxind = np.argmax(var_ac >= limite) + 1
-
+        
         if plots:
-            # Plotando as 3 primeiras PC's
-            plt.figure(1)
-            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
-            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
-            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
-            plt.axhline(0, color='k')
-            plt.xlabel('Comprimento')
-            plt.ylabel('PC')
-            plt.title('Componentes principais')
-            plt.legend()
+            fig = plt.figure(figsize=(12, 10))
+            gs = GridSpec(3, 2, figure=fig, height_ratios=[1, 1, 0.1],width_ratios=[1, 1])
 
-            # plot para as duas primeiras componentes principais
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax5 = fig.add_subplot(gs[1:, :])
+
+            # Plotando as 3 primeiras PCs
+            ax1.plot(lambda_values, eigvec[:, 0], label='PC1')
+            ax1.plot(lambda_values, eigvec[:, 1], label='PC2')
+            ax1.plot(lambda_values, eigvec[:, 2], label='PC3')
+            ax1.axhline(0, color='k')
+            ax1.set_xlabel('Comprimento')
+            ax1.set_ylabel('PC')
+            ax1.set_title('Componentes principais')
+            ax1.legend()
+
+            # Plot para as duas primeiras componentes principais
             pc1 = pca.transform(anorm)[:, 0]
             pc2 = pca.transform(anorm)[:, 1]
-            plt.figure(2)
-            plt.scatter(pc1, pc2, marker='x')
-            plt.xlabel('PC1')
-            plt.ylabel('PC2')
-            plt.title('Componentes principais')
+            ax2.scatter(pc1, pc2, marker='x')
+            ax2.set_xlabel('PC1')
+            ax2.set_ylabel('PC2')
+            ax2.set_title('Componentes principais')
+
+            # Plotando a variância explicada e a variância acumulada
+            ax6 = ax5.twinx()
+
+            color = 'tab:blue'
+            ax5.set_xlabel('Componente Principal')
+            ax5.set_ylabel('Variância Explicada', color=color)
+            ax5.plot(range(1, len(var_rel[:maxind]) + 1), var_rel[:maxind], color=color, label='Variância Explicada')
+            ax5.tick_params(axis='y')
+
+            color = 'tab:red'
+            ax6.set_ylabel('Variância Acumulada', color=color)
+            ax6.plot(range(1, len(var_ac[:maxind]) + 1), var_ac[:maxind], color=color, label='Variância Acumulada')
+            ax6.tick_params(axis='y')
+            ax5.set_title('Variância Explicada e Acumulada por Componente Principal')
+
+            fig.tight_layout(pad=2.0,rect=[0, 0.03, 1, 0.95])
+            fig.suptitle('Análise de PCA', fontsize=16)
             plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
 
-            # Criando uma janela com tkinter
-            root = tk.Tk()
-            root.title('Variância Explicada')
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
 
-            # Criando a tabela
-            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
-            tree = ttk.Treeview(root, columns=cols, show='headings')
 
-            for col in cols:
-                tree.heading(col, text=col)
 
-            # Inserindo os dados na tabela
-            for i in range(maxind):
-                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
+        '''
+        # Criando uma janela com tkinter
+        root = tk.Tk()
+        root.title('Variância Explicada')
 
-            tree.pack(expand=True, fill='both')
-            
-            # Iniciando a interface
-            root.mainloop()
+        # Criando a tabela
+        cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
+        tree = ttk.Treeview(root, columns=cols, show='headings')
 
-        return eigvec, eigval, var_rel, var_ac[:maxind]
+        for col in cols:
+            tree.heading(col, text=col)
+
+        # Inserindo os dados na tabela
+        for i in range(maxind):
+            tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
+
+        tree.pack(expand=True, fill='both')
+        
+        # Iniciando a interface
+        root.mainloop()
+        '''
+        return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
 teste=Dados_exp()
-
-
-teste.PCA_manual(plots=True)
-time.sleep(5)
-teste.PCA(plots=True)
+a=teste.PCA(plots=1)
+#b=teste.PCA_manual(plots=1)
