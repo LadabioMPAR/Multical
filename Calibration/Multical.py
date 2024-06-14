@@ -10,37 +10,29 @@ import random
 from scipy.stats import t
 from scipy.stats import f
 import csv
+import pandas as pd
 
-
-def multical(Xtot,ytot):
+def multical(X,y):
     '''
-    Xtot e ytot são listas de mesmo tamanho, contendo as matrizes de absorbância X e concentrações de HPLC
-    das espécies y correspondentes com mesmo # de linhas. Ambos fazem parte do conjunto de dados de treinamento. 
+    Xtot e ytot são listas de mesmo tamanho, contendo as matrizes de absorbância (X) e concentrações de HPLC
+    das espécies (y) correspondentes com mesmo # de linhas. Ambos fazem parte do conjunto de dados de treinamento. 
     
     A multicalibração é feita via PLS. Para a escolha de regressores do PLS, é feita a validação cruzada por k-fold.
     Os dados são juntados em duas matrizes Xs e ys, e embaralhados, 
     
     
     '''
-
     
-    y = ytot[0]
-    X = Xtot[0]
+        
     cname = ['lac', 'gli', 'gal', 'gos3', 'gos4']
     nesp = y.shape[1] ## n  de especies medidas
-      
-    #a
-
 
     #%% PLS
     nregmax = 15 ## n de regressores maximo a ser testado
     y_cv = np.zeros(y.shape)
     rmsecv   = np.zeros([nregmax,nesp])
-    
-    yn = y/np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0)
-    
-    
-    nd = yn.shape[0]
+
+    nd = y.shape[0]
     
     Xs = np.zeros(X.shape)
     ys = np.zeros(y.shape)
@@ -59,7 +51,8 @@ def multical(Xtot,ytot):
             pls = PLSRegression(n_components=nregs,scale=True)
             y_cv[:,esp] = cross_val_predict(pls, Xs[:,:],ys[:,esp],cv=4).flatten()
             rmsecv[nregs-1,esp] = np.sqrt((ys[:,esp]- y_cv[:,esp]).dot(ys[:,esp]- y_cv[:,esp])/nd)
-            
+    
+    # print(rmsecv)
 
   
 
@@ -151,5 +144,8 @@ def multical(Xtot,ytot):
         writer = csv.writer(file)
         writer.writerow(error_matrix)
         writer.writerow(model_matrix)
-    
+        
+    all = [X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs]
+    print(all)
     return X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs
+

@@ -1,18 +1,8 @@
 {
     "comprimentos": [
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs01.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs02.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs03.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs04.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs05.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs06.txt"
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/Abs_LimonenoTerpineolNEW.txt"
     ],
     "referencias": [
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x01.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x02.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x03.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x04.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x05.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x06.txt"
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/X_LimonenoTerpineol.txt"
     ]
 }

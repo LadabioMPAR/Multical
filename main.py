@@ -15,6 +15,7 @@ from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
 from contextlib import contextmanager
+from Calibration import Multical
 
 
 '''
@@ -427,6 +428,8 @@ class Dados_exp:
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
     def PCA(self, plots=False):
+        
+
         """
         Código para implementação do PCA usando scikit-learn
 
@@ -535,6 +538,13 @@ class Dados_exp:
         '''
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
+    def multicalib(self):
+        # Xtot = self.X
+        Xtot = self.stack_x().to_numpy()
+        ytot = self.stack_y().to_numpy()
+        
+        return Multical.multical(Xtot,ytot)
+
 teste=Dados_exp()
-a=teste.PCA(plots=1)
-#b=teste.PCA_manual(plots=1)
+a=teste.multicalib()
+# b=teste.PCA_manual(plots=1)
