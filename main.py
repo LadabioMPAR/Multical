@@ -7,9 +7,13 @@ import Pretreat as pt
 import subprocess
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import numpy as np
+import tkinter as tk
+from tkinter import ttk
+import time
 from matplotlib.lines import Line2D
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA as sklearnPCA
+
 '''
 Lista de bugs ^^
 
@@ -135,7 +139,7 @@ class Dados_exp:
         '''
         if not self.X:
             raise ValueError("A lista de absorbâncias está vazia.")
-        return pd.concat(self.X, axis=0, ignore_index=True)
+        return pd.concat(self.X.copy(), axis=0, ignore_index=True)
     
     def stack_y(self):
         '''
@@ -147,7 +151,7 @@ class Dados_exp:
         '''
         if not self.y:
             raise ValueError("A lista de referências está vazia.")
-        return pd.concat(self.y, axis=0, ignore_index=True)
+        return pd.concat(self.y.copy(), axis=0, ignore_index=True)
 
     def pretreat(self, pretratamentos,salvar=False):
         '''
@@ -178,7 +182,7 @@ class Dados_exp:
         if salvar: #não testei ainda
             self.salvar(nome_x="abs-pretratadas",nome_y="refs-pretratadas",workspace="workspace-pretratado")
             
-        return Dados_exp(X=X_tratado,y=self.y,comprimentos=self.comprimentos,analitos=self.analitos)
+        return Dados_exp(X=X_tratado,y=self.y,comprimentos=[int(coluna) for coluna in X_tratado[0].columns.tolist()] if X_tratado else [],analitos=self.analitos)
 
     def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
         '''
@@ -224,22 +228,242 @@ class Dados_exp:
         with open(f'{workspace}.json', 'w') as json_file:
             json.dump(json_data, json_file, indent=4)
 
+    def plot_espectros(self,nome="fig"):
+        '''
+        Método para plotar os espectros contidos por matriz em X
+        atualmente funciona para até 6 arquivos diferentes
+        '''
+        colors = ['y', 'm', 'c', 'r', 'g', 'b']
+        
+        plt.figure(figsize=(10, 6))
+        for df,color in zip(self.X,colors):
+            df_t=df.transpose()
+            plt.plot(df_t.index,df_t,color=color,linewidth=0.3)
+        legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
+        plt.legend(handles=legend_elements, fontsize=14)   
+        plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
+        plt.ylabel('Absorbância', fontsize=22)
+        plt.xticks(df_t.index[::500], rotation=45)
+        plt.tight_layout()
+        plt.savefig(nome)
+        plt.show()
+    
+    def LB(self,plots=False):
 
-def plot_espectros(lista_dfs,nome="fig"):
-    colors = ['y', 'm', 'c', 'r', 'g', 'b']
-    plt.figure(figsize=(10, 6))
-    for df,color in zip(lista_dfs,colors):
-        df_t=df.transpose()
-        plt.plot(df_t.index,df_t,color=color,linewidth=0.3)
-    legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
-    plt.legend(handles=legend_elements, fontsize=14)   
-    plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
-    plt.ylabel('Absorbância', fontsize=22)
-    plt.xticks(df_t.index[::500], rotation=45)
-    plt.tight_layout()
-    plt.savefig(nome)
-    plt.show()
+        '''
+        Método faz a análise de mínimos quadrados clássicos para verificar a aplicabilidade da lei de lambert-beer
+        Plota a relação entre absorbância calculada e as absorbâncias de referência com e sem termo independente
+
+        Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (K sem o termo, K com termo)
+        '''
+        absor= self.stack_x()
+        x=self.stack_y()
+
+        nd, nl = absor.shape
+
+        # Lambert-Beer sem termo independente
+        xone = x
+        Ks = np.linalg.lstsq(xone, absor, rcond=None)[0]
+        absorc1 = np.dot(xone, Ks)
+
+        # convertendo para arrays
+        xymax = max(np.max(absor.values), np.max(absorc1))
+        xymin = min(np.min(absor.values), np.min(absorc1))
 
 
 
+        # Lambert-Beer com termo independente
+        xone = np.hstack((np.ones((nd, 1)), x))
+        Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
+        absorc2 = np.dot(xone, Kc)
+        if plots:
 
+            plt.figure(1)
+            plt.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            plt.plot([xymin, xymax], [xymin, xymax], '-k')
+            plt.xlabel('Absorbância de referência')
+            plt.ylabel('Absorbância calculada L-B')
+            plt.title('ajuste absorbância SEM termo idependente')
+
+            plt.figure(2)
+            plt.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            plt.plot([xymin, xymax], [xymin, xymax], '-k')
+            plt.xlabel('Absorbância de referência')
+            plt.ylabel('Absorbância calculada L-B')
+            plt.title('ajuste absorbância COM termo idependente')
+
+            plt.show()
+        return (Ks,Kc)
+    
+    def PCA_manual(self,plots=False):
+        """
+        Código para implementação do PCA
+
+        Parâmetros:
+
+            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
+
+        Retorna:
+            eigvec, eigval, var_rel, var_ac
+            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
+            eigval (numpy.ndarray): autovalores da matriz de covariância
+            var_rel (numpy.ndarray): Lista de variância relativa das PCs
+            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
+
+        """
+        absor = self.stack_x()  
+        lambda_values = self.comprimentos 
+
+        # Normalizando
+        anorm = (absor - np.mean(absor, axis=0)) / np.std(absor, axis=0)
+
+        # Matriz de covariância
+        cov_matrix = np.cov(anorm, rowvar=False)
+
+        # Autovalores e autovetores
+        eigval, eigvec = np.linalg.eigh(cov_matrix)
+
+        # Ordenando valores e vetores em ordem decrescente
+        sorted_indices = np.argsort(eigval)[::-1]
+        eigval = eigval[sorted_indices]
+        eigvec = eigvec[:, sorted_indices]
+
+        # Variância explicada
+        vartot = np.sum(eigval)
+        var_rel = eigval / vartot
+        var_ac = np.cumsum(var_rel)
+
+        # Selecionando as variâncias até um certo limite para print
+        limite = 0.9999
+        maxind = np.argmax(var_ac >= limite) + 1
+        
+        if plots:
+            
+            # Plotando as 3 primeiras PC's
+            plt.figure(1)
+            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
+            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
+            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
+            plt.axhline(0, color='k')
+            plt.xlabel('Comprimento')
+            plt.ylabel('PC')
+            plt.title('Componentes principais')
+            plt.legend()
+            
+
+            # plot para as duas primeiras componentes principais
+            pc1 = np.dot(anorm, eigvec[:, 0])
+            pc2 = np.dot(anorm, eigvec[:, 1])
+            plt.figure(2)
+            plt.scatter(pc1, pc2, marker='x')
+            plt.xlabel('PC1')
+            plt.ylabel('PC2')
+            plt.title('Componentes principais')
+            plt.show(block=False)
+
+            # Criando uma janela com tkinter
+            root = tk.Tk()
+            root.title('Variância Explicada')
+
+            # Criando a tabela
+            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
+            tree = ttk.Treeview(root, columns=cols, show='headings')
+
+            for col in cols:
+                tree.heading(col, text=col)
+
+            # Inserindo os dados na tabela
+            for i in range(maxind):
+                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
+
+            tree.pack(expand=True, fill='both')
+            
+            # Iniciando a interface
+            root.mainloop()
+        return eigvec, eigval, var_rel, var_ac[:maxind]
+    
+    def PCA(self, plots=False):
+        """
+        Código para implementação do PCA usando scikit-learn
+
+        Parâmetros:
+
+            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
+
+        Retorna:
+            eigvec, eigval, var_rel, var_ac
+            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
+            eigval (numpy.ndarray): autovalores da matriz de covariância
+            var_rel (numpy.ndarray): Lista de variância relativa das PCs
+            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
+
+        """
+        absor = self.stack_x()
+        lambda_values = self.comprimentos
+
+        # Normalizando
+        anorm = (absor - np.mean(absor, axis=0)) / np.std(absor, axis=0)
+
+        # Realizando PCA
+        pca = sklearnPCA()
+        pca.fit(anorm)
+
+        eigvec = pca.components_.T
+        eigval = pca.explained_variance_
+        var_rel = pca.explained_variance_ratio_
+        var_ac = np.cumsum(var_rel)
+
+        # Selecionando as variâncias até um certo limite para print
+        limite = 0.9999
+        maxind = np.argmax(var_ac >= limite) + 1
+
+        if plots:
+            # Plotando as 3 primeiras PC's
+            plt.figure(1)
+            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
+            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
+            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
+            plt.axhline(0, color='k')
+            plt.xlabel('Comprimento')
+            plt.ylabel('PC')
+            plt.title('Componentes principais')
+            plt.legend()
+
+            # plot para as duas primeiras componentes principais
+            pc1 = pca.transform(anorm)[:, 0]
+            pc2 = pca.transform(anorm)[:, 1]
+            plt.figure(2)
+            plt.scatter(pc1, pc2, marker='x')
+            plt.xlabel('PC1')
+            plt.ylabel('PC2')
+            plt.title('Componentes principais')
+            plt.show(block=False)
+
+            # Criando uma janela com tkinter
+            root = tk.Tk()
+            root.title('Variância Explicada')
+
+            # Criando a tabela
+            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
+            tree = ttk.Treeview(root, columns=cols, show='headings')
+
+            for col in cols:
+                tree.heading(col, text=col)
+
+            # Inserindo os dados na tabela
+            for i in range(maxind):
+                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
+
+            tree.pack(expand=True, fill='both')
+            
+            # Iniciando a interface
+            root.mainloop()
+
+        return eigvec, eigval, var_rel, var_ac[:maxind]
+
+teste=Dados_exp()
+
+
+teste.PCA_manual(plots=True)
+time.sleep(5)
+teste.PCA(plots=True)

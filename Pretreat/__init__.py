@@ -69,15 +69,12 @@ def cut(df, lower_bound, upper_bound):
     Retorna:
     pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.
     """
-    # Assumindo que a primeira linha são os valores do eixo das abcissas
-    df_copy = df.copy()
-    x_values = df_copy.iloc[0]
-
-    # Identificar as colunas que estão dentro dos limites especificados
-    cols_bounds = (x_values >= lower_bound) & (x_values <= upper_bound)
-
-    # Selecionar as colunas que estão dentro dos limites
-    df_cortado = df_copy.loc[:, cols_bounds]
-
-    return df_cortado
+    # Faz uma cópia para não dar problema
+    df_cut = df.copy()
+    #Transformando nomes das colunas em valores inteiros
+    x_values = [int(x) for x in df.columns.values]
+    #Definindo uma lista de valores que não estão entre os limites upper e lower
+    lista_para_drop=[str(i) for i in list(filter(lambda i : i < (lower_bound) or i >= (upper_bound+1), x_values))]
+    # descartando as colunas que não estão entre os limites
+    return df_cut.drop(columns=lista_para_drop)
 
