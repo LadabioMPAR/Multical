@@ -14,8 +14,8 @@ import time
 from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
-from contextlib import contextmanager
 
+from Calibration import Multical as multi
 
 '''
 Lista de bugs ^^
@@ -534,7 +534,15 @@ class Dados_exp:
         root.mainloop()
         '''
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
+    
+
+
 
 teste=Dados_exp()
 a=teste.PCA(plots=1)
+b=teste.LB(plots=1)
 #b=teste.PCA_manual(plots=1)
+
+
+
+
