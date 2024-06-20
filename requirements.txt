@@ -6,3 +6,4 @@ pandas
 scikit-learn
 tqdm
 statsmodels
+python3-tk
