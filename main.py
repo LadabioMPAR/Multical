@@ -15,7 +15,6 @@ from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
 
-from Calibration import Multical as multi
 
 '''
 Lista de bugs ^^
@@ -164,6 +163,13 @@ class Dados_exp:
         Parâmetros:
             pretratamentos: lista de tuplas, cada uma contendo:
                             (nome da função de pré-tratamento, dicionário de argumentos)
+                            Exemplo:
+                                pretratamentos_exemplo=[
+                                    ('media_movel',{'tam_janela':10}),
+                                    ('sav_gol',{'janela':4500,'polyorder':3,'derivada':1}),
+                                    ('cut',{'lower_bound':4500,'upper_bound':8500}),
+                                    ('cut_abs',{'maxAbs':1.5}),
+                                    ('BLCtr',{'ini_lamb':8000,'final_lamb':8500,'Abs_value':1})]
             salvar: Booleano, se True salva os dataframes em arquivo e gera workspace
     
          Retorna:
@@ -262,7 +268,7 @@ class Dados_exp:
         Método faz a análise de mínimos quadrados clássicos para verificar a aplicabilidade da lei de lambert-beer
         Plota a relação entre absorbância calculada e as absorbâncias de referência com e sem termo independente
 
-        Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (K sem o termo, K com termo)
+        Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (Ks sem o termo, Kc com termo)
         '''
         absor= self.stack_x()
         x=self.stack_y()
@@ -535,14 +541,4 @@ class Dados_exp:
         '''
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
-
-
-
-teste=Dados_exp()
-a=teste.PCA(plots=1)
-b=teste.LB(plots=1)
-#b=teste.PCA_manual(plots=1)
-
-
-
 

@@ -6,3 +6,4 @@ pandas
 tkinter
 scikit-learn
 tqdm
+statsmodels

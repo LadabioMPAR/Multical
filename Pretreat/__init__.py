@@ -1,6 +1,6 @@
 import pandas as pd
 from scipy.signal import savgol_filter
-
+import numpy as np
 
 def media_movel(x, tam_janela):
     """
@@ -24,8 +24,7 @@ def media_movel(x, tam_janela):
         print(f"Erro ao calcular a média móvel: {e}")
     return df_media_movel
 
-
-def sav_gol(df, janela, polyorder,derivada=0):
+def sav_gol(df, janela, polyorder=1,derivada=0):
     """
     Função que aplica o filtro Savitzky-Golay em cada coluna de um DataFrame.
 
@@ -56,7 +55,6 @@ def sav_gol(df, janela, polyorder,derivada=0):
 
     return df_filtrada
 
-
 def cut(df, lower_bound, upper_bound):
     """
     Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.
@@ -77,4 +75,59 @@ def cut(df, lower_bound, upper_bound):
     lista_para_drop=[str(i) for i in list(filter(lambda i : i < (lower_bound) or i >= (upper_bound+1), x_values))]
     # descartando as colunas que não estão entre os limites
     return df_cut.drop(columns=lista_para_drop)
+
+def cut_abs(df, maxAbs=0.5, action=1):
+    """
+    Função para processar um DataFrame do pandas similar ao trecho de código Scilab.
+    
+    Parâmetros:
+    - df: DataFrame do pandas a ser processado
+    - maxAbs: valor absoluto máximo permitido (o padrão é 0.5)
+    - action: flag para determinar se as linhas devem ser removidas (o padrão é 1)
+    - graph: flag para plotagem (não usado nesta função, o padrão é 1)
+    
+    Retorna:
+    - df: DataFrame do pandas processado
+    """
+    
+    # Encontra índices onde os valores absolutos excedem maxAbs
+    indices = df[df.abs() >= maxAbs].dropna(how='all').index
+    
+    # Verifica se existem tais índices
+    if not indices.empty:
+        df = df.drop(indices)
+    
+    return df
+
+def BLCtr(df, ini_lamb, final_lamb, Abs_value):
+    """
+    Função para correção de linha de base em uma matriz de absorbância.
+
+    Parâmetros:
+    - absor: DataFrame do pandas contendo a matriz de absorbância
+    - ini_lamb: comprimento de onda inicial para a região não informativa (nome da coluna)
+    - final_lamb: comprimento de onda final para a região não informativa (nome da coluna)
+    - Abs_value: valor médio de absorbância na região não informativa
+
+    Retorna:
+    - absor: DataFrame do pandas com a linha de base corrigida
+    """
+    
+    # Encontra os índices das colunas onde lambda está dentro do intervalo especificado
+    ind_ini = df.columns.get_loc(str(ini_lamb))
+    ind_final = df.columns.get_loc(str(ini_lamb))
+    
+    # Seleciona as colunas com base nos índices encontrados
+    ind = df.columns[ind_ini:ind_final+1]
+    
+    # Calcula a diferença média na região não informativa
+    Dabs = df.loc[:, ind].mean(axis=1) - Abs_value
+    
+    # Cria uma matriz de diferença média para ajustar a matriz de absorbância
+    DabsMatr = np.tile(Dabs.values[:, np.newaxis], (1, df.shape[1]))
+    
+    # Ajusta a matriz de absorbância subtraindo a matriz de diferença
+    absor_corrected = df - DabsMatr
+    
+    return absor_corrected
 
