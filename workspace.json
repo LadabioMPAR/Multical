@@ -1,8 +1,18 @@
 {
     "comprimentos": [
-        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/Abs_LimonenoTerpineolNEW.txt"
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs01.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs02.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs03.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs04.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs05.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs06.txt"
     ],
     "referencias": [
-        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/X_LimonenoTerpineol.txt"
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x01.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x02.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x03.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x04.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x05.txt",
+        "C:/Users/tru/Documents/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x06.txt"
     ]
 }

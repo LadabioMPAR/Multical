@@ -12,19 +12,18 @@ from scipy.stats import f
 import csv
 import pandas as pd
 
-def multical(X,y):
+def multical(X,y,cname):
     '''
-    Xtot e ytot são listas de mesmo tamanho, contendo as matrizes de absorbância (X) e concentrações de HPLC
-    das espécies (y) correspondentes com mesmo # de linhas. Ambos fazem parte do conjunto de dados de treinamento. 
+    Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
+    das espécies (y) correspondentes. Ambos fazem parte do conjunto de dados de treinamento. 
     
-    A multicalibração é feita via PLS. Para a escolha de regressores do PLS, é feita a validação cruzada por k-fold.
-    Os dados são juntados em duas matrizes Xs e ys, e embaralhados, 
+    A multicalibração é feita via PLS. Aumentando o número de regressores do PLS, é feita a validação cruzada por k-fold.
+    Os dados são juntados em duas matrizes Xs e ys, embaralhados e faz-se a previsão pra cada fold, armazenada em ycv.
     
-    
+    O teste F é realizado comparando a variação de RMSECV ao incrementar regressores no PLS, para ver se a melhoria
+    no modelo complexo é estatisticamente relevante.
     '''
-    
-        
-    cname = ['lac', 'gli', 'gal', 'gos3', 'gos4']
+
     nesp = y.shape[1] ## n  de especies medidas
 
     #%% PLS
@@ -52,9 +51,6 @@ def multical(X,y):
             y_cv[:,esp] = cross_val_predict(pls, Xs[:,:],ys[:,esp],cv=4).flatten()
             rmsecv[nregs-1,esp] = np.sqrt((ys[:,esp]- y_cv[:,esp]).dot(ys[:,esp]- y_cv[:,esp])/nd)
     
-    # print(rmsecv)
-
-  
 
     fig, axes = plt.subplots(3, 3, figsize=(10, 10))
     regs = np.linspace(1,15,15).astype(int)
@@ -73,10 +69,8 @@ def multical(X,y):
     plt.subplots_adjust(wspace=0.3, hspace=0.3)
     plt.show()
     
-    #%% Análise de Outliers - nunca implementado
-    
-    #%% Escolhendo modelo - Teste F - Não é igual ao do Nelles
-    model_matrix = np.ones([1,nesp])*1 ## Escolha arbitrária, 5 regs por comp por cluster
+    #%% Escolhendo modelo - Teste F - Não é exatamente igual ao do Nelles
+    model_matrix = np.ones([1,nesp])*1
     model_matrix=model_matrix.astype(int)
     error_matrix = np.zeros(model_matrix.shape)
     
@@ -131,21 +125,21 @@ def multical(X,y):
     y_cv = copy.deepcopy(y_cv[:])
     
     #%% Matriz covar
-    desv = (ys-y_cv)*np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0) ## pois média do erro é assumida como 0, desvio é o próprio erro
-    covar_erro = np.dot(desv.T, desv)/ys.shape[0] # Matriz R
-    np.savetxt("matriz_R.csv", covar_erro, delimiter=" ",fmt='%.5e')
-    erro_pad = np.sqrt(np.diagonal(covar_erro))
-    erro_pad= erro_pad.reshape(erro_pad.shape[0],1)
-    # correl = np.dot((1/erro_pad),(1/erro_pad).T) * covar_erro
+    # desv = (ys-y_cv)*np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0) ## pois média do erro é assumida como 0, desvio é o próprio erro
+    # covar_erro = np.dot(desv.T, desv)/ys.shape[0] # Matriz R
+    # np.savetxt("matriz_R.csv", covar_erro, delimiter=" ",fmt='%.5e')
+    # erro_pad = np.sqrt(np.diagonal(covar_erro))
+    # erro_pad= erro_pad.reshape(erro_pad.shape[0],1)
+    # # correl = np.dot((1/erro_pad),(1/erro_pad).T) * covar_erro
     
-    regs = np.linspace(1, 15,15)
+    # regs = np.linspace(1, 15,15)
     
-    with open('RMSECV.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(error_matrix)
-        writer.writerow(model_matrix)
-        
-    all = [X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs]
-    print(all)
-    return X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs
+    # with open('RMSECV.csv', 'w', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(error_matrix)
+    #     writer.writerow(model_matrix)
+    
+    # all = [X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs]
+    # print(all)
+    return model_matrix,error_matrix,rmsecv,y_cv,ys
 
