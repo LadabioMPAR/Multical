@@ -8,13 +8,9 @@ import subprocess
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
-import tkinter as tk
-from tkinter import ttk
-import time
 from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
-from contextlib import contextmanager
 from Calibration import Multical
 from Infer import Infer
 
@@ -50,10 +46,13 @@ class Dados_exp:
         self.analitos=analitos
         self.X=X
         self.y=y
-        if (self.X==[]) and (self.y==[]):
+        if (X.empty if isinstance(X, pd.DataFrame) else not X) and (y.empty if isinstance(y, pd.DataFrame) else not y):
             if os.path.getsize(arquivo_json) == 0:
                 subprocess.run(["python", "Import.py"])
             self.X, self.y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
+            #código fita-crepe pra sempre dar uma matrizona:
+            self.X=self.stack_x()
+            self.y=self.stack_y()
 
     def lendo_workspace(self, arquivo_json):
         '''
@@ -160,9 +159,9 @@ class Dados_exp:
             raise ValueError("A lista de referências está vazia.")
         return pd.concat(self.y.copy(), axis=0, ignore_index=True)
 
-    def pretreat(self, pretratamentos,salvar=False):
+    def pretreat(self, pretratamentos, salvar=False):
         '''
-        Aplica uma lista de pré-tratamentos a cada DataFrame em X separadamente.
+        Aplica uma lista de pré-tratamentos a um único DataFrame.
         Parâmetros:
             pretratamentos: lista de tuplas, cada uma contendo:
                             (nome da função de pré-tratamento, dicionário de argumentos)
@@ -174,29 +173,27 @@ class Dados_exp:
                                     ('cut_abs',{'maxAbs':1.5}),
                                     ('BLCtr',{'ini_lamb':8000,'final_lamb':8500,'Abs_value':1})]
             salvar: Booleano, se True salva os dataframes em arquivo e gera workspace
-    
-         Retorna:
-            Lista: novo objeto Dados_exp
-        '''
-        X_tratado = []
         
-        # Configurando a barra de progresso para os DataFrames
-        total_steps = len(self.X) * len(pretratamentos) #n de passos
-        with tqdm(total=total_steps, desc="Processando pré-tratamentos", unit="step") as pbar: #barrinha de progresso
-            for idx, x in enumerate(self.X): 
-                df = x.copy() #usa-se uma cópia do dataframe para evitar mexer no objeto original
-                for nome_pretratamento, params in pretratamentos:
-                    # Atualizando a descrição da barra de progresso para o pré-tratamento e experimento atuais
-                    pbar.set_description(f"Aplicando {nome_pretratamento} ao arquivo {idx + 1}/{len(self.X)}")
-                    funcao_pretratamento = getattr(pt, nome_pretratamento) #Aqui o pré-tratamento é encontrado dinamicamente
-                    df = funcao_pretratamento(df, **params) #Aqui realmente rodamos o pré-tratamento
-                    pbar.update(1)  # Atualizando a barra de progresso para cada pré-tratamento aplicado
-                X_tratado.append(df)
+        Retorna:
+            Objeto Dados_exp com o DataFrame tratado
+        '''
+        X_tratado = self.X.copy()  # Copia o DataFrame para evitar alterar o original
+        
+        # Configurando a barra de progresso para os pré-tratamentos
+        total_steps = len(pretratamentos)
+        with tqdm(total=total_steps, desc="Processando pré-tratamentos", unit="step") as pbar:
+            for nome_pretratamento, params in pretratamentos:
+                # Atualizando a descrição da barra de progresso para o pré-tratamento atual
+                pbar.set_description(f"Aplicando {nome_pretratamento}")
+                funcao_pretratamento = getattr(pt, nome_pretratamento)
+                X_tratado = funcao_pretratamento(X_tratado, **params)
+                pbar.update(1)  # Atualizando a barra de progresso para cada pré-tratamento aplicado
 
-        if salvar: #não testei ainda
-            self.salvar(nome_x="abs-pretratadas",nome_y="refs-pretratadas",workspace="workspace-pretratado")
-            
-        return Dados_exp(X=X_tratado,y=self.y,comprimentos=[int(coluna) for coluna in X_tratado[0].columns.tolist()] if X_tratado else [],analitos=self.analitos)
+        if salvar:
+            self.salvar(nome_x="abs-pretratadas", nome_y="refs-pretratadas", workspace="workspace-pretratado")
+        
+        return Dados_exp(X=X_tratado, y=self.y, comprimentos=[int(coluna) for coluna in X_tratado.columns.tolist()] if not X_tratado.empty else [], analitos=self.analitos)
+
 
     def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
         '''
@@ -248,13 +245,12 @@ class Dados_exp:
         atualmente funciona para até 6 arquivos diferentes
         '''
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
-        
+     
         plt.figure(figsize=(10, 6))
-        for df,color in zip(self.X,colors):
-            df_t=df.transpose()
-            plt.plot(df_t.index,df_t,color=color,linewidth=0.3)
-        legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
-        plt.legend(handles=legend_elements, fontsize=14)   
+        df_t=self.X.transpose()
+        plt.plot(df_t.index,df_t,color=colors[2],linewidth=0.3)
+        #legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
+        #plt.legend(handles=legend_elements, fontsize=14)   
         plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
         plt.ylabel('Absorbância', fontsize=22)
         plt.xticks(df_t.index[::500], rotation=45)
@@ -273,8 +269,8 @@ class Dados_exp:
 
         Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (Ks sem o termo, Kc com termo)
         '''
-        absor= self.stack_x()
-        x=self.stack_y()
+        absor= self.X
+        x=self.Y
 
         nd, nl = absor.shape
 
@@ -333,7 +329,7 @@ class Dados_exp:
             var_ac (numpy.ndarray): Lista de variância acumulada das PCs
 
         """
-        absor = self.stack_x()  
+        absor = self.X
         lambda_values = self.comprimentos 
 
         # Normalizando
@@ -453,7 +449,7 @@ class Dados_exp:
             var_ac (numpy.ndarray): Lista de variância acumulada das PCs
 
         """
-        absor = self.stack_x()
+        absor = self.X
         lambda_values = self.comprimentos
 
         # Normalizando
@@ -548,8 +544,8 @@ class Dados_exp:
 
     def multicalib(self):
         # Xtot = self.X
-        Xtot = self.stack_x().to_numpy()
-        ytot = self.stack_y().to_numpy()
+        Xtot = self.X.to_numpy()
+        ytot = self.Y.to_numpy()
         print(Xtot[:,0])
         print(ytot.shape)
         print(ytot[:,0])
@@ -560,8 +556,8 @@ class Dados_exp:
         return Multical.multical(Xtot,ytot,cname)
     
     def inferlib(self,model_matrix,error_matrix):
-       Xtot = self.stack_x().to_numpy()
-       ytot = self.stack_y().to_numpy()
+       Xtot = self.X.to_numpy()
+       ytot = self.Y.to_numpy()
        
        Xtest = Xtot[0:18,:]
        ytest = ytot[0:18,:]
@@ -573,9 +569,13 @@ class Dados_exp:
        return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 teste=Dados_exp()
-model_matrix,error_matrix,a,a,a=teste.multicalib()
-print('-------------')
-print(f'regressores PLS = f{model_matrix}')
-print(f'RMSECV = f{error_matrix}')
-teste.inferlib(model_matrix,error_matrix)
-# b=teste.PCA_manual(plots=1)
+teste.plot_espectros()
+print(type(teste.X))
+pretratamentos_exemplo=[
+    ('media_movel',{'tam_janela':11}),
+    ('sav_gol',{'janela':11,'polyorder':3,'derivada':1}),
+    ('cut',{'lower_bound':4500,'upper_bound':8500}),
+    ('cut_abs',{'maxAbs':1.5}),
+    ('BLCtr',{'ini_lamb':8000,'final_lamb':8500,'Abs_value':1})]
+teste_pret=teste.pretreat(pretratamentos=pretratamentos_exemplo)
+teste_pret.plot_espectros()
