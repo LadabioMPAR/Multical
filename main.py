@@ -14,6 +14,9 @@ import time
 from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
+from contextlib import contextmanager
+from Calibration import Multical
+from Infer import Infer
 
 
 '''
@@ -433,6 +436,8 @@ class Dados_exp:
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
     def PCA(self, plots=False):
+        
+
         """
         Código para implementação do PCA usando scikit-learn
 
@@ -540,5 +545,37 @@ class Dados_exp:
         root.mainloop()
         '''
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
-    
 
+    def multicalib(self):
+        # Xtot = self.X
+        Xtot = self.stack_x().to_numpy()
+        ytot = self.stack_y().to_numpy()
+        print(Xtot[:,0])
+        print(ytot.shape)
+        print(ytot[:,0])
+        
+        cname = self.analitos
+        print(cname)
+
+        return Multical.multical(Xtot,ytot,cname)
+    
+    def inferlib(self,model_matrix,error_matrix):
+       Xtot = self.stack_x().to_numpy()
+       ytot = self.stack_y().to_numpy()
+       
+       Xtest = Xtot[0:18,:]
+       ytest = ytot[0:18,:]
+       
+       thplc = np.linspace(0,17,18).astype(int)
+       cname = self.analitos
+
+
+       return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
+
+teste=Dados_exp()
+model_matrix,error_matrix,a,a,a=teste.multicalib()
+print('-------------')
+print(f'regressores PLS = f{model_matrix}')
+print(f'RMSECV = f{error_matrix}')
+teste.inferlib(model_matrix,error_matrix)
+# b=teste.PCA_manual(plots=1)
