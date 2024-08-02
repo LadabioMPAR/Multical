@@ -4,4 +4,4 @@
 
 ## Documentação
 
- [Documentação]([multical.readthedocs.io](https://multical.readthedocs.io/en/latest/)).
+ [Documentação](https://multical.readthedocs.io/en/latest/).
