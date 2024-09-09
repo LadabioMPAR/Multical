@@ -25,9 +25,28 @@ Lista de bugs ^^
 '''
 
 class Dados_exp:
+    """
+    Classe para manipulação de dados experimentais.
 
+    Atributos:
+        arquivo_json (str): Caminho para o arquivo JSON do workspace.
+        X (list): Lista de DataFrames contendo os dados de absorbância.
+        y (list): Lista de DataFrames contendo os dados de referência.
+        comprimentos (list): Lista de comprimentos de onda.
+        analitos (list): Lista de analitos.
+    """
 
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
+        """
+        Inicializa uma instância da classe Dados_exp.
+
+        Parâmetros:
+            arquivo_json (str): Caminho para o arquivo JSON contendo o workspace.
+            X (list): Lista de DataFrames de absorbância.
+            y (list): Lista de DataFrames de referência.
+            comprimentos (list): Lista de comprimentos de onda.
+            analitos (list): Lista de analitos.
+        """
         self.comprimentos=comprimentos
         self.analitos=analitos
         self.X=X
@@ -41,10 +60,19 @@ class Dados_exp:
             self.y= self.stack_y
 
     def lendo_workspace(self, arquivo_json):
-        '''
-        Metodo para ler os arquivos contidos no workspace.
-        Os arquivos são lidos conforme caminho contido nas chaves 'comprimentos' e 'referencias' de workspace.json
-        '''
+        """
+        Lê o arquivo JSON do workspace e retorna os dados.
+
+        Parâmetros:
+           arquivo_json (str): Caminho do arquivo JSON.
+
+        Retorna:
+           tuple: (X, Y, comprimentos, analitos) os dados extraídos do workspace.
+
+        Levanta:
+           FileNotFoundError: Se o arquivo JSON não for encontrado.
+           KeyError: Se as chaves 'comprimentos' ou 'referencias' não forem encontradas no JSON.
+        """
         if not os.path.exists(arquivo_json):
             raise FileNotFoundError(f"O arquivo {arquivo_json} não foi encontrado.")
         
@@ -82,18 +110,19 @@ class Dados_exp:
         return X, Y, comp_ondas, analit_ref
 
     def tipo_arquivo(self, caminho_arquivo, for_x=True):
-        '''
-        Metodo usado na leitura do workspace
-        Serve para identificar a extensão dos arquivos no workspace e lê-los corretamente em um dataframe.
-        Arquivos de referência vêm da biblioteca ref e comprimentos da bilbioteca spc.
+        """
+        Identifica e lê arquivos com base na extensão para criar DataFrames.
 
-        Para adicionar uma extensão:
-            1-tenha certeza que a função para importar um arquivo da extensão esteja corretamente implementada nos arquivos ref.py e spec.py.
-            2- Adicione a linha de código:
-                        elif extensao == '.nova_extensao':
-                            return spc.nova_extensao(caminho_arquivo) if for_x else ref.nova_extensao(caminho_arquivo)
+        Parâmetros:
+            caminho_arquivo (str): Caminho para o arquivo.
+            for_x (bool): Se True, retorna os dados de absorbância; se False, os dados de referência.
 
-        '''
+        Retorna:
+            pandas.DataFrame: Dados lidos do arquivo.
+
+        Levanta:
+            ValueError: Se a extensão do arquivo não for suportada.
+        """
         extensao = os.path.splitext(caminho_arquivo)[1].lower()  # Obtém a extensão do arquivo em letras minúsculas
         if extensao in ['.txt', '.dat']:
             return spc.txt(caminho_arquivo) if for_x else ref.txt(caminho_arquivo) 
@@ -103,10 +132,18 @@ class Dados_exp:
             raise ValueError(f"Extensão não suportada para o arquivo: {caminho_arquivo}")
         
     def novo_dado(self, X, Y=None, comprimento=None, analito=None):
+        """
+        Adiciona novos dados ao objeto Dados_exp.
 
-        '''
-        Método simples para importar novos dados à instância da classe Dados_exp após ser inicializada.
-        '''
+        Parâmetros:
+            X (pandas.DataFrame): Dados de absorbância.
+            Y (pandas.DataFrame, opcional): Dados de referência.
+            comprimento (int, opcional): Comprimento de onda.
+            analito (str, opcional): Nome do analito.
+
+        Levanta:
+            ValueError: Se X ou Y não forem DataFrames.
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("X deve ser um dataframe do pandas.")
         
@@ -122,48 +159,45 @@ class Dados_exp:
             self.analitos.append(analito)
 
     def stack_x(self):
-        '''
-        Empilha os valores de X
+        """
+        Empilha os valores de X.
+
         Retorna:
-            - Dataframe: valores das absorbâncias de todos os arquivos em um único dataframe
+            pandas.DataFrame: DataFrame contendo todos os valores de absorbância.
+
         Levanta:
-            ValueError: Se não houverem absorbâncias
-        '''
+            ValueError: Se a lista de absorbâncias estiver vazia.
+        """
         if not self.X:
             raise ValueError("A lista de absorbâncias está vazia.")
         return pd.concat(self.X.copy(), axis=0, ignore_index=True)
 
 
     def stack_y(self):
-        '''
-        Empilha os valores de y
+        """
+        Empilha os valores de y.
+
         Retorna:
-            - Dataframe: valores das referências de todos os arquivos em um único dataframe
+            pandas.DataFrame: DataFrame contendo todos os valores de referência.
+
         Levanta:
-            ValueError: Se não houverem referências
-        '''
+            ValueError: Se a lista de referências estiver vazia.
+        """
         if not self.y:
             raise ValueError("A lista de referências está vazia.")
         return pd.concat(self.y.copy(), axis=0, ignore_index=True)
 
     def pretreat(self, pretratamentos, salvar=False):
-        '''
-        Aplica uma lista de pré-tratamentos a um único DataFrame.
+        """
+        Aplica uma lista de pré-tratamentos aos dados.
+
         Parâmetros:
-            pretratamentos: lista de tuplas, cada uma contendo:
-                            (nome da função de pré-tratamento, dicionário de argumentos)
-                            Exemplo:
-                                pretratamentos_exemplo=[
-                                    ('media_movel',{'tam_janela':10}),
-                                    ('sav_gol',{'janela':4500,'polyorder':3,'derivada':1}),
-                                    ('cut',{'lower_bound':4500,'upper_bound':8500}),
-                                    ('cut_abs',{'maxAbs':1.5}),
-                                    ('BLCtr',{'ini_lamb':8000,'final_lamb':8500,'Abs_value':1})]
-            salvar: Booleano, se True salva os dataframes em arquivo e gera workspace
-        
+            pretratamentos (list): Lista de tuplas contendo o nome da função e parâmetros do pré-tratamento.
+            salvar (bool): Se True, salva os dados tratados e o novo workspace.
+
         Retorna:
-            Objeto Dados_exp com o DataFrame tratado
-        '''
+            Dados_exp: Objeto com o DataFrame tratado.
+        """
         X_tratado = self.X.copy()  # Copia o DataFrame para evitar alterar o original
         
         # Configurando a barra de progresso para os pré-tratamentos
@@ -183,19 +217,14 @@ class Dados_exp:
 
 
     def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
-        '''
-        Função para salvar os valores de X e y de um objeto Dados_exp em arquivos de texto, também gera um novo workspace para uso futuro
+        """
+        Salva os valores de X e y em arquivos de texto e gera um novo workspace.
+
         Parâmetros:
-            nome_x: string, contém o prefixo no qual serão salvos os arquivos de absorbâncias
-
-            nome_y: string, contém o prefixo no qual serão salvos os arquivos de referências
-
-            workspace: string, nome do workspace criado
-    
-         Retorna:
-            nada :) Ele só cria os arquivos  
-
-        '''
+            nome_x (str): Prefixo para os arquivos de absorbâncias.
+            nome_y (str): Prefixo para os arquivos de referências.
+            workspace (str): Nome do workspace gerado.
+        """
         # Define o caminho até a pasta dados
         cwd = os.getcwd()
         pasta = os.path.join(cwd, 'dados')
@@ -227,10 +256,12 @@ class Dados_exp:
             json.dump(json_data, json_file, indent=4)
 
     def plot_espectros(self,nome="fig"):
-        '''
-        Método para plotar os espectros contidos por matriz em X
-        atualmente funciona para até 6 arquivos diferentes
-        '''
+        """
+        Plota os espectros contidos em X.
+
+        Parâmetros:
+            nome (str): Nome da figura.
+        """
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
      
         plt.figure(figsize=(10, 6))
@@ -249,13 +280,15 @@ class Dados_exp:
         input("Aperte enter para continuar") 
     
     def LB(self,plots=False):
+        """
+        Realiza a análise de mínimos quadrados clássicos para a lei de Lambert-Beer.
 
-        '''
-        Método faz a análise de mínimos quadrados clássicos para verificar a aplicabilidade da lei de lambert-beer
-        Plota a relação entre absorbância calculada e as absorbâncias de referência com e sem termo independente
+        Parâmetros:
+            plots (bool): Se True, gera gráficos dos resultados.
 
-        Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (Ks sem o termo, Kc com termo)
-        '''
+        Retorna:
+            tuple: Matrizes de coeficientes Ks (sem termo independente) e Kc (com termo independente).
+        """
         absor= self.X
         x=self.Y
 
@@ -302,19 +335,13 @@ class Dados_exp:
     
     def PCA_manual(self,plots=False):
         """
-        Código para implementação do PCA
+        Implementa a análise de componentes principais (PCA) manualmente.
 
         Parâmetros:
-
-            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
+            plots (bool): Se True, gera gráficos dos resultados.
 
         Retorna:
-            eigvec, eigval, var_rel, var_ac
-            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
-            eigval (numpy.ndarray): autovalores da matriz de covariância
-            var_rel (numpy.ndarray): Lista de variância relativa das PCs
-            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
-
+            tuple: Autovetores, autovalores, variância relativa, e variância acumulada.
         """
         absor = self.X
         lambda_values = self.comprimentos 
@@ -419,22 +446,14 @@ class Dados_exp:
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
     def PCA(self, plots=False):
-        
-
         """
-        Código para implementação do PCA usando scikit-learn
+        Implementa a análise de componentes principais (PCA) usando scikit-learn.
 
         Parâmetros:
-
-            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
+            plots (bool): Se True, gera gráficos dos resultados.
 
         Retorna:
-            eigvec, eigval, var_rel, var_ac
-            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
-            eigval (numpy.ndarray): autovalores da matriz de covariância
-            var_rel (numpy.ndarray): Lista de variância relativa das PCs
-            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
-
+            tuple: Autovetores, autovalores, variância relativa, e variância acumulada.
         """
         absor = self.X
         lambda_values = self.comprimentos
@@ -530,6 +549,9 @@ class Dados_exp:
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
     def multicalib(self):
+        """
+        Realiza a calibração multivariada nos dados.
+        """
         # Xtot = self.X
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
@@ -543,6 +565,13 @@ class Dados_exp:
         return Multical.multical(Xtot,ytot,cname)
     
     def inferlib(self,model_matrix,error_matrix):
+        """
+        Realiza a inferência usando as bibliotecas e modelos calibrados.
+
+        Parâmetros:
+            model_matrix: Matriz do modelo calibrado.
+            error_matrix: Matriz de erros associada ao modelo.
+        """
        Xtot = self.X.to_numpy()
        ytot = self.Y.to_numpy()
        
