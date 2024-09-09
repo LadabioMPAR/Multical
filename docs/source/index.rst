@@ -16,6 +16,10 @@ Contents
 --------
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-   usage
-   api
+.. automodule:: main
+   :members:
+   :undoc-members:
+   :show-inheritance:

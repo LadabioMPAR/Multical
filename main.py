@@ -25,38 +25,24 @@ Lista de bugs ^^
 '''
 
 class Dados_exp:
-    '''
-    Classe principal do repositório, ela armazena os dados de referência e absorbâncias.
-    Por padrão, ela lê o arquivo 'workspace.json' e inicializa as referências e absorbâncias nele contidos. 
-    Caso o workspace esteja vazio, um script para adicionar arquivos é rodado.
 
-    Alternativamente, podem ser utilizados outros arquivos .json como workspace, contanto que o arquivo fornecido possua as chaves 'comprimentos' e 'referencias'.
-    As chaves devem conter, cada uma, um array de strings com os caminhos dos respectivos arquivos.
-
-    Atributos:
-        X - Contém as absorbâncias (Dataframe do pandas)
-        Y - Contém as referências (Dataframe do pandas)
-        comprimentos -  Contém uma lista com os comprimentos de onda utilizados (lista de inteiros)
-        analitos - Contém uma lista com os nomes dos analitos nos dados experimentais (lista de strings)
-
-    '''
 
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
         self.comprimentos=comprimentos
         self.analitos=analitos
         self.X=X
-        self.y=y
+        self.Y=y
         if (X.empty if isinstance(X, pd.DataFrame) else not X) and (y.empty if isinstance(y, pd.DataFrame) else not y):
             if os.path.getsize(arquivo_json) == 0:
                 subprocess.run(["python", "Import.py"])
             self.X, self.y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
             #código fita-crepe pra sempre dar uma matrizona:
             self.X=self.stack_x()
-            self.y=self.stack_y()
+            self.y= self.stack_y
 
     def lendo_workspace(self, arquivo_json):
         '''
-        Método para ler os arquivos contidos no workspace.
+        Metodo para ler os arquivos contidos no workspace.
         Os arquivos são lidos conforme caminho contido nas chaves 'comprimentos' e 'referencias' de workspace.json
         '''
         if not os.path.exists(arquivo_json):
@@ -97,7 +83,7 @@ class Dados_exp:
 
     def tipo_arquivo(self, caminho_arquivo, for_x=True):
         '''
-        Método usado na leitura do workspace
+        Metodo usado na leitura do workspace
         Serve para identificar a extensão dos arquivos no workspace e lê-los corretamente em um dataframe.
         Arquivos de referência vêm da biblioteca ref e comprimentos da bilbioteca spc.
 
@@ -146,7 +132,8 @@ class Dados_exp:
         if not self.X:
             raise ValueError("A lista de absorbâncias está vazia.")
         return pd.concat(self.X.copy(), axis=0, ignore_index=True)
-    
+
+
     def stack_y(self):
         '''
         Empilha os valores de y
@@ -253,7 +240,7 @@ class Dados_exp:
         #plt.legend(handles=legend_elements, fontsize=14)   
         plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
         plt.ylabel('Absorbância', fontsize=22)
-        plt.xticks(df_t.index[::500], rotation=45)
+        plt.xticks(df_t.index[::500].astype(int), rotation=45)
         plt.tight_layout()
         plt.show(block=False)
         plt.pause(0.001)  # pause para deixar renderizar
@@ -569,13 +556,7 @@ class Dados_exp:
        return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 teste=Dados_exp()
-teste.plot_espectros()
-print(type(teste.X))
 pretratamentos_exemplo=[
-    ('media_movel',{'tam_janela':11}),
-    ('sav_gol',{'janela':11,'polyorder':3,'derivada':1}),
-    ('cut',{'lower_bound':4500,'upper_bound':8500}),
-    ('cut_abs',{'maxAbs':1.5}),
-    ('BLCtr',{'ini_lamb':8000,'final_lamb':8500,'Abs_value':1})]
+    ('sav_gol',{'janela':11,'polyorder':3,'derivada':1})]
 teste_pret=teste.pretreat(pretratamentos=pretratamentos_exemplo)
-teste_pret.plot_espectros()
+teste_pret.multicalib()

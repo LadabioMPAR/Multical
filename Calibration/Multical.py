@@ -12,7 +12,7 @@ from scipy.stats import f
 import csv
 import pandas as pd
 
-def multical(X,y,cname):
+def multical(X,y,cname,regmax=15):
     '''
     Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
     das espécies (y) correspondentes. Ambos fazem parte do conjunto de dados de treinamento. 
@@ -27,7 +27,7 @@ def multical(X,y,cname):
     nesp = y.shape[1] ## n  de especies medidas
 
     #%% PLS
-    nregmax = 15 ## n de regressores maximo a ser testado
+    nregmax = regmax ## n de regressores maximo a ser testado
     y_cv = np.zeros(y.shape)
     rmsecv   = np.zeros([nregmax,nesp])
 
