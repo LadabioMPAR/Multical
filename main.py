@@ -237,7 +237,7 @@ class Dados_exp:
             comprimentos_paths.append(file_path)
 
         # Salvando DataFrames de y
-        for i, df in enumerate(self.y):
+        for i, df in enumerate(self.Y):
             file_path = os.path.join(pasta, f'{nome_y}{i+1}.txt')
             df.to_csv(file_path, sep='\t', index=False)
             referencias_paths.append(file_path)
@@ -578,11 +578,4 @@ class Dados_exp:
 
         return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
-teste=Dados_exp()
-#teste.plot_espectros()
-pretratamentos_exemplo=[
-    ('sav_gol',{'janela':13,'polyorder':2,'derivada':1})]
 
-teste_pret=teste.pretreat(pretratamentos=pretratamentos_exemplo)
-#teste_pret.plot_espectros()
-teste_pret.multicalib()
