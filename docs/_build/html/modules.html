@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Multical &#8212; documentação Multical 12/09/2024</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=0d55d1d9"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/translations.js?v=daa5921a"></script>
+    <link rel="index" title="Índice" href="genindex.html" />
+    <link rel="search" title="Buscar" href="search.html" />
+    <link rel="next" title="Calibration package" href="Calibration.html" />
+    <link rel="prev" title="Multical documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="multical">
+<h1>Multical<a class="headerlink" href="#multical" title="Link para este cabeçalho">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Calibration.html">Calibration package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html#module-Calibration.Multical">Calibration.Multical module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Calibration.html#Calibration.Multical.multical"><code class="docutils literal notranslate"><span class="pre">multical()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html#module-Calibration">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Import.html">Import module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Import.html#Import.confirmar_comprimentos"><code class="docutils literal notranslate"><span class="pre">confirmar_comprimentos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html#Import.finalizar"><code class="docutils literal notranslate"><span class="pre">finalizar()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html#Import.selecionar_comprimentos"><code class="docutils literal notranslate"><span class="pre">selecionar_comprimentos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html#Import.selecionar_referencias"><code class="docutils literal notranslate"><span class="pre">selecionar_referencias()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Infer.html">Infer package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html#module-Infer.Infer">Infer.Infer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Infer.html#Infer.Infer.infer"><code class="docutils literal notranslate"><span class="pre">infer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Infer.html#Infer.Infer.pls_model"><code class="docutils literal notranslate"><span class="pre">pls_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html#module-Infer">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="OutlierDetect.html">OutlierDetect package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="OutlierDetect.html#module-OutlierDetect">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Plot.html">Plot package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Plot.html#module-Plot">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Pretreat.html">Pretreat package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Pretreat.html#module-Pretreat">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="Pretreat.html#Pretreat.BLCtr"><code class="docutils literal notranslate"><span class="pre">BLCtr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Pretreat.html#Pretreat.cut"><code class="docutils literal notranslate"><span class="pre">cut()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Pretreat.html#Pretreat.cut_abs"><code class="docutils literal notranslate"><span class="pre">cut_abs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Pretreat.html#Pretreat.media_movel"><code class="docutils literal notranslate"><span class="pre">media_movel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="Pretreat.html#Pretreat.sav_gol"><code class="docutils literal notranslate"><span class="pre">sav_gol()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="VariableSelect.html#module-VariableSelect">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="arquivos.html">arquivos package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html#module-arquivos.ref">arquivos.ref module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.ref.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.ref.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.ref.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html#module-arquivos.spec">arquivos.spec module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.spec.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.spec.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="arquivos.html#arquivos.spec.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html#module-arquivos">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="main.html">main module</a></li>
+</ul>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Multical</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navegação</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Multical</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html">Calibration package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html">Import module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html">Infer package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OutlierDetect.html">OutlierDetect package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Plot.html">Plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Pretreat.html">Pretreat package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html">arquivos package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="capítulo anterior">Multical documentation</a></li>
+      <li>Next: <a href="Calibration.html" title="próximo capítulo">Calibration package</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Busca rápida</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Ir" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Daniel Souza.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/modules.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

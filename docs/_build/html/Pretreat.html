@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Pretreat package &#8212; documentação Multical 12/09/2024</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=0d55d1d9"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/translations.js?v=daa5921a"></script>
+    <link rel="index" title="Índice" href="genindex.html" />
+    <link rel="search" title="Buscar" href="search.html" />
+    <link rel="next" title="VariableSelect package" href="VariableSelect.html" />
+    <link rel="prev" title="Plot package" href="Plot.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="pretreat-package">
+<h1>Pretreat package<a class="headerlink" href="#pretreat-package" title="Link para este cabeçalho">¶</a></h1>
+<section id="module-Pretreat">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-Pretreat" title="Link para este cabeçalho">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="Pretreat.BLCtr">
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">BLCtr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ini_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Abs_value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.BLCtr" title="Link para esta definição">¶</a></dt>
+<dd><p>Função para correção de linha de base em uma matriz de absorbância.</p>
+<p>Parâmetros:
+- absor: DataFrame do pandas contendo a matriz de absorbância
+- ini_lamb: comprimento de onda inicial para a região não informativa (nome da coluna)
+- final_lamb: comprimento de onda final para a região não informativa (nome da coluna)
+- Abs_value: valor médio de absorbância na região não informativa</p>
+<p>Retorna:
+- absor: DataFrame do pandas com a linha de base corrigida</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Pretreat.cut">
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.cut" title="Link para esta definição">¶</a></dt>
+<dd><p>Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.</p>
+<p>Parâmetros:
+df (pd.DataFrame): O DataFrame original.
+lower_bound (float): O limite inferior do corte.
+upper_bound (float): O limite superior do corte.</p>
+<p>Retorna:
+pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Pretreat.cut_abs">
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut_abs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxAbs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.cut_abs" title="Link para esta definição">¶</a></dt>
+<dd><p>Função para processar um DataFrame do pandas similar ao trecho de código Scilab.</p>
+<p>Parâmetros:
+- df: DataFrame do pandas a ser processado
+- maxAbs: valor absoluto máximo permitido (o padrão é 0.5)
+- action: flag para determinar se as linhas devem ser removidas (o padrão é 1)
+- graph: flag para plotagem (não usado nesta função, o padrão é 1)</p>
+<p>Retorna:
+- df: DataFrame do pandas processado</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Pretreat.media_movel">
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">media_movel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tam_janela</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.media_movel" title="Link para esta definição">¶</a></dt>
+<dd><p>Aplica a média móvel a cada coluna de um DataFrame.</p>
+<p>Parâmetros:
+x : DataFrame</p>
+<blockquote>
+<div><p>DataFrame contendo os dados aos quais a média móvel será aplicada.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>tam_janela<span class="classifier">int</span></dt><dd><p>Tamanho da janela usada para calcular a média móvel.</p>
+</dd>
+</dl>
+<p>Retorna:
+DataFrame</p>
+<blockquote>
+<div><p>DataFrame com a média móvel aplicada a cada coluna.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="Pretreat.sav_gol">
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">sav_gol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">janela</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polyorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derivada</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.sav_gol" title="Link para esta definição">¶</a></dt>
+<dd><p>Função que aplica o filtro Savitzky-Golay em cada linha de um DataFrame.</p>
+<p>Parâmetros:
+df: Dataframe</p>
+<blockquote>
+<div><p>O DataFrame que contém os dados a serem filtrados.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>janela: int</dt><dd><p>O tamanho da janela do filtro (deve ser ímpar).</p>
+</dd>
+<dt>polyorder: int</dt><dd><p>A ordem do polinômio utilizado para ajustar os dados.</p>
+</dd>
+<dt>derivada: int</dt><dd><p>Ordem da derivada a ser calculada (padrão é 0, ou seja, sem derivada).</p>
+</dd>
+</dl>
+<p>Retorna:
+Um novo DataFrame com as linhas filtradas.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Multical</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navegação</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Multical</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html">Calibration package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html">Import module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html">Infer package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OutlierDetect.html">OutlierDetect package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Plot.html">Plot package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Pretreat package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arquivos.html">arquivos package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Multical</a><ul>
+      <li>Previous: <a href="Plot.html" title="capítulo anterior">Plot package</a></li>
+      <li>Next: <a href="VariableSelect.html" title="próximo capítulo">VariableSelect package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Busca rápida</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Ir" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Daniel Souza.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/Pretreat.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
