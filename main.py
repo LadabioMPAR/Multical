@@ -24,15 +24,16 @@ Lista de bugs ^^
 '''
 
 class Dados_exp:
+
     """
     Class to handle experimental data.
 
     Attributes:
-        arquivo_json (str): Path to the JSON file containing workspace data.
-        X (list): List of DataFrames containing absorbance data.
-        y (list): List of DataFrames containing reference data.
-        comprimentos (list): List of wavelengths.
-        analitos (list): List of analytes.
+    arquivo_json (str): Path to the JSON file containing workspace data.
+    X (list): List of DataFrames containing absorbance data.
+    y (list): List of DataFrames containing reference data.
+    comprimentos (list): List of wavelengths.
+    analitos (list): List of analytes.
     """
 
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
@@ -210,14 +211,14 @@ class Dados_exp:
         
         return Dados_exp(X=X_tratado, y=self.Y, comprimentos=[int(coluna) for coluna in X_tratado.columns.values.tolist()] if not X_tratado.empty else [], analitos=self.analitos)
 
-    def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
+    def salvar(self, nomex="X_",nomey="y_",workspace="workspace"):
         """
         Saves X and Y values to text files and generates a new workspace.
 
-        :param nome_x: Prefix for absorbance files, defaults to "X_".
-        :type nome_x: str, optional
-        :param nome_y: Prefix for reference files, defaults to "y_".
-        :type nome_y: str, optional
+        :param nomex: Prefix for absorbance files (X values).
+        :type nomex: str, optional
+        :param nomey: Prefix for reference files (Y values).
+        :type nomey: str, optional
         :param workspace: Name of the workspace file, defaults to "workspace".
         :type workspace: str, optional
         """
@@ -232,13 +233,13 @@ class Dados_exp:
 
         # Salvando DataFrames de X
         for i, df in enumerate(self.X):
-            file_path = os.path.join(pasta, f'{nome_x}{i+1}.txt')
+            file_path = os.path.join(pasta, f'{nomex}{i+1}.txt')
             df.to_csv(file_path, sep='\t', index=False)
             comprimentos_paths.append(file_path)
 
         # Salvando DataFrames de y
         for i, df in enumerate(self.Y):
-            file_path = os.path.join(pasta, f'{nome_y}{i+1}.txt')
+            file_path = os.path.join(pasta, f'{nomey}{i+1}.txt')
             df.to_csv(file_path, sep='\t', index=False)
             referencias_paths.append(file_path)
 
@@ -414,27 +415,7 @@ class Dados_exp:
             input("Aperte enter para continuar") 
 
 
-            '''
-            # Criando uma janela com tkinter
-            root = tk.Tk()
-            root.title('Variância Explicada')
 
-            # Criando a tabela
-            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
-            tree = ttk.Treeview(root, columns=cols, show='headings')
-
-            for col in cols:
-                tree.heading(col, text=col)
-
-            # Inserindo os dados na tabela
-            for i in range(maxind):
-                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
-
-            tree.pack(expand=True, fill='both')
-            
-            # Iniciando a interface
-            root.mainloop()
-            '''
 
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
@@ -517,27 +498,7 @@ class Dados_exp:
 
 
 
-        '''
-        # Criando uma janela com tkinter
-        root = tk.Tk()
-        root.title('Variância Explicada')
 
-        # Criando a tabela
-        cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
-        tree = ttk.Treeview(root, columns=cols, show='headings')
-
-        for col in cols:
-            tree.heading(col, text=col)
-
-        # Inserindo os dados na tabela
-        for i in range(maxind):
-            tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
-
-        tree.pack(expand=True, fill='both')
-        
-        # Iniciando a interface
-        root.mainloop()
-        '''
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
     def multicalib(self):
