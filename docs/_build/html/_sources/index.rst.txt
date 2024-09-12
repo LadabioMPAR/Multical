@@ -16,27 +16,3 @@ documentation for details.
    :caption: Contents:
 
    modules
-.. automodule:: ref
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: spec
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: Calibration
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: Pretreat
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: Infer
-   :members:
-   :undoc-members:
-   :show-inheritance:
