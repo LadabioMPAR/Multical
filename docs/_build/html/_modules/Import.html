@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Import &mdash; documentação Multical 12/09/2024</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=0d55d1d9"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/translations.js?v=daa5921a"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../genindex.html" />
+    <link rel="search" title="Buscar" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Multical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Multical</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Multical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">Import</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fonte para Import</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">tkinter</span> <span class="k">as</span> <span class="nn">tk</span>
+<span class="kn">from</span> <span class="nn">tkinter</span> <span class="kn">import</span> <span class="n">filedialog</span><span class="p">,</span> <span class="n">messagebox</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="c1"># Estilos</span>
+<span class="n">fonte_titulo</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+<span class="n">fonte_normal</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+<span class="n">cor_fundo</span> <span class="o">=</span> <span class="s2">&quot;#77B0AA&quot;</span>
+<span class="n">cor_botao</span> <span class="o">=</span> <span class="s2">&quot;#003C43&quot;</span>
+<span class="n">cor_botao_texto</span> <span class="o">=</span> <span class="s2">&quot;#FFFFFF&quot;</span>
+<span class="n">cor_listbox</span> <span class="o">=</span> <span class="s2">&quot;#E3FEF7&quot;</span>  <span class="c1"># Nova cor de fundo da Listbox</span>
+
+<div class="viewcode-block" id="selecionar_comprimentos">
+<a class="viewcode-back" href="../Import.html#Import.selecionar_comprimentos">[documentos]</a>
+<span class="k">def</span> <span class="nf">selecionar_comprimentos</span><span class="p">():</span>
+    <span class="n">arquivos</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilenames</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecione os arquivos de espectros&quot;</span><span class="p">,</span>
+        <span class="n">filetypes</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;Arquivos de texto&quot;</span><span class="p">,</span> <span class="s2">&quot;*.txt&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Arquivos .DAT&quot;</span><span class="p">,</span> <span class="s2">&quot;*.dat&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Arquivos Excel&quot;</span><span class="p">,</span> <span class="s2">&quot;*.xlsx&quot;</span><span class="p">)],</span>
+        <span class="n">initialdir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span>
+    <span class="p">)</span>
+    
+    <span class="n">lista_comprimentos</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tk</span><span class="o">.</span><span class="n">END</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">arquivo</span> <span class="ow">in</span> <span class="n">arquivos</span><span class="p">:</span>
+        <span class="n">nome_arquivo</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">arquivo</span><span class="p">)</span>
+        <span class="n">lista_comprimentos</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">END</span><span class="p">,</span> <span class="n">nome_arquivo</span><span class="p">)</span>
+        <span class="n">arquivos_comprimentos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arquivo</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="confirmar_comprimentos">
+<a class="viewcode-back" href="../Import.html#Import.confirmar_comprimentos">[documentos]</a>
+<span class="k">def</span> <span class="nf">confirmar_comprimentos</span><span class="p">():</span>
+    <span class="n">frame_comprimentos</span><span class="o">.</span><span class="n">pack_forget</span><span class="p">()</span>
+    <span class="n">frame_referencias</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="selecionar_referencias">
+<a class="viewcode-back" href="../Import.html#Import.selecionar_referencias">[documentos]</a>
+<span class="k">def</span> <span class="nf">selecionar_referencias</span><span class="p">():</span>
+    <span class="n">arquivos</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilenames</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Selecione os arquivos de referências&quot;</span><span class="p">,</span>
+        <span class="n">filetypes</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;Arquivos de texto&quot;</span><span class="p">,</span> <span class="s2">&quot;*.txt&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Arquivos .DAT&quot;</span><span class="p">,</span> <span class="s2">&quot;*.dat&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Arquivos Excel&quot;</span><span class="p">,</span> <span class="s2">&quot;*.xlsx&quot;</span><span class="p">)],</span>
+        <span class="n">initialdir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span>
+    <span class="p">)</span>
+    
+    <span class="n">lista_referencias</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tk</span><span class="o">.</span><span class="n">END</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">arquivo</span> <span class="ow">in</span> <span class="n">arquivos</span><span class="p">:</span>
+        <span class="n">nome_arquivo</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">arquivo</span><span class="p">)</span>
+        <span class="n">lista_referencias</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">END</span><span class="p">,</span> <span class="n">nome_arquivo</span><span class="p">)</span>
+        <span class="n">arquivos_referencias</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arquivo</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="finalizar">
+<a class="viewcode-back" href="../Import.html#Import.finalizar">[documentos]</a>
+<span class="k">def</span> <span class="nf">finalizar</span><span class="p">():</span>
+    <span class="n">workspace</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;comprimentos&quot;</span><span class="p">:</span> <span class="n">arquivos_comprimentos</span><span class="p">,</span>
+        <span class="s2">&quot;referencias&quot;</span><span class="p">:</span> <span class="n">arquivos_referencias</span>
+    <span class="p">}</span>
+    
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;workspace.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">workspace</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    
+    <span class="c1"># Exibe uma mensagem de sucesso e fecha o aplicativo</span>
+    <span class="n">messagebox</span><span class="o">.</span><span class="n">showinfo</span><span class="p">(</span><span class="s2">&quot;Sucesso&quot;</span><span class="p">,</span> <span class="s2">&quot;Dados salvos com sucesso!&quot;</span><span class="p">)</span>
+    <span class="n">janela</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
+
+
+<span class="c1"># Inicialização da janela principal</span>
+<span class="n">janela</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
+<span class="n">janela</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Importar dados&quot;</span><span class="p">)</span>
+<span class="n">janela</span><span class="o">.</span><span class="n">geometry</span><span class="p">(</span><span class="s2">&quot;600x400&quot;</span><span class="p">)</span>  <span class="c1"># Define o tamanho da janela</span>
+
+
+<span class="n">janela</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">bg</span><span class="o">=</span><span class="n">cor_fundo</span><span class="p">)</span>
+
+<span class="c1"># Listas para armazenar os caminhos dos arquivos</span>
+<span class="n">arquivos_comprimentos</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">arquivos_referencias</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># Frame para a primeira etapa (seleção de comprimentos)</span>
+<span class="n">frame_comprimentos</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">janela</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_fundo</span><span class="p">)</span>
+<span class="n">frame_comprimentos</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">label_comprimentos</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">frame_comprimentos</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Selecione arquivos de espectros&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_titulo</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_fundo</span><span class="p">)</span>
+<span class="n">label_comprimentos</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">botao_comprimentos</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">frame_comprimentos</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Selecionar Espectros&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_botao</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="n">cor_botao_texto</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">selecionar_comprimentos</span><span class="p">)</span>
+<span class="n">botao_comprimentos</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">lista_comprimentos</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Listbox</span><span class="p">(</span><span class="n">frame_comprimentos</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_listbox</span><span class="p">)</span>  <span class="c1"># Define a cor de fundo da Listbox</span>
+<span class="n">lista_comprimentos</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">botao_confirmar_comprimentos</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">frame_comprimentos</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;OK&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_botao</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="n">cor_botao_texto</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">confirmar_comprimentos</span><span class="p">)</span>
+<span class="n">botao_confirmar_comprimentos</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Frame para a segunda etapa (seleção de referências)</span>
+<span class="n">frame_referencias</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">janela</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_fundo</span><span class="p">)</span>
+
+<span class="n">label_referencias</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">frame_referencias</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Selecione arquivos de referências&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_titulo</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_fundo</span><span class="p">)</span>
+<span class="n">label_referencias</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">botao_referencias</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">frame_referencias</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Selecionar Referências&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_botao</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="n">cor_botao_texto</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">selecionar_referencias</span><span class="p">)</span>
+<span class="n">botao_referencias</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">lista_referencias</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Listbox</span><span class="p">(</span><span class="n">frame_referencias</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_listbox</span><span class="p">)</span>  <span class="c1"># Define a cor de fundo da Listbox</span>
+<span class="n">lista_referencias</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">botao_finalizar</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">frame_referencias</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;OK&quot;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">fonte_normal</span><span class="p">,</span> <span class="n">bg</span><span class="o">=</span><span class="n">cor_botao</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="n">cor_botao_texto</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">finalizar</span><span class="p">)</span>
+<span class="n">botao_finalizar</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Executa o loop principal da interface</span>
+<span class="n">janela</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2024, Daniel Souza.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

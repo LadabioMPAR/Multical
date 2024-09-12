@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>main &mdash; documentação Multical 12/09/2024</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=0d55d1d9"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/translations.js?v=daa5921a"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../genindex.html" />
+    <link rel="search" title="Buscar" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Multical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Multical</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Multical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fonte para main</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">arquivos</span> <span class="kn">import</span> <span class="n">spec</span> <span class="k">as</span> <span class="n">spc</span>
+<span class="kn">from</span> <span class="nn">arquivos</span> <span class="kn">import</span> <span class="n">ref</span>
+<span class="kn">import</span> <span class="nn">Pretreat</span> <span class="k">as</span> <span class="nn">pt</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="kn">import</span> <span class="n">PCA</span> <span class="k">as</span> <span class="n">sklearnPCA</span>
+<span class="kn">from</span> <span class="nn">matplotlib.gridspec</span> <span class="kn">import</span> <span class="n">GridSpec</span>
+<span class="kn">from</span> <span class="nn">Calibration</span> <span class="kn">import</span> <span class="n">Multical</span>
+<span class="kn">from</span> <span class="nn">Infer</span> <span class="kn">import</span> <span class="n">Infer</span>
+
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Lista de bugs ^^</span>
+
+<span class="sd">1- se o workspace estiver definido mas com as chaves vazias, o objeto quebra na hora de ler</span>
+<span class="sd">    provavelmente a condição para rodar o subprocesso no __init__ pode ser melhorada</span>
+
+<span class="sd">2- No PCA, se você fechar a tabela antes de fechar os gráficos, o python quebra xDD</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="Dados_exp">
+<a class="viewcode-back" href="../main.html#main.Dados_exp">[documentos]</a>
+<span class="k">class</span> <span class="nc">Dados_exp</span><span class="p">:</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to handle experimental data.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    arquivo_json (str): Path to the JSON file containing workspace data.</span>
+<span class="sd">    X (list): List of DataFrames containing absorbance data.</span>
+<span class="sd">    y (list): List of DataFrames containing reference data.</span>
+<span class="sd">    comprimentos (list): List of wavelengths.</span>
+<span class="sd">    analitos (list): List of analytes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arquivo_json</span><span class="o">=</span><span class="s1">&#39;workspace.json&#39;</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="p">[],</span> <span class="n">y</span><span class="o">=</span><span class="p">[],</span> <span class="n">comprimentos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">analitos</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes an instance of Dados_exp.</span>
+
+<span class="sd">        :param arquivo_json: Path to the JSON file containing workspace data, defaults to &#39;workspace.json&#39;.</span>
+<span class="sd">        :type arquivo_json: str, optional</span>
+<span class="sd">        :param X: List of absorbance DataFrames, defaults to an empty list.</span>
+<span class="sd">        :type X: list, optional</span>
+<span class="sd">        :param y: List of reference DataFrames, defaults to an empty list.</span>
+<span class="sd">        :type y: list, optional</span>
+<span class="sd">        :param comprimentos: List of wavelengths, defaults to None.</span>
+<span class="sd">        :type comprimentos: list, optional</span>
+<span class="sd">        :param analitos: List of analytes, defaults to None.</span>
+<span class="sd">        :type analitos: list, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">comprimentos</span><span class="o">=</span><span class="n">comprimentos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">analitos</span><span class="o">=</span><span class="n">analitos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">=</span><span class="n">X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">=</span><span class="n">y</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">empty</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="k">else</span> <span class="ow">not</span> <span class="n">X</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">empty</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="k">else</span> <span class="ow">not</span> <span class="n">y</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">arquivo_json</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="s2">&quot;Import.py&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">comprimentos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">analitos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lendo_workspace</span><span class="p">(</span><span class="n">arquivo_json</span><span class="p">)</span>
+            <span class="c1">#código fita-crepe pra sempre dar uma matrizona:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stack_x</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack_y</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Dados_exp.lendo_workspace">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.lendo_workspace">[documentos]</a>
+    <span class="k">def</span> <span class="nf">lendo_workspace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arquivo_json</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads the workspace JSON file and returns the data.</span>
+
+<span class="sd">        :param arquivo_json: Path to the JSON file.</span>
+<span class="sd">        :type arquivo_json: str</span>
+<span class="sd">        :return: Tuple containing absorbance data (X), reference data (Y), wavelengths, and analytes.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        :raises FileNotFoundError: If the JSON file is not found.</span>
+<span class="sd">        :raises KeyError: If &#39;comprimentos&#39; or &#39;referencias&#39; keys are not found in the JSON file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">arquivo_json</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;O arquivo </span><span class="si">{</span><span class="n">arquivo_json</span><span class="si">}</span><span class="s2"> não foi encontrado.&quot;</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">arquivo_json</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;comprimentos&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A chave &#39;comprimentos&#39; não foi encontrada no arquivo </span><span class="si">{</span><span class="n">arquivo_json</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;referencias&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A chave &#39;referencias&#39; não foi encontrada no arquivo </span><span class="si">{</span><span class="n">arquivo_json</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="n">comprimentos</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;comprimentos&#39;</span><span class="p">]</span>
+        <span class="n">referencias</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;referencias&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Processamento dos arquivos para X (absorbâncias) e Y (referências)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tipo_arquivo</span><span class="p">(</span><span class="n">comprimento</span><span class="p">,</span> <span class="n">for_x</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">comprimento</span> <span class="ow">in</span> <span class="n">comprimentos</span><span class="p">]</span>
+        <span class="n">Y</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tipo_arquivo</span><span class="p">(</span><span class="n">referencia</span><span class="p">,</span> <span class="n">for_x</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">referencia</span> <span class="ow">in</span> <span class="n">referencias</span><span class="p">]</span>
+        
+        <span class="c1"># Verifica se todos os DataFrames em X possuem os mesmos comprimentos de onda</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">nomes_colunas</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">df</span><span class="p">,</span> <span class="n">caminho_arquivo</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">comprimentos</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nomes_colunas</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;O arquivo </span><span class="si">{</span><span class="n">caminho_arquivo</span><span class="si">}</span><span class="s2"> de absorbância não possui comprimentos de onda consistente com os demais&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Verifica se todos os DataFrames em Y apresentam a mesma quantidade de analitos</span>
+        <span class="n">num_colunas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">df</span><span class="p">,</span> <span class="n">caminho_arquivo</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">referencias</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_colunas</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;O arquivo </span><span class="si">{</span><span class="n">caminho_arquivo</span><span class="si">}</span><span class="s2"> de referência não apresenta número de analitos consistente com os demais&quot;</span><span class="p">)</span>
+        <span class="n">comp_ondas</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">coluna</span><span class="p">)</span> <span class="k">for</span> <span class="n">coluna</span> <span class="ow">in</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span> <span class="k">if</span> <span class="n">X</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">analit_ref</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="n">Y</span> <span class="k">else</span> <span class="p">[]</span>
+        
+        <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">comp_ondas</span><span class="p">,</span> <span class="n">analit_ref</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.tipo_arquivo">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.tipo_arquivo">[documentos]</a>
+    <span class="k">def</span> <span class="nf">tipo_arquivo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">caminho_arquivo</span><span class="p">,</span> <span class="n">for_x</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identifies and reads files based on their extension to create DataFrames.</span>
+
+<span class="sd">        :param caminho_arquivo: Path to the file.</span>
+<span class="sd">        :type caminho_arquivo: str</span>
+<span class="sd">        :param for_x: If True, returns absorbance data; if False, returns reference data, defaults to True.</span>
+<span class="sd">        :type for_x: bool, optional</span>
+<span class="sd">        :return: Data read from the file.</span>
+<span class="sd">        :rtype: pandas.DataFrame</span>
+<span class="sd">        :raises ValueError: If the file extension is not supported.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">extensao</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">caminho_arquivo</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># Obtém a extensão do arquivo em letras minúsculas</span>
+        <span class="k">if</span> <span class="n">extensao</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;.dat&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">spc</span><span class="o">.</span><span class="n">txt</span><span class="p">(</span><span class="n">caminho_arquivo</span><span class="p">)</span> <span class="k">if</span> <span class="n">for_x</span> <span class="k">else</span> <span class="n">ref</span><span class="o">.</span><span class="n">txt</span><span class="p">(</span><span class="n">caminho_arquivo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">extensao</span> <span class="o">==</span> <span class="s1">&#39;.xlsx&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">spc</span><span class="o">.</span><span class="n">xlsx</span><span class="p">(</span><span class="n">caminho_arquivo</span><span class="p">)</span> <span class="k">if</span> <span class="n">for_x</span> <span class="k">else</span> <span class="n">ref</span><span class="o">.</span><span class="n">xlsx</span><span class="p">(</span><span class="n">caminho_arquivo</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extensão não suportada para o arquivo: </span><span class="si">{</span><span class="n">caminho_arquivo</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.novo_dado">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.novo_dado">[documentos]</a>
+    <span class="k">def</span> <span class="nf">novo_dado</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">comprimento</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">analito</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds new data to the Dados_exp object.</span>
+
+<span class="sd">        :param X: Absorbance data.</span>
+<span class="sd">        :type X: pandas.DataFrame</span>
+<span class="sd">        :param Y: Reference data, defaults to None.</span>
+<span class="sd">        :type Y: pandas.DataFrame, optional</span>
+<span class="sd">        :param comprimento: Wavelength, defaults to None.</span>
+<span class="sd">        :type comprimento: int, optional</span>
+<span class="sd">        :param analito: Analyte name, defaults to None.</span>
+<span class="sd">        :type analito: str, optional</span>
+<span class="sd">        :raises ValueError: If X or Y are not DataFrames.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;X deve ser um dataframe do pandas.&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Y deve ser um dataframe do pandas.&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">comprimento</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comprimentos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comprimento</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">analito</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">analitos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">analito</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.stack_x">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.stack_x">[documentos]</a>
+    <span class="k">def</span> <span class="nf">stack_x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stacks the absorbance data (X) into a single DataFrame.</span>
+
+<span class="sd">        :return: DataFrame containing all absorbance values.</span>
+<span class="sd">        :rtype: pandas.DataFrame</span>
+<span class="sd">        :raises ValueError: If the list of absorbances is empty.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A lista de absorbâncias está vazia.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.stack_y">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.stack_y">[documentos]</a>
+    <span class="k">def</span> <span class="nf">stack_y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stacks the reference data (Y) into a single DataFrame.</span>
+
+<span class="sd">        :return: DataFrame containing all reference values.</span>
+<span class="sd">        :rtype: pandas.DataFrame</span>
+<span class="sd">        :raises ValueError: If the list of references is empty.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A lista de referências está vazia.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.pretreat">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.pretreat">[documentos]</a>
+    <span class="k">def</span> <span class="nf">pretreat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pretratamentos</span><span class="p">,</span> <span class="n">salvar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies a list of preprocessing treatments to the data.</span>
+
+<span class="sd">        :param pretratamentos: List of tuples containing the name of the preprocessing function and its parameters.</span>
+<span class="sd">        :type pretratamentos: list</span>
+<span class="sd">        :param salvar: If True, saves the treated data and the new workspace, defaults to False.</span>
+<span class="sd">        :type salvar: bool, optional</span>
+<span class="sd">        :return: A Dados_exp object with the treated DataFrame.</span>
+<span class="sd">        :rtype: Dados_exp</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">X_tratado</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># Copia o DataFrame para evitar alterar o original</span>
+        
+        <span class="c1"># Configurando a barra de progresso para os pré-tratamentos</span>
+        <span class="n">total_steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pretratamentos</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">total_steps</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Processando pré-tratamentos&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">nome_pretratamento</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">pretratamentos</span><span class="p">:</span>
+                <span class="c1"># Atualizando a descrição da barra de progresso para o pré-tratamento atual</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aplicando </span><span class="si">{</span><span class="n">nome_pretratamento</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">funcao_pretratamento</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">nome_pretratamento</span><span class="p">)</span>
+                <span class="n">X_tratado</span> <span class="o">=</span> <span class="n">funcao_pretratamento</span><span class="p">(</span><span class="n">X_tratado</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Atualizando a barra de progresso para cada pré-tratamento aplicado</span>
+
+        <span class="k">if</span> <span class="n">salvar</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">salvar</span><span class="p">(</span><span class="n">nome_x</span><span class="o">=</span><span class="s2">&quot;abs-pretratadas&quot;</span><span class="p">,</span> <span class="n">nome_y</span><span class="o">=</span><span class="s2">&quot;refs-pretratadas&quot;</span><span class="p">,</span> <span class="n">workspace</span><span class="o">=</span><span class="s2">&quot;workspace-pretratado&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">Dados_exp</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X_tratado</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">comprimentos</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">coluna</span><span class="p">)</span> <span class="k">for</span> <span class="n">coluna</span> <span class="ow">in</span> <span class="n">X_tratado</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">X_tratado</span><span class="o">.</span><span class="n">empty</span> <span class="k">else</span> <span class="p">[],</span> <span class="n">analitos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">analitos</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.salvar">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.salvar">[documentos]</a>
+    <span class="k">def</span> <span class="nf">salvar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nomex</span><span class="o">=</span><span class="s2">&quot;X_&quot;</span><span class="p">,</span><span class="n">nomey</span><span class="o">=</span><span class="s2">&quot;y_&quot;</span><span class="p">,</span><span class="n">workspace</span><span class="o">=</span><span class="s2">&quot;workspace&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves X and Y values to text files and generates a new workspace.</span>
+
+<span class="sd">        :param nomex: Prefix for absorbance files (X values).</span>
+<span class="sd">        :type nomex: str, optional</span>
+<span class="sd">        :param nomey: Prefix for reference files (Y values).</span>
+<span class="sd">        :type nomey: str, optional</span>
+<span class="sd">        :param workspace: Name of the workspace file, defaults to &quot;workspace&quot;.</span>
+<span class="sd">        :type workspace: str, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define o caminho até a pasta dados</span>
+        <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="n">pasta</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="s1">&#39;dados&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pasta</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">pasta</span><span class="p">)</span>
+
+        <span class="n">comprimentos_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">referencias_paths</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Salvando DataFrames de X</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pasta</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">nomex</span><span class="si">}{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">.txt&#39;</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">comprimentos_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+        <span class="c1"># Salvando DataFrames de y</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">):</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pasta</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">nomey</span><span class="si">}{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">.txt&#39;</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">referencias_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+        <span class="c1"># Criando o arquivo JSON com os caminhos</span>
+        <span class="n">json_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;comprimentos&quot;</span><span class="p">:</span> <span class="n">comprimentos_paths</span><span class="p">,</span>
+            <span class="s2">&quot;referencias&quot;</span><span class="p">:</span> <span class="n">referencias_paths</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">workspace</span><span class="si">}</span><span class="s1">.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">json_data</span><span class="p">,</span> <span class="n">json_file</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.plot_espectros">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.plot_espectros">[documentos]</a>
+    <span class="k">def</span> <span class="nf">plot_espectros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nome</span><span class="o">=</span><span class="s2">&quot;fig&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plots the spectra contained in X.</span>
+
+<span class="sd">        :param nome: Name of the figure, defaults to &quot;fig&quot;.</span>
+<span class="sd">        :type nome: str, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
+     
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="n">df_t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_t</span><span class="o">.</span><span class="n">index</span><span class="p">,</span><span class="n">df_t</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">linewidth</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+        <span class="c1">#legend_elements = [Line2D([0], [0], color=color, lw=2, label=f&#39;Ensaio {i+1}&#39;) for i, color in enumerate(colors)]</span>
+        <span class="c1">#plt.legend(handles=legend_elements, fontsize=14)   </span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Número de onda (cm$^{-1}$)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">22</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Absorbância&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">22</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">df_t</span><span class="o">.</span><span class="n">index</span><span class="p">[::</span><span class="mi">500</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>  <span class="c1"># pause para deixar renderizar</span>
+
+        <span class="c1"># input pra dar um pouse</span>
+        <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Aperte enter para continuar&quot;</span><span class="p">)</span> </div>
+
+    
+<div class="viewcode-block" id="Dados_exp.LB">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.LB">[documentos]</a>
+    <span class="k">def</span> <span class="nf">LB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs classical least squares analysis for the Lambert-Beer law.</span>
+
+<span class="sd">        :param plots: If True, generates graphs of the results, defaults to False.</span>
+<span class="sd">        :type plots: bool, optional</span>
+<span class="sd">        :return: Tuple containing the Ks (without intercept) and Kc (with intercept) matrices.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">absor</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span>
+        <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span>
+
+        <span class="n">nd</span><span class="p">,</span> <span class="n">nl</span> <span class="o">=</span> <span class="n">absor</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># Lambert-Beer sem termo independente</span>
+        <span class="n">xone</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">Ks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">xone</span><span class="p">,</span> <span class="n">absor</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">absorc1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xone</span><span class="p">,</span> <span class="n">Ks</span><span class="p">)</span>
+
+        <span class="c1"># convertendo para arrays</span>
+        <span class="n">xymax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absorc1</span><span class="p">))</span>
+        <span class="n">xymin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absorc1</span><span class="p">))</span>
+
+        <span class="c1"># Lambert-Beer com termo independente</span>
+        <span class="n">xone</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nd</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">x</span><span class="p">))</span>
+        <span class="n">Kc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">xone</span><span class="p">,</span> <span class="n">absor</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">absorc2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xone</span><span class="p">,</span> <span class="n">Kc</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+            <span class="c1"># Plot for Lambert-Beer sem termo independente</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">absorc1</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">markeredgewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">)],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absorc1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absorc1</span><span class="p">)],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Absorbância de referência&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Absorbância calculada L-B&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Ajuste absorbância SEM termo independente&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Plot for Lambert-Beer com termo independente</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">absorc2</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">markeredgewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absor</span><span class="o">.</span><span class="n">values</span><span class="p">)],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">absorc2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">absorc2</span><span class="p">)],</span> <span class="s1">&#39;-k&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Absorbância de referência&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Absorbância calculada L-B&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Ajuste absorbância COM termo independente&#39;</span><span class="p">)</span>
+
+            <span class="c1"># ajustando layout</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>  <span class="c1"># pause para deixar renderizar</span>
+
+            <span class="c1"># input pra dar um pouse</span>
+            <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Aperte enter para continuar&quot;</span><span class="p">)</span> 
+        <span class="k">return</span> <span class="p">(</span><span class="n">Ks</span><span class="p">,</span><span class="n">Kc</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Dados_exp.PCA_manual">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.PCA_manual">[documentos]</a>
+    <span class="k">def</span> <span class="nf">PCA_manual</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Manually implements Principal Component Analysis (PCA).</span>
+
+<span class="sd">        :param plots: If True, generates standard PCA plots, defaults to False.</span>
+<span class="sd">        :type plots: bool, optional</span>
+<span class="sd">        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">absor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span>
+        <span class="n">lambda_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comprimentos</span> 
+
+        <span class="c1"># Normalizando</span>
+        <span class="n">anorm</span> <span class="o">=</span> <span class="p">(</span><span class="n">absor</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Matriz de covariância</span>
+        <span class="n">cov_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">anorm</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Autovalores e autovetores</span>
+        <span class="n">eigval</span><span class="p">,</span> <span class="n">eigvec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">cov_matrix</span><span class="p">)</span>
+
+        <span class="c1"># Ordenando valores e vetores em ordem decrescente</span>
+        <span class="n">sorted_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">eigval</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">eigval</span> <span class="o">=</span> <span class="n">eigval</span><span class="p">[</span><span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="n">eigvec</span> <span class="o">=</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="n">sorted_indices</span><span class="p">]</span>
+
+        <span class="c1"># Variância explicada</span>
+        <span class="n">vartot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">eigval</span><span class="p">)</span>
+        <span class="n">var_rel</span> <span class="o">=</span> <span class="n">eigval</span> <span class="o">/</span> <span class="n">vartot</span>
+        <span class="n">var_ac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">var_rel</span><span class="p">)</span>
+
+        <span class="c1"># Selecionando as variâncias até um certo limite para print</span>
+        <span class="n">limite</span> <span class="o">=</span> <span class="mf">0.9999</span>
+        <span class="n">maxind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">var_ac</span> <span class="o">&gt;=</span> <span class="n">limite</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+            <span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span><span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">ax5</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:])</span>
+
+            <span class="c1"># Plotando as 3 primeiras PCs</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC1&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC2&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC3&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Comprimento&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Componentes principais&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+            
+
+            <span class="c1"># plot para as duas primeiras componentes principais</span>
+            <span class="n">pc1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">anorm</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">pc2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">anorm</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">pc1</span><span class="p">,</span> <span class="n">pc2</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;PC1&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;PC2&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Componentes principais&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Plotando a variância explicada e a variância acumulada</span>
+            <span class="n">ax6</span> <span class="o">=</span> <span class="n">ax5</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:blue&#39;</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Componente Principal&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Variância Explicada&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Variância Explicada&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:red&#39;</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Variância Acumulada&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Variância Acumulada&#39;</span><span class="p">)</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Variância Explicada e Acumulada por Componente Principal&#39;</span><span class="p">)</span>
+
+            <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">pad</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Análise de PCA manual&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>  <span class="c1"># pause para deixar renderizar</span>
+
+            <span class="c1"># input pra dar um pouse</span>
+            <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Aperte enter para continuar&quot;</span><span class="p">)</span> 
+
+
+
+
+        <span class="k">return</span> <span class="n">eigvec</span><span class="p">,</span> <span class="n">eigval</span><span class="p">,</span> <span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="Dados_exp.PCA">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.PCA">[documentos]</a>
+    <span class="k">def</span> <span class="nf">PCA</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements Principal Component Analysis (PCA) using scikit-learn.</span>
+
+<span class="sd">        :param plots: If True, generates standard PCA plots, defaults to False.</span>
+<span class="sd">        :type plots: bool, optional</span>
+<span class="sd">        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.</span>
+<span class="sd">        :rtype: tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">absor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span>
+        <span class="n">lambda_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comprimentos</span>
+
+        <span class="c1"># Normalizando</span>
+        <span class="n">anorm</span> <span class="o">=</span> <span class="p">(</span><span class="n">absor</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">absor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Realizando PCA</span>
+        <span class="n">pca</span> <span class="o">=</span> <span class="n">sklearnPCA</span><span class="p">(</span><span class="n">svd_solver</span><span class="o">=</span><span class="s2">&quot;covariance_eigh&quot;</span><span class="p">)</span>
+        <span class="n">pca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">anorm</span><span class="p">)</span>
+
+        <span class="n">eigvec</span> <span class="o">=</span> <span class="n">pca</span><span class="o">.</span><span class="n">components_</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">eigval</span> <span class="o">=</span> <span class="n">pca</span><span class="o">.</span><span class="n">explained_variance_</span>
+        <span class="n">var_rel</span> <span class="o">=</span> <span class="n">pca</span><span class="o">.</span><span class="n">explained_variance_ratio_</span>
+        <span class="n">var_ac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">var_rel</span><span class="p">)</span>
+
+        <span class="c1"># Selecionando as variâncias até um certo limite para print</span>
+        <span class="n">limite</span> <span class="o">=</span> <span class="mf">0.9999</span>
+        <span class="n">maxind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">var_ac</span> <span class="o">&gt;=</span> <span class="n">limite</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+            <span class="n">gs</span> <span class="o">=</span> <span class="n">GridSpec</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figure</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span><span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">ax5</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:])</span>
+
+            <span class="c1"># Plotando as 3 primeiras PCs</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC1&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC2&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambda_values</span><span class="p">,</span> <span class="n">eigvec</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PC3&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Comprimento&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Componentes principais&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+            <span class="c1"># Plot para as duas primeiras componentes principais</span>
+            <span class="n">pc1</span> <span class="o">=</span> <span class="n">pca</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">anorm</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">pc2</span> <span class="o">=</span> <span class="n">pca</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">anorm</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">pc1</span><span class="p">,</span> <span class="n">pc2</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;PC1&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;PC2&#39;</span><span class="p">)</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Componentes principais&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Plotando a variância explicada e a variância acumulada</span>
+            <span class="n">ax6</span> <span class="o">=</span> <span class="n">ax5</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:blue&#39;</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Componente Principal&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Variância Explicada&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Variância Explicada&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+
+            <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;tab:red&#39;</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Variância Acumulada&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Variância Acumulada&#39;</span><span class="p">)</span>
+            <span class="n">ax6</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+            <span class="n">ax5</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Variância Explicada e Acumulada por Componente Principal&#39;</span><span class="p">)</span>
+
+            <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">pad</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span><span class="n">rect</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Análise de PCA&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>  <span class="c1"># pause para deixar renderizar</span>
+
+            <span class="c1"># input pra dar um pouse</span>
+            <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Aperte enter para continuar&quot;</span><span class="p">)</span> 
+
+
+
+
+        <span class="k">return</span> <span class="n">eigvec</span><span class="p">,</span> <span class="n">eigval</span><span class="p">,</span> <span class="n">var_rel</span><span class="p">[:</span><span class="n">maxind</span><span class="p">],</span> <span class="n">var_ac</span><span class="p">[:</span><span class="n">maxind</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Dados_exp.multicalib">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.multicalib">[documentos]</a>
+    <span class="k">def</span> <span class="nf">multicalib</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs multivariate calibration on the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Xtot = self.X</span>
+
+        <span class="n">Xtot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="n">ytot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">Xtot</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ytot</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ytot</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="n">cname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analitos</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cname</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Multical</span><span class="o">.</span><span class="n">multical</span><span class="p">(</span><span class="n">Xtot</span><span class="p">,</span><span class="n">ytot</span><span class="p">,</span><span class="n">cname</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Dados_exp.inferlib">
+<a class="viewcode-back" href="../main.html#main.Dados_exp.inferlib">[documentos]</a>
+    <span class="k">def</span> <span class="nf">inferlib</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">model_matrix</span><span class="p">,</span><span class="n">error_matrix</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs inference using the libraries and calibrated models.</span>
+
+<span class="sd">        :param model_matrix: Calibrated model matrix.</span>
+<span class="sd">        :type model_matrix: numpy.ndarray</span>
+<span class="sd">        :param error_matrix: Error matrix associated with the model.</span>
+<span class="sd">        :type error_matrix: numpy.ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Xtot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="n">ytot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+       
+        <span class="n">Xtest</span> <span class="o">=</span> <span class="n">Xtot</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">18</span><span class="p">,:]</span>
+        <span class="n">ytest</span> <span class="o">=</span> <span class="n">ytot</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">18</span><span class="p">,:]</span>
+       
+        <span class="n">thplc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">18</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">cname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analitos</span>
+
+
+        <span class="k">return</span> <span class="n">Infer</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">Xtot</span><span class="p">,</span><span class="n">Xtest</span><span class="p">,</span><span class="n">ytot</span><span class="p">,</span><span class="n">ytest</span><span class="p">,</span><span class="n">thplc</span><span class="p">,</span><span class="n">model_matrix</span><span class="p">,</span><span class="n">error_matrix</span><span class="p">,</span><span class="n">cname</span><span class="p">)</span></div>
+</div>
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2024, Daniel Souza.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

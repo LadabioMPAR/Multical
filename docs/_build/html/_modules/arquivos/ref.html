@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>arquivos.ref &mdash; documentação Multical 12/09/2024</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=0d55d1d9"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../../_static/translations.js?v=daa5921a"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Buscar" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Multical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Multical</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Multical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">arquivos.ref</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fonte para arquivos.ref</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module for importing reference files (concentration data).</span>
+<span class="sd">Each function should be named according to the file type being read and should return a pandas DataFrame</span>
+<span class="sd">with analytes as labels. Rows represent samples, and columns represent analytes.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="txt">
+<a class="viewcode-back" href="../../arquivos.html#arquivos.ref.txt">[documentos]</a>
+<span class="k">def</span> <span class="nf">txt</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports a `.txt` file into a pandas DataFrame formatted for analytes.</span>
+
+<span class="sd">    If analytes are not specified, the program considers the first line as analytes.</span>
+<span class="sd">    To specify analytes, use the &#39;analitos&#39; argument.</span>
+
+<span class="sd">    :param file_name: Name of the file located in the &#39;dados&#39; folder.</span>
+<span class="sd">    :type file_name: str</span>
+<span class="sd">    :param **kwargs: Optional arguments:</span>
+<span class="sd">        - analitos (list/tuple/set, optional): Object containing analytes.</span>
+
+<span class="sd">    :return: DataFrame with samples as rows and analytes as columns.</span>
+<span class="sd">    :rtype: pandas.DataFrame</span>
+<span class="sd">    :raises ValueError: If the number of specified analytes doesn&#39;t match the number of columns in the file.</span>
+<span class="sd">    :raises FileNotFoundError: If the file is not found in the &#39;dados&#39; folder.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    
+    <span class="c1"># Define o caminho até a pasta dos arquivos</span>
+    <span class="n">directory_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="s1">&#39;dados&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Constrói o caminho até o arquivo</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory_path</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+    
+    <span class="c1"># Checando se o arquivo existe</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Arquivo &#39;</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&#39; não encontrado na pasta </span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Escrevendo o texto em um DataFrame</span>
+    <span class="k">if</span> <span class="s1">&#39;analitos&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="c1"># Verifica se o número de colunas é igual ao número de analitos especificados</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">first_line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;analitos&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">first_line</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;O número de analitos especificados não corresponde ao número de colunas no arquivo.&quot;</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;analitos&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+
+<div class="viewcode-block" id="spc">
+<a class="viewcode-back" href="../../arquivos.html#arquivos.ref.spc">[documentos]</a>
+<span class="k">def</span> <span class="nf">spc</span><span class="p">(</span><span class="n">arquivo</span><span class="p">,</span><span class="n">analitos</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Placeholder function for importing files in &#39;.spc&#39; format.</span>
+
+<span class="sd">    :param arquivo: File to be imported.</span>
+<span class="sd">    :type arquivo: str</span>
+<span class="sd">    :param analitos: List of analytes.</span>
+<span class="sd">    :type analitos: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="xlsx">
+<a class="viewcode-back" href="../../arquivos.html#arquivos.ref.xlsx">[documentos]</a>
+<span class="k">def</span> <span class="nf">xlsx</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Imports an `.xlsx` file into a pandas DataFrame formatted for analytes.</span>
+
+<span class="sd">    If analytes are not specified, the program considers the first line as analytes.</span>
+<span class="sd">    To specify analytes, use the &#39;analitos&#39; argument.</span>
+
+<span class="sd">    :param file_name: Name of the Excel file located in the &#39;dados&#39; folder.</span>
+<span class="sd">    :type file_name: str</span>
+<span class="sd">    :param **kwargs: Optional named arguments:</span>
+<span class="sd">        - aba (str or int, default=0): Sheet name or index to be read.</span>
+<span class="sd">        - analitos (list/tuple/set, optional): Object containing analytes.</span>
+
+<span class="sd">    :return: DataFrame with samples as rows and analytes as columns.</span>
+<span class="sd">    :rtype: pandas.DataFrame</span>
+<span class="sd">    :raises FileNotFoundError: If the file is not found in the &#39;dados&#39; folder.</span>
+<span class="sd">    :raises ValueError: If the number of analytes doesn&#39;t match the number of columns in the sheet.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">directory_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;dados&quot;</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">directory_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Arquivo não encontrado &#39;</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&#39; na pasta </span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">. Por favor, verifique se o arquivo esttá na pasta correta.&quot;</span><span class="p">)</span>
+    
+    <span class="n">aba</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aba&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">analitos</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;analitos&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">analitos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelFile</span><span class="p">(</span><span class="n">directory_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">xls</span><span class="p">:</span>
+            <span class="n">num_cols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">xls</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">aba</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">analitos</span><span class="p">)</span> <span class="o">!=</span> <span class="n">num_cols</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;O número de analitos (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">analitos</span><span class="p">)</span><span class="si">}</span><span class="s2">) não corresponde ao número de colunas na planilha (</span><span class="si">{</span><span class="n">num_cols</span><span class="si">}</span><span class="s2">).&quot;</span><span class="p">)</span>
+        
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">directory_path</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">aba</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">analitos</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">directory_path</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">aba</span><span class="p">)</span>
+        
+    <span class="k">return</span> <span class="n">df</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2024, Daniel Souza.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -4,7 +4,10 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-sys.path.insert(0,os.path.abspath(".."))
+#Location of Sphinx files
+sys.path.insert(0, os.path.abspath('.'))
+
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -17,11 +20,17 @@ release = '12/09/2024'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-   'sphinx.ext.duration',
-   'sphinx.ext.doctest',
-   'sphinx.ext.autodoc',
-   'sphinx.ext.autosummary',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages',
+    'sphinx.ext.napoleon', # <- Here is Napoleon
 ]
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 autosummary_mock_imports = [
@@ -32,5 +41,5 @@ language = 'pt_BR'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']

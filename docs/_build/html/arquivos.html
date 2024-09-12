@@ -1,48 +1,117 @@
 <!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<html lang="pt-BR" data-content_root="./">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>arquivos package &mdash; documentação Multical 12/09/2024</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
-    <title>arquivos package &#8212; documentação Multical 12/09/2024</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
-    <script src="_static/documentation_options.js?v=0d55d1d9"></script>
-    <script src="_static/doctools.js?v=9a2dae69"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/translations.js?v=daa5921a"></script>
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=0d55d1d9"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/translations.js?v=daa5921a"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Índice" href="genindex.html" />
     <link rel="search" title="Buscar" href="search.html" />
     <link rel="next" title="main module" href="main.html" />
-    <link rel="prev" title="VariableSelect package" href="VariableSelect.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
+    <link rel="prev" title="VariableSelect package" href="VariableSelect.html" /> 
+</head>
 
-  
-  
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-  </head><body>
-  
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
           
+          
+          <a href="index.html" class="icon icon-home">
+            Multical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Multical</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Calibration.html">Calibration package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Import.html">Import module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Infer.html">Infer package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="OutlierDetect.html">OutlierDetect package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Plot.html">Plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Pretreat.html">Pretreat package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">arquivos package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-arquivos.ref">arquivos.ref module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-arquivos.spec">arquivos.spec module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-arquivos">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+</ul>
+</li>
+</ul>
 
-          <div class="body" role="main">
-            
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Multical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">Multical</a></li>
+      <li class="breadcrumb-item active">arquivos package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/arquivos.rst.txt" rel="nofollow"> Ver código-fonte da página</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
   <section id="arquivos-package">
-<h1>arquivos package<a class="headerlink" href="#arquivos-package" title="Link para este cabeçalho">¶</a></h1>
+<h1>arquivos package<a class="headerlink" href="#arquivos-package" title="Link para este cabeçalho"></a></h1>
 <section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link para este cabeçalho">¶</a></h2>
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link para este cabeçalho"></a></h2>
 </section>
 <section id="module-arquivos.ref">
-<span id="arquivos-ref-module"></span><h2>arquivos.ref module<a class="headerlink" href="#module-arquivos.ref" title="Link para este cabeçalho">¶</a></h2>
+<span id="arquivos-ref-module"></span><h2>arquivos.ref module<a class="headerlink" href="#module-arquivos.ref" title="Link para este cabeçalho"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.ref.spc">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analitos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.spc" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analitos</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/ref.html#spc"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.ref.spc" title="Link para esta definição"></a></dt>
 <dd><p>Placeholder function for importing files in ‘.spc’ format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
@@ -56,7 +125,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.ref.txt">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.txt" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/ref.html#txt"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.ref.txt" title="Link para esta definição"></a></dt>
 <dd><p>Imports a <cite>.txt</cite> file into a pandas DataFrame formatted for analytes.</p>
 <p>If analytes are not specified, the program considers the first line as analytes.
 To specify analytes, use the ‘analitos’ argument.</p>
@@ -86,7 +155,7 @@ To specify analytes, use the ‘analitos’ argument.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.ref.xlsx">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.xlsx" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/ref.html#xlsx"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.ref.xlsx" title="Link para esta definição"></a></dt>
 <dd><p>Imports an <cite>.xlsx</cite> file into a pandas DataFrame formatted for analytes.</p>
 <p>If analytes are not specified, the program considers the first line as analytes.
 To specify analytes, use the ‘analitos’ argument.</p>
@@ -117,10 +186,10 @@ To specify analytes, use the ‘analitos’ argument.</p>
 
 </section>
 <section id="module-arquivos.spec">
-<span id="arquivos-spec-module"></span><h2>arquivos.spec module<a class="headerlink" href="#module-arquivos.spec" title="Link para este cabeçalho">¶</a></h2>
+<span id="arquivos-spec-module"></span><h2>arquivos.spec module<a class="headerlink" href="#module-arquivos.spec" title="Link para este cabeçalho"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.spec.spc">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comprimentos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.spc" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comprimentos</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/spec.html#spc"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.spec.spc" title="Link para esta definição"></a></dt>
 <dd><p>Placeholder function for importing files in ‘.spc’ format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
@@ -134,7 +203,7 @@ To specify analytes, use the ‘analitos’ argument.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.spec.txt">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.txt" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/spec.html#txt"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.spec.txt" title="Link para esta definição"></a></dt>
 <dd><p>Imports a <cite>.txt</cite> file into a pandas DataFrame formatted for spectra.</p>
 <p>If wavelengths are not specified, the program considers the first line as wavelengths.
 To specify wavelengths, use the ‘comprimentos’ argument.</p>
@@ -164,7 +233,7 @@ To specify wavelengths, use the ‘comprimentos’ argument.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="arquivos.spec.xlsx">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.xlsx" title="Link para esta definição">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/arquivos/spec.html#xlsx"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#arquivos.spec.xlsx" title="Link para esta definição"></a></dt>
 <dd><p>Imports an <cite>.xlsx</cite> file into a pandas DataFrame formatted for spectra.</p>
 <p>If wavelengths are not specified, the program considers the first line as wavelengths.
 To specify wavelengths, use the ‘comprimentos’ argument.</p>
@@ -195,90 +264,39 @@ To specify wavelengths, use the ‘comprimentos’ argument.</p>
 
 </section>
 <section id="module-arquivos">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-arquivos" title="Link para este cabeçalho">¶</a></h2>
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-arquivos" title="Link para este cabeçalho"></a></h2>
 </section>
 </section>
 
 
+           </div>
           </div>
-          
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Rodapé">
+        <a href="VariableSelect.html" class="btn btn-neutral float-left" title="VariableSelect package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Anterior</a>
+        <a href="main.html" class="btn btn-neutral float-right" title="main module" accesskey="n" rel="next">Próximo <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2024, Daniel Souza.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">Multical</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
 
-
-
-
-
-
-
-
-<h3>Navegação</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Multical</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="Calibration.html">Calibration package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Import.html">Import module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Infer.html">Infer package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="OutlierDetect.html">OutlierDetect package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Plot.html">Plot package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Pretreat.html">Pretreat package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">arquivos package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
-</ul>
-</li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">Multical</a><ul>
-      <li>Previous: <a href="VariableSelect.html" title="capítulo anterior">VariableSelect package</a></li>
-      <li>Next: <a href="main.html" title="próximo capítulo">main module</a></li>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Busca rápida</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Ir" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &#169;2024, Daniel Souza.
-      
-      |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
-      
-      |
-      <a href="_sources/arquivos.rst.txt"
-          rel="nofollow">Page source</a>
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>
