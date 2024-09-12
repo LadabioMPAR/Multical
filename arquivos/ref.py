@@ -1,32 +1,27 @@
 import os
 import pandas as pd
-
-'''
-Código para importação dos arquivos de referência (concentração)
-Cada função deve ser nomeada conforme o tipo de arquivo que está sendo lido e deve retornar um dataframe (pandas) com os analitos como label
-Linhas=amostras, colunas=analitos
-
-'''
+"""
+Module for importing reference files (concentration data).
+Each function should be named according to the file type being read and should return a pandas DataFrame
+with analytes as labels. Rows represent samples, and columns represent analytes.
+"""
 def txt(file_name, **kwargs):
-    '''
-    Função para importar um arquivo .txt em um dataframe pandas formatado conforme o padrão do arquivo para os analitos.
-    Caso não sejam especificados os analitos, o programa considera a primeira linha como sendo os analitos.
-    Para especificar os analitos, use o argumento analitos. 
+    """
+    Imports a `.txt` file into a pandas DataFrame formatted for analytes.
 
-    Parâmetros:
+    If analytes are not specified, the program considers the first line as analytes.
+    To specify analytes, use the 'analitos' argument.
 
-        File_name (str): Nome do arquivo, deve estar na pasta dados
-        analitos (list/tuple/set, opcional):  Objeto contendo analitos.
+    :param file_name: Name of the file located in the 'dados' folder.
+    :type file_name: str
+    :param **kwargs: Optional arguments:
+        - analitos (list/tuple/set, optional): Object containing analytes.
 
-    Retorna:
-
-        pandas.DataFrame: Um dataframe contendo os valores do arquivo, onde as linhas representam amostras e as colunas os respectivos analitos
-    
-    Levanta:
-
-        ValueError: Caso o número de analitos especificados não corresponda ao número de colunas presentes no arquivo
-        FileNotFoundError: Caso o nome do arquivo fornecido não seja encontrado na 'pasta dados'
-    '''
+    :return: DataFrame with samples as rows and analytes as columns.
+    :rtype: pandas.DataFrame
+    :raises ValueError: If the number of specified analytes doesn't match the number of columns in the file.
+    :raises FileNotFoundError: If the file is not found in the 'dados' folder.
+    """
     
     cwd = os.getcwd()
     
@@ -55,26 +50,33 @@ def txt(file_name, **kwargs):
 
 
 def spc(arquivo,analitos):
+    """
+    Placeholder function for importing files in '.spc' format.
+
+    :param arquivo: File to be imported.
+    :type arquivo: str
+    :param analitos: List of analytes.
+    :type analitos: list
+    """
     pass
 
 def xlsx(file_name, **kwargs):
     """
-    Função para importar um arquivo .xlsx em um dataframe pandas formatado conforme o padrão do arquivo para os espectros.
-    Caso não sejam especificados os analitos, o programa considera a primeira linha como sendo os analitos.
-    Para especificar os analitos, use o argumento analitos. 
-    
-    Parâmetros:
-        file_name (str): O nome do arquivo Excel dentro da pasta 'dados'.
-        **kwargs: Argumentos nomeados opcionais:
-            - aba (str ou int, padrão 0): O nome ou índice da planilha a ser lida.
-            - analitos (list/tuple/set, opcional):  Objeto contendo analitos. Se não especificado, usa a primeira linha da planilha.
-        
-    Retorna:
-        pandas.DataFrame: Um dataframe contendo os valores do arquivo, onde as linhas representam amostras e as colunas os respectivos analitos.
-        
-    Levanta:
-        FileNotFoundError: Se o arquivo especificado não for encontrado na pasta dados.
-        ValueError: Se o número de analitos não corresponder ao número de colunas na planilha.
+    Imports an `.xlsx` file into a pandas DataFrame formatted for analytes.
+
+    If analytes are not specified, the program considers the first line as analytes.
+    To specify analytes, use the 'analitos' argument.
+
+    :param file_name: Name of the Excel file located in the 'dados' folder.
+    :type file_name: str
+    :param **kwargs: Optional named arguments:
+        - aba (str or int, default=0): Sheet name or index to be read.
+        - analitos (list/tuple/set, optional): Object containing analytes.
+
+    :return: DataFrame with samples as rows and analytes as columns.
+    :rtype: pandas.DataFrame
+    :raises FileNotFoundError: If the file is not found in the 'dados' folder.
+    :raises ValueError: If the number of analytes doesn't match the number of columns in the sheet.
     """
 
     directory_path = os.path.join("dados", file_name)

@@ -1,8 +1,19 @@
+
 {
     "comprimentos": [
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/Abs_LimonenoTerpineolNEW.txt"
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs01.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs02.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs03.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs04.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs05.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs06.txt"
     ],
     "referencias": [
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/Artur Limoneno/X_LimonenoTerpineol.txt"
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x01.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x02.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x03.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x04.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x05.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x06.txt"
     ]
 }

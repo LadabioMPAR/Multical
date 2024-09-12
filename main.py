@@ -8,7 +8,6 @@ import subprocess
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
 from Calibration import Multical
@@ -26,27 +25,32 @@ Lista de bugs ^^
 
 class Dados_exp:
     """
-    Classe para manipulação de dados experimentais.
+    Class to handle experimental data.
 
-    Atributos:
-        arquivo_json (str): Caminho para o arquivo JSON do workspace.
-        X (list): Lista de DataFrames contendo os dados de absorbância.
-        y (list): Lista de DataFrames contendo os dados de referência.
-        comprimentos (list): Lista de comprimentos de onda.
-        analitos (list): Lista de analitos.
+    Attributes:
+        arquivo_json (str): Path to the JSON file containing workspace data.
+        X (list): List of DataFrames containing absorbance data.
+        y (list): List of DataFrames containing reference data.
+        comprimentos (list): List of wavelengths.
+        analitos (list): List of analytes.
     """
 
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
         """
-        Inicializa uma instância da classe Dados_exp.
+        Initializes an instance of Dados_exp.
 
-        Parâmetros:
-            arquivo_json (str): Caminho para o arquivo JSON contendo o workspace.
-            X (list): Lista de DataFrames de absorbância.
-            y (list): Lista de DataFrames de referência.
-            comprimentos (list): Lista de comprimentos de onda.
-            analitos (list): Lista de analitos.
+        :param arquivo_json: Path to the JSON file containing workspace data, defaults to 'workspace.json'.
+        :type arquivo_json: str, optional
+        :param X: List of absorbance DataFrames, defaults to an empty list.
+        :type X: list, optional
+        :param y: List of reference DataFrames, defaults to an empty list.
+        :type y: list, optional
+        :param comprimentos: List of wavelengths, defaults to None.
+        :type comprimentos: list, optional
+        :param analitos: List of analytes, defaults to None.
+        :type analitos: list, optional
         """
+
         self.comprimentos=comprimentos
         self.analitos=analitos
         self.X=X
@@ -54,24 +58,21 @@ class Dados_exp:
         if (X.empty if isinstance(X, pd.DataFrame) else not X) and (y.empty if isinstance(y, pd.DataFrame) else not y):
             if os.path.getsize(arquivo_json) == 0:
                 subprocess.run(["python", "Import.py"])
-            self.X, self.y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
+            self.X, self.Y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
             #código fita-crepe pra sempre dar uma matrizona:
             self.X=self.stack_x()
-            self.y= self.stack_y
+            self.Y= self.stack_y()
 
     def lendo_workspace(self, arquivo_json):
         """
-        Lê o arquivo JSON do workspace e retorna os dados.
+        Reads the workspace JSON file and returns the data.
 
-        Parâmetros:
-           arquivo_json (str): Caminho do arquivo JSON.
-
-        Retorna:
-           tuple: (X, Y, comprimentos, analitos) os dados extraídos do workspace.
-
-        Levanta:
-           FileNotFoundError: Se o arquivo JSON não for encontrado.
-           KeyError: Se as chaves 'comprimentos' ou 'referencias' não forem encontradas no JSON.
+        :param arquivo_json: Path to the JSON file.
+        :type arquivo_json: str
+        :return: Tuple containing absorbance data (X), reference data (Y), wavelengths, and analytes.
+        :rtype: tuple
+        :raises FileNotFoundError: If the JSON file is not found.
+        :raises KeyError: If 'comprimentos' or 'referencias' keys are not found in the JSON file.
         """
         if not os.path.exists(arquivo_json):
             raise FileNotFoundError(f"O arquivo {arquivo_json} não foi encontrado.")
@@ -111,38 +112,37 @@ class Dados_exp:
 
     def tipo_arquivo(self, caminho_arquivo, for_x=True):
         """
-        Identifica e lê arquivos com base na extensão para criar DataFrames.
+        Identifies and reads files based on their extension to create DataFrames.
 
-        Parâmetros:
-            caminho_arquivo (str): Caminho para o arquivo.
-            for_x (bool): Se True, retorna os dados de absorbância; se False, os dados de referência.
-
-        Retorna:
-            pandas.DataFrame: Dados lidos do arquivo.
-
-        Levanta:
-            ValueError: Se a extensão do arquivo não for suportada.
+        :param caminho_arquivo: Path to the file.
+        :type caminho_arquivo: str
+        :param for_x: If True, returns absorbance data; if False, returns reference data, defaults to True.
+        :type for_x: bool, optional
+        :return: Data read from the file.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the file extension is not supported.
         """
         extensao = os.path.splitext(caminho_arquivo)[1].lower()  # Obtém a extensão do arquivo em letras minúsculas
         if extensao in ['.txt', '.dat']:
-            return spc.txt(caminho_arquivo) if for_x else ref.txt(caminho_arquivo) 
+            return spc.txt(caminho_arquivo) if for_x else ref.txt(caminho_arquivo)
         elif extensao == '.xlsx':
             return spc.xlsx(caminho_arquivo) if for_x else ref.xlsx(caminho_arquivo)
         else:
             raise ValueError(f"Extensão não suportada para o arquivo: {caminho_arquivo}")
-        
+
     def novo_dado(self, X, Y=None, comprimento=None, analito=None):
         """
-        Adiciona novos dados ao objeto Dados_exp.
+        Adds new data to the Dados_exp object.
 
-        Parâmetros:
-            X (pandas.DataFrame): Dados de absorbância.
-            Y (pandas.DataFrame, opcional): Dados de referência.
-            comprimento (int, opcional): Comprimento de onda.
-            analito (str, opcional): Nome do analito.
-
-        Levanta:
-            ValueError: Se X ou Y não forem DataFrames.
+        :param X: Absorbance data.
+        :type X: pandas.DataFrame
+        :param Y: Reference data, defaults to None.
+        :type Y: pandas.DataFrame, optional
+        :param comprimento: Wavelength, defaults to None.
+        :type comprimento: int, optional
+        :param analito: Analyte name, defaults to None.
+        :type analito: str, optional
+        :raises ValueError: If X or Y are not DataFrames.
         """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("X deve ser um dataframe do pandas.")
@@ -160,43 +160,38 @@ class Dados_exp:
 
     def stack_x(self):
         """
-        Empilha os valores de X.
+        Stacks the absorbance data (X) into a single DataFrame.
 
-        Retorna:
-            pandas.DataFrame: DataFrame contendo todos os valores de absorbância.
-
-        Levanta:
-            ValueError: Se a lista de absorbâncias estiver vazia.
+        :return: DataFrame containing all absorbance values.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the list of absorbances is empty.
         """
         if not self.X:
             raise ValueError("A lista de absorbâncias está vazia.")
         return pd.concat(self.X.copy(), axis=0, ignore_index=True)
 
-
     def stack_y(self):
         """
-        Empilha os valores de y.
+        Stacks the reference data (Y) into a single DataFrame.
 
-        Retorna:
-            pandas.DataFrame: DataFrame contendo todos os valores de referência.
-
-        Levanta:
-            ValueError: Se a lista de referências estiver vazia.
+        :return: DataFrame containing all reference values.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the list of references is empty.
         """
-        if not self.y:
+        if not self.Y:
             raise ValueError("A lista de referências está vazia.")
-        return pd.concat(self.y.copy(), axis=0, ignore_index=True)
+        return pd.concat(self.Y.copy(), axis=0, ignore_index=True)
 
     def pretreat(self, pretratamentos, salvar=False):
         """
-        Aplica uma lista de pré-tratamentos aos dados.
+        Applies a list of preprocessing treatments to the data.
 
-        Parâmetros:
-            pretratamentos (list): Lista de tuplas contendo o nome da função e parâmetros do pré-tratamento.
-            salvar (bool): Se True, salva os dados tratados e o novo workspace.
-
-        Retorna:
-            Dados_exp: Objeto com o DataFrame tratado.
+        :param pretratamentos: List of tuples containing the name of the preprocessing function and its parameters.
+        :type pretratamentos: list
+        :param salvar: If True, saves the treated data and the new workspace, defaults to False.
+        :type salvar: bool, optional
+        :return: A Dados_exp object with the treated DataFrame.
+        :rtype: Dados_exp
         """
         X_tratado = self.X.copy()  # Copia o DataFrame para evitar alterar o original
         
@@ -213,17 +208,18 @@ class Dados_exp:
         if salvar:
             self.salvar(nome_x="abs-pretratadas", nome_y="refs-pretratadas", workspace="workspace-pretratado")
         
-        return Dados_exp(X=X_tratado, y=self.y, comprimentos=[int(coluna) for coluna in X_tratado.columns.tolist()] if not X_tratado.empty else [], analitos=self.analitos)
-
+        return Dados_exp(X=X_tratado, y=self.Y, comprimentos=[int(coluna) for coluna in X_tratado.columns.values.tolist()] if not X_tratado.empty else [], analitos=self.analitos)
 
     def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
         """
-        Salva os valores de X e y em arquivos de texto e gera um novo workspace.
+        Saves X and Y values to text files and generates a new workspace.
 
-        Parâmetros:
-            nome_x (str): Prefixo para os arquivos de absorbâncias.
-            nome_y (str): Prefixo para os arquivos de referências.
-            workspace (str): Nome do workspace gerado.
+        :param nome_x: Prefix for absorbance files, defaults to "X_".
+        :type nome_x: str, optional
+        :param nome_y: Prefix for reference files, defaults to "y_".
+        :type nome_y: str, optional
+        :param workspace: Name of the workspace file, defaults to "workspace".
+        :type workspace: str, optional
         """
         # Define o caminho até a pasta dados
         cwd = os.getcwd()
@@ -257,10 +253,10 @@ class Dados_exp:
 
     def plot_espectros(self,nome="fig"):
         """
-        Plota os espectros contidos em X.
+        Plots the spectra contained in X.
 
-        Parâmetros:
-            nome (str): Nome da figura.
+        :param nome: Name of the figure, defaults to "fig".
+        :type nome: str, optional
         """
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
      
@@ -273,21 +269,19 @@ class Dados_exp:
         plt.ylabel('Absorbância', fontsize=22)
         plt.xticks(df_t.index[::500].astype(int), rotation=45)
         plt.tight_layout()
-        plt.show(block=False)
-        plt.pause(0.001)  # pause para deixar renderizar
+        plt.show()  # pause para deixar renderizar
 
         # input pra dar um pouse
         input("Aperte enter para continuar") 
     
     def LB(self,plots=False):
         """
-        Realiza a análise de mínimos quadrados clássicos para a lei de Lambert-Beer.
+        Performs classical least squares analysis for the Lambert-Beer law.
 
-        Parâmetros:
-            plots (bool): Se True, gera gráficos dos resultados.
-
-        Retorna:
-            tuple: Matrizes de coeficientes Ks (sem termo independente) e Kc (com termo independente).
+        :param plots: If True, generates graphs of the results, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing the Ks (without intercept) and Kc (with intercept) matrices.
+        :rtype: tuple
         """
         absor= self.X
         x=self.Y
@@ -335,13 +329,12 @@ class Dados_exp:
     
     def PCA_manual(self,plots=False):
         """
-        Implementa a análise de componentes principais (PCA) manualmente.
+        Manually implements Principal Component Analysis (PCA).
 
-        Parâmetros:
-            plots (bool): Se True, gera gráficos dos resultados.
-
-        Retorna:
-            tuple: Autovetores, autovalores, variância relativa, e variância acumulada.
+        :param plots: If True, generates standard PCA plots, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.
+        :rtype: tuple
         """
         absor = self.X
         lambda_values = self.comprimentos 
@@ -447,13 +440,12 @@ class Dados_exp:
     
     def PCA(self, plots=False):
         """
-        Implementa a análise de componentes principais (PCA) usando scikit-learn.
+        Implements Principal Component Analysis (PCA) using scikit-learn.
 
-        Parâmetros:
-            plots (bool): Se True, gera gráficos dos resultados.
-
-        Retorna:
-            tuple: Autovetores, autovalores, variância relativa, e variância acumulada.
+        :param plots: If True, generates standard PCA plots, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.
+        :rtype: tuple
         """
         absor = self.X
         lambda_values = self.comprimentos
@@ -550,9 +542,10 @@ class Dados_exp:
 
     def multicalib(self):
         """
-        Realiza a calibração multivariada nos dados.
+        Performs multivariate calibration on the data.
         """
         # Xtot = self.X
+
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
         print(Xtot[:,0])
@@ -566,26 +559,30 @@ class Dados_exp:
     
     def inferlib(self,model_matrix,error_matrix):
         """
-        Realiza a inferência usando as bibliotecas e modelos calibrados.
+        Performs inference using the libraries and calibrated models.
 
-        Parâmetros:
-            model_matrix: Matriz do modelo calibrado.
-            error_matrix: Matriz de erros associada ao modelo.
+        :param model_matrix: Calibrated model matrix.
+        :type model_matrix: numpy.ndarray
+        :param error_matrix: Error matrix associated with the model.
+        :type error_matrix: numpy.ndarray
         """
-       Xtot = self.X.to_numpy()
-       ytot = self.Y.to_numpy()
+        Xtot = self.X.to_numpy()
+        ytot = self.Y.to_numpy()
        
-       Xtest = Xtot[0:18,:]
-       ytest = ytot[0:18,:]
+        Xtest = Xtot[0:18,:]
+        ytest = ytot[0:18,:]
        
-       thplc = np.linspace(0,17,18).astype(int)
-       cname = self.analitos
+        thplc = np.linspace(0,17,18).astype(int)
+        cname = self.analitos
 
 
-       return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
+        return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 teste=Dados_exp()
+#teste.plot_espectros()
 pretratamentos_exemplo=[
-    ('sav_gol',{'janela':11,'polyorder':3,'derivada':1})]
+    ('sav_gol',{'janela':13,'polyorder':2,'derivada':1})]
+
 teste_pret=teste.pretreat(pretratamentos=pretratamentos_exemplo)
+#teste_pret.plot_espectros()
 teste_pret.multicalib()

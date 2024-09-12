@@ -24,36 +24,43 @@ def media_movel(x, tam_janela):
         print(f"Erro ao calcular a média móvel: {e}")
     return df_media_movel
 
-def sav_gol(df, janela, polyorder=1,derivada=0):
+
+from scipy.signal import savgol_filter
+
+
+def sav_gol(df, janela, polyorder=1, derivada=0):
     """
-    Função que aplica o filtro Savitzky-Golay em cada coluna de um DataFrame.
+    Função que aplica o filtro Savitzky-Golay em cada linha de um DataFrame.
 
     Parâmetros:
     df: Dataframe
-    O DataFrame que contém os dados a serem filtrados.
+        O DataFrame que contém os dados a serem filtrados.
     janela: int
-    O tamanho da janela do filtro.
+        O tamanho da janela do filtro (deve ser ímpar).
     polyorder: int
-    A ordem do polinômio utilizado para ajustar os dados.
+        A ordem do polinômio utilizado para ajustar os dados.
+    derivada: int
+        Ordem da derivada a ser calculada (padrão é 0, ou seja, sem derivada).
 
     Retorna:
-    Um novo DataFrame com as colunas filtradas.
+    Um novo DataFrame com as linhas filtradas.
     """
     if janela % 2 == 0:
         raise ValueError("janela deve ser um número ímpar")
-    if janela < 1 or janela > len(df):
-        raise ValueError("janela deve estar entre 1 e o comprimento do sinal")
+    if janela < 1 or janela > df.shape[1]:
+        raise ValueError("janela deve estar entre 1 e o número de colunas")
     if polyorder < 0 or polyorder >= janela:
-        raise ValueError("polyorder deve ser maior ou igual a zero e menor que window_length")
+        raise ValueError("polyorder deve ser maior ou igual a zero e menor que a janela")
 
-    # Cria uma cópia do DataFrame para evitar modificar o original
-    df_filtrada = df.copy()
+    # Aplica o filtro Savitzky-Golay em cada linha e converte o resultado para um DataFrame
+    df_filtrada = df.apply(lambda row: pd.Series(savgol_filter(row, janela, polyorder, deriv=derivada)), axis=1)
 
-    # Aplica o filtro de Savitzky-Golay a cada coluna do Dataframe
-    for column in df_filtrada:
-        df_filtrada[column] = savgol_filter(df_filtrada[column], janela, polyorder,deriv=derivada)
+    # Define os mesmos índices e colunas
+    df_filtrada.columns = df.columns
+    df_filtrada.index = df.index
 
     return df_filtrada
+
 
 def cut(df, lower_bound, upper_bound):
     """
