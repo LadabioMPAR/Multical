@@ -4,21 +4,18 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pretreat package &mdash; documentação Multical 12/09/2024</title>
+  <title>Pretreat package &mdash; documentação MultiCal 2024</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=86f27845" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
   
-        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/jquery.js?v=8dae8fb0"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=0d55d1d9"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/documentation_options.js?v=e344cc33"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script src="_static/translations.js?v=daa5921a"></script>
+        <script src="_static/translations.js?v=000972dd"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Índice" href="genindex.html" />
     <link rel="search" title="Buscar" href="search.html" />
@@ -35,7 +32,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            Multical
+            MultiCal
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -67,6 +64,7 @@
 <li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arquivos.html">arquivos package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="teste%20UV.html">teste UV module</a></li>
 </ul>
 </li>
 </ul>
@@ -77,7 +75,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">Multical</a>
+          <a href="index.html">MultiCal</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -97,12 +95,12 @@
            <div itemprop="articleBody">
              
   <section id="pretreat-package">
-<h1>Pretreat package<a class="headerlink" href="#pretreat-package" title="Link para este cabeçalho"></a></h1>
+<h1>Pretreat package<a class="headerlink" href="#pretreat-package" title="Link to this heading"></a></h1>
 <section id="module-Pretreat">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-Pretreat" title="Link para este cabeçalho"></a></h2>
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-Pretreat" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="Pretreat.BLCtr">
-<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">BLCtr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ini_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Abs_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Pretreat.html#BLCtr"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#Pretreat.BLCtr" title="Link para esta definição"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">BLCtr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ini_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_lamb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Abs_value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.BLCtr" title="Link to this definition"></a></dt>
 <dd><p>Função para correção de linha de base em uma matriz de absorbância.</p>
 <p>Parâmetros:
 - absor: DataFrame do pandas contendo a matriz de absorbância
@@ -115,7 +113,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Pretreat.cut">
-<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Pretreat.html#cut"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#Pretreat.cut" title="Link para esta definição"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.cut" title="Link to this definition"></a></dt>
 <dd><p>Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.</p>
 <p>Parâmetros:
 df (pd.DataFrame): O DataFrame original.
@@ -127,7 +125,7 @@ pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo esp
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Pretreat.cut_abs">
-<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut_abs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxAbs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Pretreat.html#cut_abs"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#Pretreat.cut_abs" title="Link para esta definição"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">cut_abs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxAbs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.cut_abs" title="Link to this definition"></a></dt>
 <dd><p>Função para processar um DataFrame do pandas similar ao trecho de código Scilab.</p>
 <p>Parâmetros:
 - df: DataFrame do pandas a ser processado
@@ -140,7 +138,7 @@ pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo esp
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Pretreat.media_movel">
-<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">media_movel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tam_janela</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Pretreat.html#media_movel"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#Pretreat.media_movel" title="Link para esta definição"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">media_movel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tam_janela</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.media_movel" title="Link to this definition"></a></dt>
 <dd><p>Aplica a média móvel a cada coluna de um DataFrame.</p>
 <p>Parâmetros:
 x : DataFrame</p>
@@ -160,7 +158,7 @@ DataFrame</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Pretreat.sav_gol">
-<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">sav_gol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">janela</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polyorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derivada</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Pretreat.html#sav_gol"><span class="viewcode-link"><span class="pre">[código</span> <span class="pre">fonte]</span></span></a><a class="headerlink" href="#Pretreat.sav_gol" title="Link para esta definição"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Pretreat.</span></span><span class="sig-name descname"><span class="pre">sav_gol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">janela</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polyorder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">derivada</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pretreat.sav_gol" title="Link to this definition"></a></dt>
 <dd><p>Função que aplica o filtro Savitzky-Golay em cada linha de um DataFrame.</p>
 <p>Parâmetros:
 df: Dataframe</p>
@@ -193,7 +191,7 @@ Um novo DataFrame com as linhas filtradas.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Direitos autorais 2024, Daniel Souza.</p>
+    <p>&#169; Direitos autorais 2024, Souza, D.C..</p>
   </div>
 
   Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um

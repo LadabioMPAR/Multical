@@ -1,41 +1,26 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
-#Location of Sphinx files
-sys.path.insert(0, os.path.abspath('.'))
-
+sys.path.insert(0,os.path.abspath('..'))
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Multical'
-copyright = '2024, Daniel Souza'
-author = 'Daniel Souza'
-release = '12/09/2024'
+project = 'MultiCal'
+copyright = '2024, Souza, D.C.'
+author = 'Souza, D.C.'
+release = '2024'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.napoleon', # <- Here is Napoleon
-]
+extensions = ['sphinx.ext.autodoc']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-autosummary_mock_imports = [
-    'Import',
-]
+
 language = 'pt_BR'
 
 # -- Options for HTML output -------------------------------------------------

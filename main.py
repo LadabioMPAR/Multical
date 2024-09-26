@@ -509,12 +509,10 @@ class Dados_exp:
 
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
-        print(Xtot[:,0])
-        print(ytot.shape)
-        print(ytot[:,0])
+
         
         cname = self.analitos
-        print(cname)
+
 
         return Multical.multical(Xtot,ytot,cname)
     
