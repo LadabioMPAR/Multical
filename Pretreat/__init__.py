@@ -4,17 +4,17 @@ import numpy as np
 
 def media_movel(x, tam_janela):
     """
-    Aplica a média móvel a cada coluna de um DataFrame.
+    Apply a moving average to each column of a DataFrame.
 
-    Parâmetros:
-    x : DataFrame
-        DataFrame contendo os dados aos quais a média móvel será aplicada.
-    tam_janela : int
-        Tamanho da janela usada para calcular a média móvel.
+    :param x: DataFrame containing the data to which the moving average will be applied.
+    :type x: pandas.DataFrame
+    :param tam_janela: The window size for calculating the moving average.
+    :type tam_janela: int
 
-    Retorna:
-    DataFrame
-        DataFrame com a média móvel aplicada a cada coluna.
+    :returns: DataFrame with the moving average applied to each column.
+    :rtype: pandas.DataFrame
+
+    :raises Exception: If an error occurs during the moving average calculation.
     """
     x_copiado = x.copy()
     try:
@@ -30,20 +30,21 @@ from scipy.signal import savgol_filter
 
 def sav_gol(df, janela, polyorder=1, derivada=0):
     """
-    Função que aplica o filtro Savitzky-Golay em cada linha de um DataFrame.
+    Apply the Savitzky-Golay filter to each row of a DataFrame.
 
-    Parâmetros:
-    df: Dataframe
-        O DataFrame que contém os dados a serem filtrados.
-    janela: int
-        O tamanho da janela do filtro (deve ser ímpar).
-    polyorder: int
-        A ordem do polinômio utilizado para ajustar os dados.
-    derivada: int
-        Ordem da derivada a ser calculada (padrão é 0, ou seja, sem derivada).
+    :param df: The DataFrame containing the data to be filtered.
+    :type df: pandas.DataFrame
+    :param janela: The size of the filter window (must be odd).
+    :type janela: int
+    :param polyorder: The polynomial order to use for smoothing the data (default is 1).
+    :type polyorder: int, optional
+    :param derivada: The order of the derivative to compute (default is 0, i.e., no derivative).
+    :type derivada: int, optional
 
-    Retorna:
-    Um novo DataFrame com as linhas filtradas.
+    :returns: A new DataFrame with the filtered rows.
+    :rtype: pandas.DataFrame
+
+    :raises ValueError: If the window size is even or invalid.
     """
     if janela % 2 == 0:
         raise ValueError("janela deve ser um número ímpar")
@@ -64,15 +65,17 @@ def sav_gol(df, janela, polyorder=1, derivada=0):
 
 def cut(df, lower_bound, upper_bound):
     """
-    Corta um DataFrame do pandas com base nos limites inferior e superior no eixo das abcissas.
+    Slice a DataFrame based on lower and upper bounds of the x-axis.
 
-    Parâmetros:
-    df (pd.DataFrame): O DataFrame original.
-    lower_bound (float): O limite inferior do corte.
-    upper_bound (float): O limite superior do corte.
+    :param df: The original DataFrame.
+    :type df: pandas.DataFrame
+    :param lower_bound: The lower bound of the slice.
+    :type lower_bound: float
+    :param upper_bound: The upper bound of the slice.
+    :type upper_bound: float
 
-    Retorna:
-    pd.DataFrame: Um novo DataFrame contendo apenas os dados dentro do intervalo especificado.
+    :returns: A new DataFrame containing only the data within the specified interval.
+    :rtype: pandas.DataFrame
     """
     # Faz uma cópia para não dar problema
     df_cut = df.copy()
@@ -85,16 +88,17 @@ def cut(df, lower_bound, upper_bound):
 
 def cut_abs(df, maxAbs=0.5, action=1):
     """
-    Função para processar um DataFrame do pandas similar ao trecho de código Scilab.
-    
-    Parâmetros:
-    - df: DataFrame do pandas a ser processado
-    - maxAbs: valor absoluto máximo permitido (o padrão é 0.5)
-    - action: flag para determinar se as linhas devem ser removidas (o padrão é 1)
-    - graph: flag para plotagem (não usado nesta função, o padrão é 1)
-    
-    Retorna:
-    - df: DataFrame do pandas processado
+    Process a DataFrame to remove rows where absolute values exceed a given threshold.
+
+    :param df: The DataFrame to be processed.
+    :type df: pandas.DataFrame
+    :param maxAbs: The maximum absolute value allowed (default is 0.5).
+    :type maxAbs: float, optional
+    :param action: A flag to determine if rows should be removed (default is 1).
+    :type action: int, optional
+
+    :returns: The processed DataFrame.
+    :rtype: pandas.DataFrame
     """
     
     # Encontra índices onde os valores absolutos excedem maxAbs
@@ -108,16 +112,19 @@ def cut_abs(df, maxAbs=0.5, action=1):
 
 def BLCtr(df, ini_lamb, final_lamb, Abs_value):
     """
-    Função para correção de linha de base em uma matriz de absorbância.
+    Correct the baseline in an absorbance matrix.
 
-    Parâmetros:
-    - absor: DataFrame do pandas contendo a matriz de absorbância
-    - ini_lamb: comprimento de onda inicial para a região não informativa (nome da coluna)
-    - final_lamb: comprimento de onda final para a região não informativa (nome da coluna)
-    - Abs_value: valor médio de absorbância na região não informativa
+    :param df: DataFrame containing the absorbance matrix.
+    :type df: pandas.DataFrame
+    :param ini_lamb: The starting wavelength for the non-informative region (column name).
+    :type ini_lamb: int or str
+    :param final_lamb: The ending wavelength for the non-informative region (column name).
+    :type final_lamb: int or str
+    :param Abs_value: The average absorbance value in the non-informative region.
+    :type Abs_value: float
 
-    Retorna:
-    - absor: DataFrame do pandas com a linha de base corrigida
+    :returns: DataFrame with the corrected baseline.
+    :rtype: pandas.DataFrame
     """
     
     # Encontra os índices das colunas onde lambda está dentro do intervalo especificado

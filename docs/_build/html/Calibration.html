@@ -62,7 +62,6 @@
 <li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arquivos.html">arquivos package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="teste%20UV.html">teste UV module</a></li>
 </ul>
 </li>
 </ul>
@@ -102,12 +101,39 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="Calibration.Multical.multical">
 <span class="sig-prename descclassname"><span class="pre">Calibration.Multical.</span></span><span class="sig-name descname"><span class="pre">multical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration.Multical.multical" title="Link to this definition"></a></dt>
-<dd><p>Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
+<dd><p>multical _summary_</p>
+<p>Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
 das espécies (y) correspondentes. Ambos fazem parte do conjunto de dados de treinamento.</p>
 <p>A multicalibração é feita via PLS. Aumentando o número de regressores do PLS, é feita a validação cruzada por k-fold.
 Os dados são juntados em duas matrizes Xs e ys, embaralhados e faz-se a previsão pra cada fold, armazenada em ycv.</p>
 <p>O teste F é realizado comparando a variação de RMSECV ao incrementar regressores no PLS, para ver se a melhoria
-no modelo complexo é estatisticamente relevante.</p>
+no modelo complexo é estatisticamente relevante</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>numpy.ndarray</em>) – Matrix of absorbance data used for calibration.</p></li>
+<li><p><strong>y</strong> (<em>numpy.ndarray</em>) – Matrix of concentrations from HPLC measurements for the species of interest.</p></li>
+<li><p><strong>cname</strong> (<em>list</em><em> of </em><em>str</em>) – List of names of the species being analyzed.</p></li>
+<li><p><strong>regmax</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of PLS components (regressors) to be tested, defaults to 15.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>model_matrix: The optimal number of PLS components for each species.</p></li>
+<li><p>error_matrix: The RMSECV for the optimal models.</p></li>
+<li><p>rmsecv: The RMSECV for each tested PLS model.</p></li>
+<li><p>y_cv: The predicted concentrations for each fold of cross-validation.</p></li>
+<li><p>ys: The shuffled concentrations matrix after cross-validation.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)</p>
+</dd>
+<dt class="field-even">Levanta<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If there’s an issue during the calculation of the PLS models.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

@@ -13,7 +13,10 @@ import csv
 import pandas as pd
 
 def multical(X,y,cname,regmax=15):
+
     '''
+    multical _summary_
+
     Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
     das espécies (y) correspondentes. Ambos fazem parte do conjunto de dados de treinamento. 
     
@@ -21,8 +24,29 @@ def multical(X,y,cname,regmax=15):
     Os dados são juntados em duas matrizes Xs e ys, embaralhados e faz-se a previsão pra cada fold, armazenada em ycv.
     
     O teste F é realizado comparando a variação de RMSECV ao incrementar regressores no PLS, para ver se a melhoria
-    no modelo complexo é estatisticamente relevante.
-    '''
+    no modelo complexo é estatisticamente relevante
+    
+    :param X: Matrix of absorbance data used for calibration.
+    :type X: numpy.ndarray
+    :param y: Matrix of concentrations from HPLC measurements for the species of interest.
+    :type y: numpy.ndarray
+    :param cname: List of names of the species being analyzed.
+    :type cname: list of str
+    :param regmax: Maximum number of PLS components (regressors) to be tested, defaults to 15.
+    :type regmax: int, optional
+
+    :returns: 
+        - model_matrix: The optimal number of PLS components for each species.
+        - error_matrix: The RMSECV for the optimal models.
+        - rmsecv: The RMSECV for each tested PLS model.
+        - y_cv: The predicted concentrations for each fold of cross-validation.
+        - ys: The shuffled concentrations matrix after cross-validation.
+
+    :rtype: tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)
+
+    :raises ValueError: If there's an issue during the calculation of the PLS models.
+
+    '''    
 
     nesp = y.shape[1] ## n  de especies medidas
 
