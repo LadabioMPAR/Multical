@@ -2,4 +2,4 @@ pandas
 tqdm
 matplotlib
 numpy
-sklearn
+scikit-learn
