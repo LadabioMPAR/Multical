@@ -9,8 +9,8 @@ sys.path.insert(0,os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'MultiCal'
-copyright = '2024, Souza, D.C.'
-author = 'Souza, D.C.'
+copyright = '2024, Ribeiro, M.P.A'
+author = 'Ribeiro, M.P.A.; Souza, D.C.; Neto, H.A.; Gualco, M.A.S.; Soeiro, W.F.; SGOBI, M. V.'
 release = '2024'
 
 # -- General configuration ---------------------------------------------------
