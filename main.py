@@ -524,7 +524,7 @@ class Dados_exp:
 
         To use a different function from the Multical module, such as `custom_multical`:
 
-        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True)
+        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
         """
 
         Xtot = self.X.to_numpy()

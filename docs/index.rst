@@ -1,4 +1,4 @@
-.. image:: _static/logo.png
+.. image:: logo.png
    :alt: MultiCal Logo
    :align: center
    :width: 300px
