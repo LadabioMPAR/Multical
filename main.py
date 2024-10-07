@@ -501,7 +501,7 @@ class Dados_exp:
 
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
-    def multicalib(self, multical_function_name="multical"):
+    def multicalib(self, multical_function_name="multical",*args,**kwargs):
       
         """
         Performs multivariate calibration on the data using a specified function from the Multical module.
