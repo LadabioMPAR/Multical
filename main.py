@@ -501,20 +501,45 @@ class Dados_exp:
 
         return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
 
-    def multicalib(self):
+    def multicalib(self, multical_function_name="multical"):
+      
         """
-        Performs multivariate calibration on the data.
+        Performs multivariate calibration on the data using a specified function from the Multical module.
+
+        :param multical_function_name: The name of the function to use from the Multical module. Default is 'multical'.
+        :type multical_function_name: str, optional
+        :param args: Additional positional arguments for the specified Multical function.
+        :type args: tuple
+        :param kwargs: Additional keyword arguments for the specified Multical function.
+        :type kwargs: dict
+        :return: The result of the selected Multical function.
+        :rtype: object
+        :raises ValueError: If the specified function name does not exist in the Multical module.
+
+        :example:
+
+        To use the default `multical` function:
+
+        >>> result = my_object.multicalib()
+
+        To use a different function from the Multical module, such as `custom_multical`:
+
+        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True)
         """
-        # Xtot = self.X
 
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
-
-        
         cname = self.analitos
 
+        import Multical
 
-        return Multical.multical(Xtot,ytot,cname)
+ 
+        try:
+            multical_function = getattr(Multical, multical_function_name)
+        except AttributeError:
+            raise ValueError(f"The function '{multical_function_name}' does not exist in the Multical module.")
+        return multical_function(Xtot, ytot, cname, *args, **kwargs)
+
     
     def inferlib(self,model_matrix,error_matrix):
         """
