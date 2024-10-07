@@ -1,28 +1,32 @@
-MPA Ribeiro MultiCal
-=====================
-
-MultiCal is a Python package designed for <brief description of what MultiCal does>. It helps you to <highlight key features or use cases>.
-
 .. image:: _static/logo.png
    :alt: MultiCal Logo
    :align: center
    :width: 300px
+MPA Ribeiro MultiCal
+=====================
+
+MultiCal is a Python package designed for multivariate calibration. Our main goal is to generate predictive models of biochemical processes from spectroscopic data.
+
+
 
 Features
 --------
 
-- **Feature 1**: Explanation of what Feature 1 does.
-- **Feature 2**: Explanation of what Feature 2 does.
-- **Feature 3**: Explanation of what Feature 3 does.
+- **Feature 1**: Work in progress
+- **Feature 2**: Work in progress
+- **Feature 3**: Work in progress
 
 Installation
 ------------
 
-To install MultiCal, use `pip`:
+To install MultiCal, first clone the repository and install the necessary dependencies:
 
 .. code-block:: bash
 
-    pip install MultiCal
+    git clone https://github.com/LadabioMPAR/Multical.git
+    cd MultiCal
+    pip install -r requirements.txt
+
 
 Quickstart
 ----------
