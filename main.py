@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
-from Calibration import Multical
 from Infer import Infer
 
 
@@ -540,7 +539,6 @@ class Dados_exp:
             raise ValueError(f"The function '{multical_function_name}' does not exist in the Multical module.")
         return multical_function(Xtot, ytot, cname, *args, **kwargs)
 
-    
     def inferlib(self,model_matrix,error_matrix):
         """
         Performs inference using the libraries and calibrated models.

@@ -54,18 +54,8 @@
 <li class="toctree-l2"><a class="reference internal" href="VariableSelect.html">VariableSelect package</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">arquivos package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-arquivos.ref">arquivos.ref module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.ref.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#module-arquivos.spec">arquivos.spec module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.spc"><code class="docutils literal notranslate"><span class="pre">spc()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.txt"><code class="docutils literal notranslate"><span class="pre">txt()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#arquivos.spec.xlsx"><code class="docutils literal notranslate"><span class="pre">xlsx()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#arquivos-ref-module">arquivos.ref module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arquivos-spec-module">arquivos.spec module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-arquivos">Module contents</a></li>
 </ul>
 </li>
@@ -104,161 +94,11 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
-<section id="module-arquivos.ref">
-<span id="arquivos-ref-module"></span><h2>arquivos.ref module<a class="headerlink" href="#module-arquivos.ref" title="Link to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.ref.spc">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analitos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.spc" title="Link to this definition"></a></dt>
-<dd><p>Placeholder function for importing files in ‘.spc’ format.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>arquivo</strong> (<em>str</em>) – File to be imported.</p></li>
-<li><p><strong>analitos</strong> (<em>list</em>) – List of analytes.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.ref.txt">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.txt" title="Link to this definition"></a></dt>
-<dd><p>Imports a <cite>.txt</cite> file into a pandas DataFrame formatted for analytes.</p>
-<p>If analytes are not specified, the program considers the first line as analytes.
-To specify analytes, use the ‘analitos’ argument.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<em>str</em>) – Name of the file located in the ‘dados’ folder.</p></li>
-<li><p><strong>**kwargs</strong> – <p>Optional arguments:
-- analitos (list/tuple/set, optional): Object containing analytes.</p>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Retorna<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame with samples as rows and analytes as columns.</p>
-</dd>
-<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas.DataFrame</p>
-</dd>
-<dt class="field-even">Levanta<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If the number of specified analytes doesn’t match the number of columns in the file.</p></li>
-<li><p><strong>FileNotFoundError</strong> – If the file is not found in the ‘dados’ folder.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.ref.xlsx">
-<span class="sig-prename descclassname"><span class="pre">arquivos.ref.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.ref.xlsx" title="Link to this definition"></a></dt>
-<dd><p>Imports an <cite>.xlsx</cite> file into a pandas DataFrame formatted for analytes.</p>
-<p>If analytes are not specified, the program considers the first line as analytes.
-To specify analytes, use the ‘analitos’ argument.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<em>str</em>) – Name of the Excel file located in the ‘dados’ folder.</p></li>
-<li><p><strong>**kwargs</strong> – <p>Optional named arguments:
-- aba (str or int, default=0): Sheet name or index to be read.
-- analitos (list/tuple/set, optional): Object containing analytes.</p>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Retorna<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame with samples as rows and analytes as columns.</p>
-</dd>
-<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas.DataFrame</p>
-</dd>
-<dt class="field-even">Levanta<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>FileNotFoundError</strong> – If the file is not found in the ‘dados’ folder.</p></li>
-<li><p><strong>ValueError</strong> – If the number of analytes doesn’t match the number of columns in the sheet.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
+<section id="arquivos-ref-module">
+<h2>arquivos.ref module<a class="headerlink" href="#arquivos-ref-module" title="Link to this heading"></a></h2>
 </section>
-<section id="module-arquivos.spec">
-<span id="arquivos-spec-module"></span><h2>arquivos.spec module<a class="headerlink" href="#module-arquivos.spec" title="Link to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.spec.spc">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">spc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arquivo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comprimentos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.spc" title="Link to this definition"></a></dt>
-<dd><p>Placeholder function for importing files in ‘.spc’ format.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>arquivo</strong> (<em>str</em>) – File to be imported.</p></li>
-<li><p><strong>comprimentos</strong> (<em>list</em>) – List of wavelengths.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.spec.txt">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.txt" title="Link to this definition"></a></dt>
-<dd><p>Imports a <cite>.txt</cite> file into a pandas DataFrame formatted for spectra.</p>
-<p>If wavelengths are not specified, the program considers the first line as wavelengths.
-To specify wavelengths, use the ‘comprimentos’ argument.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<em>str</em>) – Name of the file located in the ‘dados’ folder.</p></li>
-<li><p><strong>**kwargs</strong> – <p>Optional named arguments:
-- comprimentos (list/tuple/set, optional): Object containing wavelengths. If not specified, uses the first line.</p>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Retorna<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame with samples as rows and wavelengths as columns.</p>
-</dd>
-<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas.DataFrame</p>
-</dd>
-<dt class="field-even">Levanta<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If the number of specified wavelengths doesn’t match the number of columns in the file.</p></li>
-<li><p><strong>FileNotFoundError</strong> – If the file is not found in the ‘dados’ folder.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="arquivos.spec.xlsx">
-<span class="sig-prename descclassname"><span class="pre">arquivos.spec.</span></span><span class="sig-name descname"><span class="pre">xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#arquivos.spec.xlsx" title="Link to this definition"></a></dt>
-<dd><p>Imports an <cite>.xlsx</cite> file into a pandas DataFrame formatted for spectra.</p>
-<p>If wavelengths are not specified, the program considers the first line as wavelengths.
-To specify wavelengths, use the ‘comprimentos’ argument.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<em>str</em>) – Name of the Excel file located in the ‘dados’ folder.</p></li>
-<li><p><strong>**kwargs</strong> – <p>Optional named arguments:
-- aba (str or int, default=0): Sheet name or index to be read.
-- comprimentos (list/tuple/set, optional): Object containing wavelengths. If not specified, uses the first line.</p>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Retorna<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame with samples as rows and wavelengths as columns.</p>
-</dd>
-<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas.DataFrame</p>
-</dd>
-<dt class="field-even">Levanta<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>FileNotFoundError</strong> – If the file is not found in the ‘dados’ folder.</p></li>
-<li><p><strong>ValueError</strong> – If the number of wavelengths doesn’t match the number of columns in the sheet.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
+<section id="arquivos-spec-module">
+<h2>arquivos.spec module<a class="headerlink" href="#arquivos-spec-module" title="Link to this heading"></a></h2>
 </section>
 <section id="module-arquivos">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-arquivos" title="Link to this heading"></a></h2>
@@ -276,7 +116,7 @@ To specify wavelengths, use the ‘comprimentos’ argument.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Direitos autorais 2024, Souza, D.C..</p>
+    <p>&#169; Direitos autorais 2024, Ribeiro, M.P.A.</p>
   </div>
 
   Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
