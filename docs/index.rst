@@ -2,7 +2,7 @@
    :alt: MultiCal Logo
    :align: center
    :width: 300px
-MPA Ribeiro MultiCal
+MPA Ribeiro's MultiCal
 =====================
 
 MultiCal is a Python package designed for multivariate calibration. Our main goal is to generate predictive models of biochemical processes from spectroscopic data.
