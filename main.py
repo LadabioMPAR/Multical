@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.decomposition import PCA as sklearnPCA
 from matplotlib.gridspec import GridSpec
 from Infer import Infer
+from sklearn.metrics import r2_score
 
 
 '''
@@ -323,9 +324,9 @@ class Dados_exp:
             plt.show(block=False)
             plt.pause(0.001)  # pause para deixar renderizar
 
-            # input pra dar um pouse
+            # input pra dar um pause
             input("Aperte enter para continuar") 
-        return (Ks,Kc)
+        return (Ks,Kc,absorc1,absorc2)
     
     def PCA_manual(self,plots=False):
         """
@@ -519,18 +520,18 @@ class Dados_exp:
 
         To use the default `multical` function:
 
-        >>> result = my_object.multicalib()
+        result = my_object.multicalib()
 
         To use a different function from the Multical module, such as `custom_multical`:
 
-        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
+        result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
         """
 
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
         cname = self.analitos
 
-        import Multical
+        from Calibration import Multical
 
  
         try:
@@ -561,3 +562,25 @@ class Dados_exp:
         return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 
+teste = Dados_exp()
+teste.plot_espectros()
+pretratamentos = [("media_movel",{"tam_janela":5}),("sav_gol",{"janela":5,"polyorder":3,"derivada":1}),("cut",{"lower_bound":400,"upper_bound":900})]
+pretratados = teste.pretreat(pretratamentos=pretratamentos)
+Ks, Kc, absorc1, absorc2 = pretratados.LB(plots=True)
+print(f'R2 sem termo independente: {r2_score(pretratados.X, absorc1)}')
+print(f'R2 com termo independente: {r2_score(pretratados.X, absorc2)}')
+#Ks, Kc, absorc1, absorc2 = teste.LB(plots=True)
+'''print(f'R2 sem termo independente: {r2_score(teste.X, absorc1)}')
+print(f'R2 com termo independente: {r2_score(teste.X, absorc2)}')'''
+#print(absorc1.shape)
+'''pretratamentos = [("sav_gol",{"janela":5,"polyorder":3,"derivada":1}),("media_movel",{"tam_janela":5}),("cut",{"lower_bound":400,"upper_bound":900})]
+pretratados = teste.pretreat(pretratamentos=pretratamentos)'''
+
+#pls = teste.multicalib(multical_function_name="multical")
+
+#print(teste.LB())
+#teste.pretreat()
+pretratados.plot_espectros()
+# teste.plot_espectros()
+# time.sleep(5)
+#pretratados.PCA(plots=True)
