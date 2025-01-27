@@ -1,32 +1,27 @@
 import os
 import pandas as pd
-'''
-Código para importação dos arquivos de absorbância (espectros)
-Cada função deve ser nomeada conforme o tipo de arquivo que está sendo lido e deve retornar um dataframe (pandas) com os comprimentos de onda como label
-Linhas=amostras, colunas=comprimentos
-
-'''
+"""
+Module for importing absorbance files (spectra).
+Each function should be named according to the file type being read and should return a pandas DataFrame
+with wavelengths as labels. Rows represent samples, and columns represent wavelengths.
+"""
 def txt(file_name, **kwargs):
-    '''
-    Função para importar um arquivo .txt em um dataframe pandas formatado conforme o padrão do arquivo para os espectros.
-    Caso não sejam especificados os comprimentos de onda, o programa considera a primeira linha como sendo os comprimentos de onda.
-    Para especificar os comprimentos de onda, use o argumento comprimentos. 
+    """
+    Imports a `.txt` file into a pandas DataFrame formatted for spectra.
 
-    Parâmetros:
+    If wavelengths are not specified, the program considers the first line as wavelengths.
+    To specify wavelengths, use the 'comprimentos' argument.
 
-        File_name (str): Nome do arquivo, deve estar na pasta dados.
-        **kwargs: Argumentos nomeados opcionais:
-            - comprimentos (list/tuple/set, opcional):  Objeto contendo comprimentos de onda. Se não especificado, usa a primeira linha.
+    :param file_name: Name of the file located in the 'dados' folder.
+    :type file_name: str
+    :param **kwargs: Optional named arguments:
+        - comprimentos (list/tuple/set, optional): Object containing wavelengths. If not specified, uses the first line.
 
-    Retorna:
-
-        pandas.DataFrame: Um dataframe contendo os valores do arquivo, onde as linhas representam amostras e as colunas os respectivos comprimentos de onda.
-    
-    Levanta:
-
-        ValueError: Caso o número de comprimentos de onda especificados não corresponda ao número de colunas presentes no arquivo.
-        FileNotFoundError: Caso o nome do arquivo fornecido não seja encontrado na 'pasta dados'
-    '''
+    :return: DataFrame with samples as rows and wavelengths as columns.
+    :rtype: pandas.DataFrame
+    :raises ValueError: If the number of specified wavelengths doesn't match the number of columns in the file.
+    :raises FileNotFoundError: If the file is not found in the 'dados' folder.
+    """
     
     cwd = os.getcwd()
     
@@ -57,26 +52,33 @@ def txt(file_name, **kwargs):
     return df
 
 def spc(arquivo,comprimentos):
+    """
+    Placeholder function for importing files in '.spc' format.
+
+    :param arquivo: File to be imported.
+    :type arquivo: str
+    :param comprimentos: List of wavelengths.
+    :type comprimentos: list
+    """
     pass
 
 def xlsx(file_name, **kwargs):
     """
-    Função para importar um arquivo .xlsx em um dataframe pandas formatado conforme o padrão do arquivo para os espectros.
-    Caso não sejam especificados os comprimentos de onda, o programa considera a primeira linha como sendo os comprimentos de onda.
-    Para especificar os comprimentos de onda, use o argumento comprimentos. 
-    
-    Parâmetros:
-        file_name (str): O nome do arquivo Excel dentro da pasta 'dados'.
-        **kwargs: Argumentos nomeados opcionais:
-            - aba (str ou int, padrão 0): O nome ou índice da planilha a ser lida.
-            - comprimentos (list/tuple/set, opcional):  Objeto contendo comprimentos de onda. Se não especificado, usa a primeira linha da planilha.
-        
-    Retorna:
-        pandas.DataFrame: Um dataframe contendo os valores do arquivo, onde as linhas representam amostras e as colunas os respectivos comprimentos de onda.
-        
-    Levanta:
-        FileNotFoundError: Se o arquivo especificado não for encontrado na pasta dados.
-        ValueError: Se o número de comprimentos não corresponder ao número de colunas na planilha.
+    Imports an `.xlsx` file into a pandas DataFrame formatted for spectra.
+
+    If wavelengths are not specified, the program considers the first line as wavelengths.
+    To specify wavelengths, use the 'comprimentos' argument.
+
+    :param file_name: Name of the Excel file located in the 'dados' folder.
+    :type file_name: str
+    :param **kwargs: Optional named arguments:
+        - aba (str or int, default=0): Sheet name or index to be read.
+        - comprimentos (list/tuple/set, optional): Object containing wavelengths. If not specified, uses the first line.
+
+    :return: DataFrame with samples as rows and wavelengths as columns.
+    :rtype: pandas.DataFrame
+    :raises FileNotFoundError: If the file is not found in the 'dados' folder.
+    :raises ValueError: If the number of wavelengths doesn't match the number of columns in the sheet.
     """
 
     directory_path = os.path.join("dados", file_name)

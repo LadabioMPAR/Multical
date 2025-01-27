@@ -10,37 +10,52 @@ import random
 from scipy.stats import t
 from scipy.stats import f
 import csv
+import pandas as pd
 
+def multical(X,y,cname,regmax=15):
 
-def multical(Xtot,ytot):
     '''
-    Xtot e ytot são listas de mesmo tamanho, contendo as matrizes de absorbância X e concentrações de HPLC
-    das espécies y correspondentes com mesmo # de linhas. Ambos fazem parte do conjunto de dados de treinamento. 
-    
-    A multicalibração é feita via PLS. Para a escolha de regressores do PLS, é feita a validação cruzada por k-fold.
-    Os dados são juntados em duas matrizes Xs e ys, e embaralhados, 
-    
-    
-    '''
+    multical _summary_
 
+    Xtot e ytot são arrays de mesmo número de linhas, contendo as matrizes de absorbância (X) e concentrações de HPLC
+    das espécies (y) correspondentes. Ambos fazem parte do conjunto de dados de treinamento. 
     
-    y = ytot[0]
-    X = Xtot[0]
-    cname = ['lac', 'gli', 'gal', 'gos3', 'gos4']
+    A multicalibração é feita via PLS. Aumentando o número de regressores do PLS, é feita a validação cruzada por k-fold.
+    Os dados são juntados em duas matrizes Xs e ys, embaralhados e faz-se a previsão pra cada fold, armazenada em ycv.
+    
+    O teste F é realizado comparando a variação de RMSECV ao incrementar regressores no PLS, para ver se a melhoria
+    no modelo complexo é estatisticamente relevante
+    
+    :param X: Matrix of absorbance data used for calibration.
+    :type X: numpy.ndarray
+    :param y: Matrix of concentrations from HPLC measurements for the species of interest.
+    :type y: numpy.ndarray
+    :param cname: List of names of the species being analyzed.
+    :type cname: list of str
+    :param regmax: Maximum number of PLS components (regressors) to be tested, defaults to 15.
+    :type regmax: int, optional
+
+    :returns: 
+        - model_matrix: The optimal number of PLS components for each species.
+        - error_matrix: The RMSECV for the optimal models.
+        - rmsecv: The RMSECV for each tested PLS model.
+        - y_cv: The predicted concentrations for each fold of cross-validation.
+        - ys: The shuffled concentrations matrix after cross-validation.
+
+    :rtype: tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)
+
+    :raises ValueError: If there's an issue during the calculation of the PLS models.
+
+    '''    
+
     nesp = y.shape[1] ## n  de especies medidas
-      
-    #a
-
 
     #%% PLS
-    nregmax = 15 ## n de regressores maximo a ser testado
+    nregmax = regmax ## n de regressores maximo a ser testado
     y_cv = np.zeros(y.shape)
     rmsecv   = np.zeros([nregmax,nesp])
-    
-    yn = y/np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0)
-    
-    
-    nd = yn.shape[0]
+
+    nd = y.shape[0]
     
     Xs = np.zeros(X.shape)
     ys = np.zeros(y.shape)
@@ -59,9 +74,7 @@ def multical(Xtot,ytot):
             pls = PLSRegression(n_components=nregs,scale=True)
             y_cv[:,esp] = cross_val_predict(pls, Xs[:,:],ys[:,esp],cv=4).flatten()
             rmsecv[nregs-1,esp] = np.sqrt((ys[:,esp]- y_cv[:,esp]).dot(ys[:,esp]- y_cv[:,esp])/nd)
-            
-
-  
+    
 
     fig, axes = plt.subplots(3, 3, figsize=(10, 10))
     regs = np.linspace(1,15,15).astype(int)
@@ -80,10 +93,8 @@ def multical(Xtot,ytot):
     plt.subplots_adjust(wspace=0.3, hspace=0.3)
     plt.show()
     
-    #%% Análise de Outliers - nunca implementado
-    
-    #%% Escolhendo modelo - Teste F - Não é igual ao do Nelles
-    model_matrix = np.ones([1,nesp])*1 ## Escolha arbitrária, 5 regs por comp por cluster
+    #%% Escolhendo modelo - Teste F - Não é exatamente igual ao do Nelles
+    model_matrix = np.ones([1,nesp])*1
     model_matrix=model_matrix.astype(int)
     error_matrix = np.zeros(model_matrix.shape)
     
@@ -138,18 +149,21 @@ def multical(Xtot,ytot):
     y_cv = copy.deepcopy(y_cv[:])
     
     #%% Matriz covar
-    desv = (ys-y_cv)*np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0) ## pois média do erro é assumida como 0, desvio é o próprio erro
-    covar_erro = np.dot(desv.T, desv)/ys.shape[0] # Matriz R
-    np.savetxt("matriz_R.csv", covar_erro, delimiter=" ",fmt='%.5e')
-    erro_pad = np.sqrt(np.diagonal(covar_erro))
-    erro_pad= erro_pad.reshape(erro_pad.shape[0],1)
-    # correl = np.dot((1/erro_pad),(1/erro_pad).T) * covar_erro
+    # desv = (ys-y_cv)*np.repeat([np.max(y,axis=0)],repeats=y.shape[0],axis=0) ## pois média do erro é assumida como 0, desvio é o próprio erro
+    # covar_erro = np.dot(desv.T, desv)/ys.shape[0] # Matriz R
+    # np.savetxt("matriz_R.csv", covar_erro, delimiter=" ",fmt='%.5e')
+    # erro_pad = np.sqrt(np.diagonal(covar_erro))
+    # erro_pad= erro_pad.reshape(erro_pad.shape[0],1)
+    # # correl = np.dot((1/erro_pad),(1/erro_pad).T) * covar_erro
     
-    regs = np.linspace(1, 15,15)
+    # regs = np.linspace(1, 15,15)
     
-    with open('RMSECV.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(error_matrix)
-        writer.writerow(model_matrix)
+    # with open('RMSECV.csv', 'w', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(error_matrix)
+    #     writer.writerow(model_matrix)
     
-    return X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs
+    # all = [X,model_matrix,error_matrix,covar_erro,rmsecv,y_cv,ys,regs]
+    # print(all)
+    return model_matrix,error_matrix,rmsecv,y_cv,ys
+

@@ -8,51 +8,72 @@ import subprocess
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
-import tkinter as tk
-from tkinter import ttk
-import time
-from matplotlib.lines import Line2D
 from sklearn.decomposition import PCA as sklearnPCA
+from matplotlib.gridspec import GridSpec
+from Infer import Infer
+
 
 '''
 Lista de bugs ^^
 
 1- se o workspace estiver definido mas com as chaves vazias, o objeto quebra na hora de ler
     provavelmente a condição para rodar o subprocesso no __init__ pode ser melhorada
+
+2- No PCA, se você fechar a tabela antes de fechar os gráficos, o python quebra xDD
 '''
 
 class Dados_exp:
-    '''
-    Classe principal do repositório, ela armazena os dados de referência e absorbâncias.
-    Por padrão, ela lê o arquivo 'workspace.json' e inicializa as referências e absorbâncias nele contidos. 
-    Caso o workspace esteja vazio, um script para adicionar arquivos é rodado.
 
-    Alternativamente, podem ser utilizados outros arquivos .json como workspace, contanto que o arquivo fornecido possua as chaves 'comprimentos' e 'referencias'.
-    As chaves devem conter, cada uma, um array de strings com os caminhos dos respectivos arquivos.
+    """
+    Class to handle experimental data.
 
-    Atributos:
-        X - Contém as absorbâncias (Dataframe do pandas)
-        Y - Contém as referências (Dataframe do pandas)
-        comprimentos -  Contém uma lista com os comprimentos de onda utilizados (lista de inteiros)
-        analitos - Contém uma lista com os nomes dos analitos nos dados experimentais (lista de strings)
-
-    '''
+    Attributes:
+    arquivo_json (str): Path to the JSON file containing workspace data.
+    X (list): List of DataFrames containing absorbance data.
+    y (list): List of DataFrames containing reference data.
+    comprimentos (list): List of wavelengths.
+    analitos (list): List of analytes.
+    """
 
     def __init__(self, arquivo_json='workspace.json', X=[], y=[], comprimentos=None, analitos=None):
+        """
+        Initializes an instance of Dados_exp.
+
+        :param arquivo_json: Path to the JSON file containing workspace data, defaults to 'workspace.json'.
+        :type arquivo_json: str, optional
+        :param X: List of absorbance DataFrames, defaults to an empty list.
+        :type X: list, optional
+        :param y: List of reference DataFrames, defaults to an empty list.
+        :type y: list, optional
+        :param comprimentos: List of wavelengths, defaults to None.
+        :type comprimentos: list, optional
+        :param analitos: List of analytes, defaults to None.
+        :type analitos: list, optional
+        """
+
         self.comprimentos=comprimentos
         self.analitos=analitos
         self.X=X
-        self.y=y
-        if (self.X==[]) and (self.y==[]):
+        self.Y=y
+        if (X.empty if isinstance(X, pd.DataFrame) else not X) and (y.empty if isinstance(y, pd.DataFrame) else not y):
             if os.path.getsize(arquivo_json) == 0:
                 subprocess.run(["python", "Import.py"])
-            self.X, self.y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
+            self.X, self.Y, self.comprimentos, self.analitos = self.lendo_workspace(arquivo_json)
+            #código fita-crepe pra sempre dar uma matrizona:
+            self.X=self.stack_x()
+            self.Y= self.stack_y()
 
     def lendo_workspace(self, arquivo_json):
-        '''
-        Método para ler os arquivos contidos no workspace.
-        Os arquivos são lidos conforme caminho contido nas chaves 'comprimentos' e 'referencias' de workspace.json
-        '''
+        """
+        Reads the workspace JSON file and returns the data.
+
+        :param arquivo_json: Path to the JSON file.
+        :type arquivo_json: str
+        :return: Tuple containing absorbance data (X), reference data (Y), wavelengths, and analytes.
+        :rtype: tuple
+        :raises FileNotFoundError: If the JSON file is not found.
+        :raises KeyError: If 'comprimentos' or 'referencias' keys are not found in the JSON file.
+        """
         if not os.path.exists(arquivo_json):
             raise FileNotFoundError(f"O arquivo {arquivo_json} não foi encontrado.")
         
@@ -90,31 +111,39 @@ class Dados_exp:
         return X, Y, comp_ondas, analit_ref
 
     def tipo_arquivo(self, caminho_arquivo, for_x=True):
-        '''
-        Método usado na leitura do workspace
-        Serve para identificar a extensão dos arquivos no workspace e lê-los corretamente em um dataframe.
-        Arquivos de referência vêm da biblioteca ref e comprimentos da bilbioteca spc.
+        """
+        Identifies and reads files based on their extension to create DataFrames.
 
-        Para adicionar uma extensão:
-            1-tenha certeza que a função para importar um arquivo da extensão esteja corretamente implementada nos arquivos ref.py e spec.py.
-            2- Adicione a linha de código:
-                        elif extensao == '.nova_extensao':
-                            return spc.nova_extensao(caminho_arquivo) if for_x else ref.nova_extensao(caminho_arquivo)
-
-        '''
+        :param caminho_arquivo: Path to the file.
+        :type caminho_arquivo: str
+        :param for_x: If True, returns absorbance data; if False, returns reference data, defaults to True.
+        :type for_x: bool, optional
+        :return: Data read from the file.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the file extension is not supported.
+        """
         extensao = os.path.splitext(caminho_arquivo)[1].lower()  # Obtém a extensão do arquivo em letras minúsculas
         if extensao in ['.txt', '.dat']:
-            return spc.txt(caminho_arquivo) if for_x else ref.txt(caminho_arquivo) 
+            return spc.txt(caminho_arquivo) if for_x else ref.txt(caminho_arquivo)
         elif extensao == '.xlsx':
             return spc.xlsx(caminho_arquivo) if for_x else ref.xlsx(caminho_arquivo)
         else:
             raise ValueError(f"Extensão não suportada para o arquivo: {caminho_arquivo}")
-        
-    def novo_dado(self, X, Y=None, comprimento=None, analito=None):
 
-        '''
-        Método simples para importar novos dados à instância da classe Dados_exp após ser inicializada.
-        '''
+    def novo_dado(self, X, Y=None, comprimento=None, analito=None):
+        """
+        Adds new data to the Dados_exp object.
+
+        :param X: Absorbance data.
+        :type X: pandas.DataFrame
+        :param Y: Reference data, defaults to None.
+        :type Y: pandas.DataFrame, optional
+        :param comprimento: Wavelength, defaults to None.
+        :type comprimento: int, optional
+        :param analito: Analyte name, defaults to None.
+        :type analito: str, optional
+        :raises ValueError: If X or Y are not DataFrames.
+        """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("X deve ser um dataframe do pandas.")
         
@@ -130,74 +159,68 @@ class Dados_exp:
             self.analitos.append(analito)
 
     def stack_x(self):
-        '''
-        Empilha os valores de X
-        Retorna:
-            - Dataframe: valores das absorbâncias de todos os arquivos em um único dataframe
-        Levanta:
-            ValueError: Se não houverem absorbâncias
-        '''
+        """
+        Stacks the absorbance data (X) into a single DataFrame.
+
+        :return: DataFrame containing all absorbance values.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the list of absorbances is empty.
+        """
         if not self.X:
             raise ValueError("A lista de absorbâncias está vazia.")
         return pd.concat(self.X.copy(), axis=0, ignore_index=True)
-    
+
     def stack_y(self):
-        '''
-        Empilha os valores de y
-        Retorna:
-            - Dataframe: valores das referências de todos os arquivos em um único dataframe
-        Levanta:
-            ValueError: Se não houverem referências
-        '''
-        if not self.y:
+        """
+        Stacks the reference data (Y) into a single DataFrame.
+
+        :return: DataFrame containing all reference values.
+        :rtype: pandas.DataFrame
+        :raises ValueError: If the list of references is empty.
+        """
+        if not self.Y:
             raise ValueError("A lista de referências está vazia.")
-        return pd.concat(self.y.copy(), axis=0, ignore_index=True)
+        return pd.concat(self.Y.copy(), axis=0, ignore_index=True)
 
-    def pretreat(self, pretratamentos,salvar=False):
-        '''
-        Aplica uma lista de pré-tratamentos a cada DataFrame em X separadamente.
-        Parâmetros:
-            pretratamentos: lista de tuplas, cada uma contendo:
-                            (nome da função de pré-tratamento, dicionário de argumentos)
-            salvar: Booleano, se True salva os dataframes em arquivo e gera workspace
-    
-         Retorna:
-            Lista: novo objeto Dados_exp
-        '''
-        X_tratado = []
+    def pretreat(self, pretratamentos, salvar=False):
+        """
+        Applies a list of preprocessing treatments to the data.
+
+        :param pretratamentos: List of tuples containing the name of the preprocessing function and its parameters.
+        :type pretratamentos: list
+        :param salvar: If True, saves the treated data and the new workspace, defaults to False.
+        :type salvar: bool, optional
+        :return: A Dados_exp object with the treated DataFrame.
+        :rtype: Dados_exp
+        """
+        X_tratado = self.X.copy()  # Copia o DataFrame para evitar alterar o original
         
-        # Configurando a barra de progresso para os DataFrames
-        total_steps = len(self.X) * len(pretratamentos) #n de passos
-        with tqdm(total=total_steps, desc="Processando pré-tratamentos", unit="step") as pbar: #barrinha de progresso
-            for idx, x in enumerate(self.X): 
-                df = x.copy() #usa-se uma cópia do dataframe para evitar mexer no objeto original
-                for nome_pretratamento, params in pretratamentos:
-                    # Atualizando a descrição da barra de progresso para o pré-tratamento e experimento atuais
-                    pbar.set_description(f"Aplicando {nome_pretratamento} ao arquivo {idx + 1}/{len(self.X)}")
-                    funcao_pretratamento = getattr(pt, nome_pretratamento) #Aqui o pré-tratamento é encontrado dinamicamente
-                    df = funcao_pretratamento(df, **params) #Aqui realmente rodamos o pré-tratamento
-                    pbar.update(1)  # Atualizando a barra de progresso para cada pré-tratamento aplicado
-                X_tratado.append(df)
+        # Configurando a barra de progresso para os pré-tratamentos
+        total_steps = len(pretratamentos)
+        with tqdm(total=total_steps, desc="Processando pré-tratamentos", unit="step") as pbar:
+            for nome_pretratamento, params in pretratamentos:
+                # Atualizando a descrição da barra de progresso para o pré-tratamento atual
+                pbar.set_description(f"Aplicando {nome_pretratamento}")
+                funcao_pretratamento = getattr(pt, nome_pretratamento)
+                X_tratado = funcao_pretratamento(X_tratado, **params)
+                pbar.update(1)  # Atualizando a barra de progresso para cada pré-tratamento aplicado
 
-        if salvar: #não testei ainda
-            self.salvar(nome_x="abs-pretratadas",nome_y="refs-pretratadas",workspace="workspace-pretratado")
-            
-        return Dados_exp(X=X_tratado,y=self.y,comprimentos=[int(coluna) for coluna in X_tratado[0].columns.tolist()] if X_tratado else [],analitos=self.analitos)
+        if salvar:
+            self.salvar(nome_x="abs-pretratadas", nome_y="refs-pretratadas", workspace="workspace-pretratado")
+        
+        return Dados_exp(X=X_tratado, y=self.Y, comprimentos=[int(coluna) for coluna in X_tratado.columns.values.tolist()] if not X_tratado.empty else [], analitos=self.analitos)
 
-    def salvar(self, nome_x="X_",nome_y="y_",workspace="workspace"):
-        '''
-        Função para salvar os valores de X e y de um objeto Dados_exp em arquivos de texto, também gera um novo workspace para uso futuro
-        Parâmetros:
-            nome_x: string, contém o prefixo no qual serão salvos os arquivos de absorbâncias
+    def salvar(self, nomex="X_",nomey="y_",workspace="workspace"):
+        """
+        Saves X and Y values to text files and generates a new workspace.
 
-            nome_y: string, contém o prefixo no qual serão salvos os arquivos de referências
-
-            workspace: string, nome do workspace criado
-    
-         Retorna:
-            nada :) Ele só cria os arquivos  
-
-        '''
+        :param nomex: Prefix for absorbance files (X values).
+        :type nomex: str, optional
+        :param nomey: Prefix for reference files (Y values).
+        :type nomey: str, optional
+        :param workspace: Name of the workspace file, defaults to "workspace".
+        :type workspace: str, optional
+        """
         # Define o caminho até a pasta dados
         cwd = os.getcwd()
         pasta = os.path.join(cwd, 'dados')
@@ -209,13 +232,13 @@ class Dados_exp:
 
         # Salvando DataFrames de X
         for i, df in enumerate(self.X):
-            file_path = os.path.join(pasta, f'{nome_x}{i+1}.txt')
+            file_path = os.path.join(pasta, f'{nomex}{i+1}.txt')
             df.to_csv(file_path, sep='\t', index=False)
             comprimentos_paths.append(file_path)
 
         # Salvando DataFrames de y
-        for i, df in enumerate(self.y):
-            file_path = os.path.join(pasta, f'{nome_y}{i+1}.txt')
+        for i, df in enumerate(self.Y):
+            file_path = os.path.join(pasta, f'{nomey}{i+1}.txt')
             df.to_csv(file_path, sep='\t', index=False)
             referencias_paths.append(file_path)
 
@@ -229,35 +252,39 @@ class Dados_exp:
             json.dump(json_data, json_file, indent=4)
 
     def plot_espectros(self,nome="fig"):
-        '''
-        Método para plotar os espectros contidos por matriz em X
-        atualmente funciona para até 6 arquivos diferentes
-        '''
+        """
+        Plots the spectra contained in X.
+
+        :param nome: Name of the figure, defaults to "fig".
+        :type nome: str, optional
+        """
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
-        
+     
         plt.figure(figsize=(10, 6))
-        for df,color in zip(self.X,colors):
-            df_t=df.transpose()
-            plt.plot(df_t.index,df_t,color=color,linewidth=0.3)
-        legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
-        plt.legend(handles=legend_elements, fontsize=14)   
+        df_t=self.X.transpose()
+        plt.plot(df_t.index,df_t,color=colors[2],linewidth=0.3)
+        #legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
+        #plt.legend(handles=legend_elements, fontsize=14)   
         plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
         plt.ylabel('Absorbância', fontsize=22)
-        plt.xticks(df_t.index[::500], rotation=45)
+        plt.xticks(df_t.index[::500].astype(int), rotation=45)
         plt.tight_layout()
-        plt.savefig(nome)
-        plt.show()
+        plt.show()  # pause para deixar renderizar
+
+        # input pra dar um pouse
+        input("Aperte enter para continuar") 
     
     def LB(self,plots=False):
+        """
+        Performs classical least squares analysis for the Lambert-Beer law.
 
-        '''
-        Método faz a análise de mínimos quadrados clássicos para verificar a aplicabilidade da lei de lambert-beer
-        Plota a relação entre absorbância calculada e as absorbâncias de referência com e sem termo independente
-
-        Retorna- Tupla com as matrizes de coeficientes K, sem e com termo independente (K sem o termo, K com termo)
-        '''
-        absor= self.stack_x()
-        x=self.stack_y()
+        :param plots: If True, generates graphs of the results, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing the Ks (without intercept) and Kc (with intercept) matrices.
+        :rtype: tuple
+        """
+        absor= self.X
+        x=self.Y
 
         nd, nl = absor.shape
 
@@ -270,48 +297,46 @@ class Dados_exp:
         xymax = max(np.max(absor.values), np.max(absorc1))
         xymin = min(np.min(absor.values), np.min(absorc1))
 
-
-
         # Lambert-Beer com termo independente
         xone = np.hstack((np.ones((nd, 1)), x))
         Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
         absorc2 = np.dot(xone, Kc)
         if plots:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-            plt.figure(1)
-            plt.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            plt.plot([xymin, xymax], [xymin, xymax], '-k')
-            plt.xlabel('Absorbância de referência')
-            plt.ylabel('Absorbância calculada L-B')
-            plt.title('ajuste absorbância SEM termo idependente')
+            # Plot for Lambert-Beer sem termo independente
+            ax1.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            ax1.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc1), np.max(absorc1)], '-k')
+            ax1.set_xlabel('Absorbância de referência')
+            ax1.set_ylabel('Absorbância calculada L-B')
+            ax1.set_title('Ajuste absorbância SEM termo independente')
 
-            plt.figure(2)
-            plt.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            plt.plot([xymin, xymax], [xymin, xymax], '-k')
-            plt.xlabel('Absorbância de referência')
-            plt.ylabel('Absorbância calculada L-B')
-            plt.title('ajuste absorbância COM termo idependente')
+            # Plot for Lambert-Beer com termo independente
+            ax2.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
+            ax2.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc2), np.max(absorc2)], '-k')
+            ax2.set_xlabel('Absorbância de referência')
+            ax2.set_ylabel('Absorbância calculada L-B')
+            ax2.set_title('Ajuste absorbância COM termo independente')
 
-            plt.show()
+            # ajustando layout
+            fig.tight_layout()
+            plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
+
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
         return (Ks,Kc)
     
     def PCA_manual(self,plots=False):
         """
-        Código para implementação do PCA
+        Manually implements Principal Component Analysis (PCA).
 
-        Parâmetros:
-
-            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
-
-        Retorna:
-            eigvec, eigval, var_rel, var_ac
-            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
-            eigval (numpy.ndarray): autovalores da matriz de covariância
-            var_rel (numpy.ndarray): Lista de variância relativa das PCs
-            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
-
+        :param plots: If True, generates standard PCA plots, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.
+        :rtype: tuple
         """
-        absor = self.stack_x()  
+        absor = self.X
         lambda_values = self.comprimentos 
 
         # Normalizando
@@ -338,74 +363,78 @@ class Dados_exp:
         maxind = np.argmax(var_ac >= limite) + 1
         
         if plots:
-            
-            # Plotando as 3 primeiras PC's
-            plt.figure(1)
-            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
-            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
-            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
-            plt.axhline(0, color='k')
-            plt.xlabel('Comprimento')
-            plt.ylabel('PC')
-            plt.title('Componentes principais')
-            plt.legend()
+
+            fig = plt.figure(figsize=(12, 10))
+            gs = GridSpec(3, 2, figure=fig, height_ratios=[1, 1, 0.1],width_ratios=[1, 1])
+
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax5 = fig.add_subplot(gs[1:, :])
+
+            # Plotando as 3 primeiras PCs
+            ax1.plot(lambda_values, eigvec[:, 0], label='PC1')
+            ax1.plot(lambda_values, eigvec[:, 1], label='PC2')
+            ax1.plot(lambda_values, eigvec[:, 2], label='PC3')
+            ax1.axhline(0, color='k')
+            ax1.set_xlabel('Comprimento')
+            ax1.set_ylabel('PC')
+            ax1.set_title('Componentes principais')
+            ax1.legend()
             
 
             # plot para as duas primeiras componentes principais
             pc1 = np.dot(anorm, eigvec[:, 0])
             pc2 = np.dot(anorm, eigvec[:, 1])
-            plt.figure(2)
-            plt.scatter(pc1, pc2, marker='x')
-            plt.xlabel('PC1')
-            plt.ylabel('PC2')
-            plt.title('Componentes principais')
+            ax2.scatter(pc1, pc2, marker='x')
+            ax2.set_xlabel('PC1')
+            ax2.set_ylabel('PC2')
+            ax2.set_title('Componentes principais')
+
+            # Plotando a variância explicada e a variância acumulada
+            ax6 = ax5.twinx()
+
+            color = 'tab:blue'
+            ax5.set_xlabel('Componente Principal')
+            ax5.set_ylabel('Variância Explicada', color=color)
+            ax5.plot(range(1, len(var_rel[:maxind]) + 1), var_rel[:maxind], color=color, label='Variância Explicada')
+            ax5.tick_params(axis='y')
+
+            color = 'tab:red'
+            ax6.set_ylabel('Variância Acumulada', color=color)
+            ax6.plot(range(1, len(var_ac[:maxind]) + 1), var_ac[:maxind], color=color, label='Variância Acumulada')
+            ax6.tick_params(axis='y')
+            ax5.set_title('Variância Explicada e Acumulada por Componente Principal')
+
+            fig.tight_layout(pad=2.0)
+            fig.suptitle('Análise de PCA manual', fontsize=16)
             plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
 
-            # Criando uma janela com tkinter
-            root = tk.Tk()
-            root.title('Variância Explicada')
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
 
-            # Criando a tabela
-            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
-            tree = ttk.Treeview(root, columns=cols, show='headings')
 
-            for col in cols:
-                tree.heading(col, text=col)
 
-            # Inserindo os dados na tabela
-            for i in range(maxind):
-                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
 
-            tree.pack(expand=True, fill='both')
-            
-            # Iniciando a interface
-            root.mainloop()
-        return eigvec, eigval, var_rel, var_ac[:maxind]
+        return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
     
     def PCA(self, plots=False):
         """
-        Código para implementação do PCA usando scikit-learn
+        Implements Principal Component Analysis (PCA) using scikit-learn.
 
-        Parâmetros:
-
-            plots: Valor booleano indicando se deve-se plotar os gráficos usuais ou apenas retornas os valores. Falso por padrão
-
-        Retorna:
-            eigvec, eigval, var_rel, var_ac
-            eigvec (numpy.ndarray): matriz de componentes principais, autovetores
-            eigval (numpy.ndarray): autovalores da matriz de covariância
-            var_rel (numpy.ndarray): Lista de variância relativa das PCs
-            var_ac (numpy.ndarray): Lista de variância acumulada das PCs
-
+        :param plots: If True, generates standard PCA plots, defaults to False.
+        :type plots: bool, optional
+        :return: Tuple containing eigenvectors, eigenvalues, relative variance, and cumulative variance.
+        :rtype: tuple
         """
-        absor = self.stack_x()
+        absor = self.X
         lambda_values = self.comprimentos
 
         # Normalizando
         anorm = (absor - np.mean(absor, axis=0)) / np.std(absor, axis=0)
 
         # Realizando PCA
-        pca = sklearnPCA()
+        pca = sklearnPCA(svd_solver="covariance_eigh")
         pca.fit(anorm)
 
         eigvec = pca.components_.T
@@ -416,54 +445,119 @@ class Dados_exp:
         # Selecionando as variâncias até um certo limite para print
         limite = 0.9999
         maxind = np.argmax(var_ac >= limite) + 1
-
+        
         if plots:
-            # Plotando as 3 primeiras PC's
-            plt.figure(1)
-            plt.plot(lambda_values, eigvec[:, 0], label='PC1')
-            plt.plot(lambda_values, eigvec[:, 1], label='PC2')
-            plt.plot(lambda_values, eigvec[:, 2], label='PC3')
-            plt.axhline(0, color='k')
-            plt.xlabel('Comprimento')
-            plt.ylabel('PC')
-            plt.title('Componentes principais')
-            plt.legend()
+            fig = plt.figure(figsize=(12, 10))
+            gs = GridSpec(3, 2, figure=fig, height_ratios=[1, 1, 0.1],width_ratios=[1, 1])
 
-            # plot para as duas primeiras componentes principais
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax5 = fig.add_subplot(gs[1:, :])
+
+            # Plotando as 3 primeiras PCs
+            ax1.plot(lambda_values, eigvec[:, 0], label='PC1')
+            ax1.plot(lambda_values, eigvec[:, 1], label='PC2')
+            ax1.plot(lambda_values, eigvec[:, 2], label='PC3')
+            ax1.axhline(0, color='k')
+            ax1.set_xlabel('Comprimento')
+            ax1.set_ylabel('PC')
+            ax1.set_title('Componentes principais')
+            ax1.legend()
+
+            # Plot para as duas primeiras componentes principais
             pc1 = pca.transform(anorm)[:, 0]
             pc2 = pca.transform(anorm)[:, 1]
-            plt.figure(2)
-            plt.scatter(pc1, pc2, marker='x')
-            plt.xlabel('PC1')
-            plt.ylabel('PC2')
-            plt.title('Componentes principais')
+            ax2.scatter(pc1, pc2, marker='x')
+            ax2.set_xlabel('PC1')
+            ax2.set_ylabel('PC2')
+            ax2.set_title('Componentes principais')
+
+            # Plotando a variância explicada e a variância acumulada
+            ax6 = ax5.twinx()
+
+            color = 'tab:blue'
+            ax5.set_xlabel('Componente Principal')
+            ax5.set_ylabel('Variância Explicada', color=color)
+            ax5.plot(range(1, len(var_rel[:maxind]) + 1), var_rel[:maxind], color=color, label='Variância Explicada')
+            ax5.tick_params(axis='y')
+
+            color = 'tab:red'
+            ax6.set_ylabel('Variância Acumulada', color=color)
+            ax6.plot(range(1, len(var_ac[:maxind]) + 1), var_ac[:maxind], color=color, label='Variância Acumulada')
+            ax6.tick_params(axis='y')
+            ax5.set_title('Variância Explicada e Acumulada por Componente Principal')
+
+            fig.tight_layout(pad=2.0,rect=[0, 0.03, 1, 0.95])
+            fig.suptitle('Análise de PCA', fontsize=16)
             plt.show(block=False)
+            plt.pause(0.001)  # pause para deixar renderizar
 
-            # Criando uma janela com tkinter
-            root = tk.Tk()
-            root.title('Variância Explicada')
-
-            # Criando a tabela
-            cols = ('PC#', 'Variância Relativa (%)', 'Variância Acumulada (%)')
-            tree = ttk.Treeview(root, columns=cols, show='headings')
-
-            for col in cols:
-                tree.heading(col, text=col)
-
-            # Inserindo os dados na tabela
-            for i in range(maxind):
-                tree.insert("", "end", values=(f'{i+1}', f'{var_rel[i]*100:.3f}', f'{var_ac[i]*100:.3f}'))
-
-            tree.pack(expand=True, fill='both')
-            
-            # Iniciando a interface
-            root.mainloop()
-
-        return eigvec, eigval, var_rel, var_ac[:maxind]
-
-teste=Dados_exp()
+            # input pra dar um pouse
+            input("Aperte enter para continuar") 
 
 
-teste.PCA_manual(plots=True)
-time.sleep(5)
-teste.PCA(plots=True)
+
+
+        return eigvec, eigval, var_rel[:maxind], var_ac[:maxind]
+
+    def multicalib(self, multical_function_name="multical",*args,**kwargs):
+      
+        """
+        Performs multivariate calibration on the data using a specified function from the Multical module.
+
+        :param multical_function_name: The name of the function to use from the Multical module. Default is 'multical'.
+        :type multical_function_name: str, optional
+        :param args: Additional positional arguments for the specified Multical function.
+        :type args: tuple
+        :param kwargs: Additional keyword arguments for the specified Multical function.
+        :type kwargs: dict
+        :return: The result of the selected Multical function.
+        :rtype: object
+        :raises ValueError: If the specified function name does not exist in the Multical module.
+
+        :example:
+
+        To use the default `multical` function:
+
+        >>> result = my_object.multicalib()
+
+        To use a different function from the Multical module, such as `custom_multical`:
+
+        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
+        """
+
+        Xtot = self.X.to_numpy()
+        ytot = self.Y.to_numpy()
+        cname = self.analitos
+
+        import Multical
+
+ 
+        try:
+            multical_function = getattr(Multical, multical_function_name)
+        except AttributeError:
+            raise ValueError(f"The function '{multical_function_name}' does not exist in the Multical module.")
+        return multical_function(Xtot, ytot, cname, *args, **kwargs)
+
+    def inferlib(self,model_matrix,error_matrix):
+        """
+        Performs inference using the libraries and calibrated models.
+
+        :param model_matrix: Calibrated model matrix.
+        :type model_matrix: numpy.ndarray
+        :param error_matrix: Error matrix associated with the model.
+        :type error_matrix: numpy.ndarray
+        """
+        Xtot = self.X.to_numpy()
+        ytot = self.Y.to_numpy()
+       
+        Xtest = Xtot[0:18,:]
+        ytest = ytot[0:18,:]
+       
+        thplc = np.linspace(0,17,18).astype(int)
+        cname = self.analitos
+
+
+        return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
+
+

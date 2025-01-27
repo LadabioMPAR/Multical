@@ -1,18 +1,18 @@
 {
     "comprimentos": [
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs01.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs02.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs03.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs04.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs05.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/abs06.txt"
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs01.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs02.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs03.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs04.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs05.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs06.txt"
     ],
     "referencias": [
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x01.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x02.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x03.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x04.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x05.txt",
-        "C:/Users/Daniel/Documents/mestrado/Espectros/x06.txt"
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x01.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x02.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x03.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x04.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x05.txt",
+        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x06.txt"
     ]
 }
