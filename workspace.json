@@ -1,18 +1,18 @@
 {
     "comprimentos": [
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs01.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs02.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs03.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs04.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs05.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/abs06.txt"
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E07export.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E08export.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E09export.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E10export.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E11export.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/E12export.txt"
     ],
     "referencias": [
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x01.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x02.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x03.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x04.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x05.txt",
-        "/home/marcelo-grupo/Documentos/GitHub/Multical/dados/arquivos_teste/mestrado Daniel/x06.txt"
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x07UV.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x08UV.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x09UV.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x10UV.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x11UV.txt",
+        "/home/daniel/Documentos/GitHub/Multical/dados/arquivos_teste/UV/x12UV.txt"
     ]
 }

@@ -561,3 +561,7 @@ class Dados_exp:
         return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 
+testeuv=Dados_exp()
+print(testeuv.Y)
+
+testeuv.LB(plots=1)
