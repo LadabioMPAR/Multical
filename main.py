@@ -290,7 +290,7 @@ class Dados_exp:
 
         # Lambert-Beer sem termo independente
         xone = x
-        Ks = np.linalg.lstsq(xone, absor, rcond=None)[0]
+        Ks = np.linalg.lstsq(xone.astype('float'), absor.astype('float'), rcond=None)[0]
         absorc1 = np.dot(xone, Ks)
 
         # convertendo para arrays
@@ -299,7 +299,7 @@ class Dados_exp:
 
         # Lambert-Beer com termo independente
         xone = np.hstack((np.ones((nd, 1)), x))
-        Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
+        Kc = np.linalg.lstsq(xone.astype('float'), absor.astype('float'), rcond=None)[0]
         absorc2 = np.dot(xone, Kc)
         if plots:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
@@ -519,18 +519,18 @@ class Dados_exp:
 
         To use the default `multical` function:
 
-        >>> result = my_object.multicalib()
+        #>>> result = my_object.multicalib()
 
         To use a different function from the Multical module, such as `custom_multical`:
 
-        >>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
+        #>>> result = my_object.multicalib(multical_function_name="custom_multical", alpha=0.1, scale=True) #trocar exemplo
         """
 
         Xtot = self.X.to_numpy()
         ytot = self.Y.to_numpy()
         cname = self.analitos
 
-        import Multical
+        from Calibration import Multical
 
  
         try:
@@ -561,7 +561,16 @@ class Dados_exp:
         return Infer.infer(Xtot,Xtest,ytot,ytest,thplc,model_matrix,error_matrix,cname)
 
 
-testeuv=Dados_exp()
-print(testeuv.Y)
-
-testeuv.LB(plots=1)
+teste= Dados_exp()
+#pretratamentos = [("media_movel",{"tam_janela":7}),("sav_gol",{"janela":7,"polyorder":3,"derivada":1})]
+#print(teste.X.shape,teste.Y.shape)
+#print(teste.Y)
+'''pretratamentos = [("sav_gol",{"janela":7,"polyorder":3,"derivada":1})]
+pretratados = teste.pretreat(pretratamentos=pretratamentos)
+pretratados.plot_espectros()'''
+#teste.pretreat()
+teste.plot_espectros()
+#teste.plot_espectros()
+#time.sleep(5) 
+#teste.PCA(plots=True)
+#teste.LB(plots=True)
