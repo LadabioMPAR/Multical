@@ -578,7 +578,7 @@ class Dados_exp:
 
 teste = Dados_exp()
 teste.plot_espectros()
-pretratamentos = [("sav_gol",{"janela":15,"polyorder":2,"derivada":1}),("cut",{"lower_bound":4500,"upper_bound":10000})]
+pretratamentos = [("sav_gol",{"janela":11,"polyorder":3,"derivada":1}),("cut",{"lower_bound":4500,"upper_bound":10000})]
 pretratados = teste.pretreat(pretratamentos=pretratamentos)
 pretratados.plot_espectros()
 Ks, Kc, absorc1, absorc2 = pretratados.LB(plots=True)
