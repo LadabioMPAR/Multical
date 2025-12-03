@@ -77,30 +77,30 @@ class Dados_exp:
         """
         if not os.path.exists(arquivo_json):
             raise FileNotFoundError(f"O arquivo {arquivo_json} não foi encontrado.")
-        
+
         with open(arquivo_json, 'r', encoding='utf-8') as file:
             data = json.load(file)
-        
+
         if 'comprimentos' not in data:
             raise KeyError(f"A chave 'comprimentos' não foi encontrada no arquivo {arquivo_json}.")
-        
+
         if 'referencias' not in data:
             raise KeyError(f"A chave 'referencias' não foi encontrada no arquivo {arquivo_json}.")
 
         comprimentos = data['comprimentos']
         referencias = data['referencias']
-        
+
         # Processamento dos arquivos para X (absorbâncias) e Y (referências)
         X = [self.tipo_arquivo(comprimento, for_x=True) for comprimento in comprimentos]
         Y = [self.tipo_arquivo(referencia, for_x=False) for referencia in referencias]
-        
+
         # Verifica se todos os DataFrames em X possuem os mesmos comprimentos de onda
         if len(X) > 1:
             nomes_colunas = set(X[0].columns)
             for df, caminho_arquivo in zip(X[1:], comprimentos[1:]):
                 if set(df.columns) != nomes_colunas:
                     raise ValueError(f"O arquivo {caminho_arquivo} de absorbância não possui comprimentos de onda consistente com os demais")
-        
+
         # Verifica se todos os DataFrames em Y apresentam a mesma quantidade de analitos
         num_colunas = len(Y[0].columns)
         for df, caminho_arquivo in zip(Y[1:], referencias[1:]):
@@ -108,7 +108,7 @@ class Dados_exp:
                 raise ValueError(f"O arquivo {caminho_arquivo} de referência não apresenta número de analitos consistente com os demais")
         comp_ondas = [int(coluna) for coluna in X[0].columns.tolist()] if X else []
         analit_ref = Y[0].columns.tolist() if Y else []
-        
+
         return X, Y, comp_ondas, analit_ref
 
     def tipo_arquivo(self, caminho_arquivo, for_x=True):
@@ -147,10 +147,10 @@ class Dados_exp:
         """
         if not isinstance(X, pd.DataFrame):
             raise ValueError("X deve ser um dataframe do pandas.")
-        
+
         if Y is not None and not isinstance(Y, pd.DataFrame):
             raise ValueError("Y deve ser um dataframe do pandas.")
-        
+
         self.X.append(X)
         if Y is not None:
             self.Y.append(Y)
@@ -252,7 +252,7 @@ class Dados_exp:
         with open(f'{workspace}.json', 'w') as json_file:
             json.dump(json_data, json_file, indent=4)
 
-    def plot_espectros(self,nome="fig"):
+    def plot_espectros(self, nome="fig"):
         """
         Plots the spectra contained in X.
 
@@ -260,32 +260,36 @@ class Dados_exp:
         :type nome: str, optional
         """
         colors = ['y', 'm', 'c', 'r', 'g', 'b']
-     
+
         plt.figure(figsize=(10, 6))
-        df_t=self.X.transpose()
-        plt.plot(df_t.index,df_t,color=colors[2],linewidth=0.3)
-        #legend_elements = [Line2D([0], [0], color=color, lw=2, label=f'Ensaio {i+1}') for i, color in enumerate(colors)]
-        #plt.legend(handles=legend_elements, fontsize=14)   
+        df_t = self.X.transpose()
+
+        # Garantir que o índice seja numérico
+        df_t.index = pd.to_numeric(df_t.index, errors='coerce')
+
+        plt.plot(df_t.index, df_t.values, color=colors[2], linewidth=0.3)
         plt.xlabel('Número de onda (cm$^{-1}$)', fontsize=22)
         plt.ylabel('Absorbância', fontsize=22)
-        plt.xticks(df_t.index[::500].astype(int), rotation=45)
-        plt.tight_layout()
-        plt.show()  # pause para deixar renderizar
 
-        # input pra dar um pouse
-        input("Aperte enter para continuar") 
-    
-    def LB(self,plots=False):
+        # Selecionar ticks a cada 500 pontos, garantindo que sejam inteiros
+        tick_positions = df_t.index[::500]
+        plt.xticks(tick_positions, rotation=45)
+
+        plt.tight_layout()
+        plt.show(block=False)
+
+    def LB(self, plots=False):
         """
         Performs classical least squares analysis for the Lambert-Beer law.
 
         :param plots: If True, generates graphs of the results, defaults to False.
         :type plots: bool, optional
-        :return: Tuple containing the Ks (without intercept) and Kc (with intercept) matrices.
+        :return: Tuple containing the Ks (without intercept) and Kc (with intercept) matrices,
+                 and the calculated absorbances (absorc1, absorc2).
         :rtype: tuple
         """
-        absor= self.X
-        x=self.Y
+        absor = self.X
+        x = self.Y
 
         nd, nl = absor.shape
 
@@ -294,40 +298,50 @@ class Dados_exp:
         Ks = np.linalg.lstsq(xone, absor, rcond=None)[0]
         absorc1 = np.dot(xone, Ks)
 
-        # convertendo para arrays
-        xymax = max(np.max(absor.values), np.max(absorc1))
-        xymin = min(np.min(absor.values), np.min(absorc1))
+        # limites comuns para bissetriz (sem termo independente)
+        xymin1 = min(np.min(absor.values), np.min(absorc1))
+        xymax1 = max(np.max(absor.values), np.max(absorc1))
 
         # Lambert-Beer com termo independente
         xone = np.hstack((np.ones((nd, 1)), x))
         Kc = np.linalg.lstsq(xone, absor, rcond=None)[0]
         absorc2 = np.dot(xone, Kc)
+
+        # limites comuns para bissetriz (com termo independente)
+        xymin2 = min(np.min(absor.values), np.min(absorc2))
+        xymax2 = max(np.max(absor.values), np.max(absorc2))
+
         if plots:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-            # Plot for Lambert-Beer sem termo independente
-            ax1.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            ax1.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc1), np.max(absorc1)], '-k')
+            # Plot para Lambert-Beer SEM termo independente
+            ax1.plot(absor, absorc1, 'o', markersize=5, markeredgewidth=1,
+                     markeredgecolor='black')
+            # bissetriz y = x
+            ax1.plot([xymin1, xymax1], [xymin1, xymax1], '-k')
             ax1.set_xlabel('Absorbância de referência')
             ax1.set_ylabel('Absorbância calculada L-B')
             ax1.set_title('Ajuste absorbância SEM termo independente')
+            ax1.set_xlim(xymin1, xymax1)
+            ax1.set_ylim(xymin1, xymax1)
 
-            # Plot for Lambert-Beer com termo independente
-            ax2.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1, markeredgecolor='black')
-            ax2.plot([np.min(absor.values), np.max(absor.values)], [np.min(absorc2), np.max(absorc2)], '-k')
+            # Plot para Lambert-Beer COM termo independente
+            ax2.plot(absor, absorc2, 'o', markersize=5, markeredgewidth=1,
+                     markeredgecolor='black')
+            # bissetriz y = x
+            ax2.plot([xymin2, xymax2], [xymin2, xymax2], '-k')
             ax2.set_xlabel('Absorbância de referência')
             ax2.set_ylabel('Absorbância calculada L-B')
             ax2.set_title('Ajuste absorbância COM termo independente')
+            ax2.set_xlim(xymin2, xymax2)
+            ax2.set_ylim(xymin2, xymax2)
 
-            # ajustando layout
             fig.tight_layout()
             plt.show(block=False)
             plt.pause(0.001)  # pause para deixar renderizar
 
-            # input pra dar um pause
-            input("Aperte enter para continuar") 
-        return (Ks,Kc,absorc1,absorc2)
-    
+        return Ks, Kc, absorc1, absorc2
+
     def PCA_manual(self,plots=False):
         """
         Manually implements Principal Component Analysis (PCA).
@@ -564,8 +578,9 @@ class Dados_exp:
 
 teste = Dados_exp()
 teste.plot_espectros()
-pretratamentos = [("media_movel",{"tam_janela":5}),("sav_gol",{"janela":5,"polyorder":3,"derivada":1}),("cut",{"lower_bound":400,"upper_bound":900})]
+pretratamentos = [("sav_gol",{"janela":15,"polyorder":2,"derivada":1}),("cut",{"lower_bound":4500,"upper_bound":10000})]
 pretratados = teste.pretreat(pretratamentos=pretratamentos)
+pretratados.plot_espectros()
 Ks, Kc, absorc1, absorc2 = pretratados.LB(plots=True)
 print(f'R2 sem termo independente: {r2_score(pretratados.X, absorc1)}')
 print(f'R2 com termo independente: {r2_score(pretratados.X, absorc2)}')
@@ -580,7 +595,8 @@ pretratados = teste.pretreat(pretratamentos=pretratamentos)'''
 
 #print(teste.LB())
 #teste.pretreat()
-pretratados.plot_espectros()
+#pretratados.plot_espectros()
+#pretratados.LB(plots=True)
 # teste.plot_espectros()
 # time.sleep(5)
 #pretratados.PCA(plots=True)
