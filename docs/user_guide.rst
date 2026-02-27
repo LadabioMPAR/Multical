@@ -166,5 +166,5 @@ The `PRETREATMENT` list accepts specific codes for various spectral transformati
 +--------------+---------------------------------------------+-----------------------------------------------------------+
 | **Loess**    | ``['Loess', alpha, order, plot]``           | Local regression smoothing.                               |
 +--------------+---------------------------------------------+-----------------------------------------------------------+
-| **MeanCenter**| ``['MeanCenter', plot]``                   | Subtracts the column mean (centering).                    |
+|**MeanCenter**| ``['MeanCenter', plot]``                    | Subtracts the column mean (centering).                    |
 +--------------+---------------------------------------------+-----------------------------------------------------------+
