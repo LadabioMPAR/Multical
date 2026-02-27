@@ -1,6 +1,4 @@
 # MultiCal: Multivariate Calibration Tool
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Documentation Status](https://readthedocs.org/projects/multical/badge/?version=latest)](https://multical.readthedocs.io/en/latest/?badge=latest)
 
 **MultiCal** is a comprehensive Python package for Chemometrics and Multivariate Calibration, designed to generate robust predictive models for biochemical processes from spectroscopic data (NIR, Raman, MIR, etc.). It streamlines the workflow from raw spectra to deployed inference models.
 
@@ -37,25 +35,47 @@
     pip install -r requirements.txt
     ```
 
-## Quick Start
+## Quick Start Guide
 
-### Option 1: GUI (Recommended for beginners)
+MultiCal can be used via its Graphical User Interface (GUI) or through configuring and running Python scripts.
+
+### Option 1: Graphical User Interface (Recommended)
 Launch the interactive interface:
 ```bash
 python gui_main.py
 ```
 
-### Option 2: Scripts (For automation)
-1.  **Configure**: Edit settings in `run_calibration.py` (File paths, Model type).
-2.  **Train**:
+### Option 2: Script-Based Workflow
+For reproducible research and batch processing, use the provided `run_` scripts.
+
+1.  **Configure Calibration**:
+    Edit `run_calibration.py` to set your data files and parameters.
+    ```python
+    # Example Configuration in run_calibration.py
+    DATA_FILES = [
+        ('data/reference.txt', 'data/spectra.txt'),
+    ]
+    MODEL_TYPE = 1  # 1=PLS
+    ```
+
+2.  **Run Calibration**:
     ```bash
     python run_calibration.py
     ```
-3.  **Predict**:
+    This generates performance plots and saves the model to `results/`.
+
+3.  **Variable Selection (Optional)**:
+    Identify key wavelengths:
+    ```bash
+    python run_variable_selection.py
+    ```
+
+4.  **Run Inference**:
+    Predict concentrations for new spectra using a trained model:
     ```bash
     python run_inference.py
     ```
 
 ## Documentation
 
-Full documentation is available at [ReadTheDocs](https://multical.readthedocs.io/en/latest/).
+Full documentation, including detailed API references and theoretical background, is available in the `docs/` folder or built via Sphinx.
