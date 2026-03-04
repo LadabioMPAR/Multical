@@ -208,9 +208,31 @@ def main():
     
     print("\n--- Saving Variable Selection Model ---")
     MODEL_FILENAME = MODEL_NAME
+    
+    # Ensure best_k_dict is converted to list and extract specific RMSECV values (Conc units)
+    # best_k_dict is actually best_k_ftest which is a dict {idx: k}
+    best_k_final = []
+    best_rmsecv_final = []
+    
+    for j in range(nc):
+        # Determine best K
+        if j in best_k_dict:
+             k_sel = best_k_dict[j]
+        else:
+             k_sel = np.argmin(RMSECV_conc[:, j]) + 1
+        
+        best_k_final.append(k_sel)
+        
+        # Get RMSECV (Concentration) at that K
+        # RMSECV_conc is (kmax, nc)
+        rmse_val = RMSECV_conc[k_sel-1, j]
+        best_rmsecv_final.append(rmse_val)
+        
+        print(f"  Analyte {ANALYTES[j]}: K={k_sel}, RMSECV={rmse_val:.4f} {UNITS}")
+
     # Note: absor_final is already pretreated and reduced.
     # engine.run returns best_k_dict which is list of k
-    train_and_save_model_pls(absor_final, x0, wl_final, best_k_dict, os.path.join(RESULTS_DIR, MODEL_FILENAME), rmsecv_list=RMSECV_conc)
+    train_and_save_model_pls(absor_final, x0, wl_final, best_k_final, os.path.join(RESULTS_DIR, MODEL_FILENAME), rmsecv_list=best_rmsecv_final)
 
     print("\nProcessing complete. Close plot windows to exit.")
     plt.show()

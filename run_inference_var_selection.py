@@ -11,14 +11,14 @@ from src.multical.core.saving import load_and_predict_pls
 
 # --- 1. General Settings ---
 RESULTS_DIR = "results_inference_var_sel" # Directory for output
-MODEL_PATH = "results_var_selection/model_var_selection.pkl" # Path to trained model
+MODEL_PATH = "results_var_selection/model_variable_selection.pkl" # Path to trained model
 
 # --- 2. Data Files ---
 INFERENCE_FILES = [
-        ('data/exp4_refe.txt', 'data/exp_04_inf.txt'),
-        ('data/exp5_refe.txt', 'data/exp_05_inf.txt'),
-        ('data/exp6_refe.txt', 'data/exp_06_inf.txt'),
-        ('data/exp7_refe.txt', 'data/exp_07_inf.txt'),
+        ('data/exp4_refe.txt', 'data/exp_04_inf_smoothed.txt'),
+        ('data/exp5_refe.txt', 'data/exp_05_inf_smoothed.txt'),
+        ('data/exp6_refe.txt', 'data/exp_06_inf_smoothed.txt'),
+        ('data/exp7_refe.txt', 'data/exp_07_inf_smoothed.txt'),
 ]
 
 # --- 3. Model Parameters ---
@@ -282,7 +282,7 @@ def main():
                 plt.xlabel(f"Reference ({UNITS})")
                 plt.ylabel(f"Predicted ({UNITS})")
 
-                plt.grid(True)
+    
                 
                 plt.tight_layout()
                 plt.savefig(os.path.join(RESULTS_DIR, f"Parity_Plot_{analyte_name}.png"), bbox_inches='tight')
