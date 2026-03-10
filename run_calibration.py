@@ -57,7 +57,7 @@ VAL_FRACTION = 0.20       # Fraction for validation holdout
 # [Operation, Param1, Param2, ...]
 PRETREATMENT = [
     ['Cut', 4400, 7500, 1], # Cut spectral region (Min, Max, Plot?)
-    ['SG', 7, 2, 1, 1],  # Savitzky-Golay: Window=7, Poly=2, Deriv=1
+    ['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
 
 ]
 
@@ -143,6 +143,7 @@ def main():
     ax.set_title("a) Raw Spectra")
     ax.set_xlabel("Wavenumber ($cm^{-1}$)")
     ax.set_ylabel("Absorbance")
+    fig.tight_layout()
     fig.savefig(os.path.join(RESULTS_DIR, "Spectra_Raw.png"))
     plt.close(fig)
     
