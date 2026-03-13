@@ -78,4 +78,4 @@ For reproducible research and batch processing, use the provided `run_` scripts.
 
 ## Documentation
 
-Full documentation, including detailed API references and theoretical background, is available in the `docs/` folder or built via Sphinx.
+Full documentation, including detailed API references and theoretical background, is available in [readthedocs](https://multical.readthedocs.io/en/latest/).
