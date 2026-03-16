@@ -44,10 +44,10 @@ MODEL_PATH = "results/model_calibration.pkl"
 #   - Spectra: Rows=Samples, Cols=Wavelengths (1st row=Wavelengths or header)
 #   - Reference: Rows=Samples, Cols=[Time, Ref1, Ref2...]
 INFERENCE_FILES = [
-    ('data/exp4_refe.txt', 'data/exp_04_inf.txt'),
-    ('data/exp5_refe.txt', 'data/exp_05_inf.txt'),
-    ('data/exp6_refe.txt', 'data/exp_06_inf.txt'),
-    ('data/exp7_refe.txt', 'data/exp_07_inf.txt'),
+    ('data/exp4_refe.txt', 'data/exp_04_inf_smoothed.txt'),
+    ('data/exp5_refe.txt', 'data/exp_05_inf_smoothed.txt'),
+    ('data/exp6_refe.txt', 'data/exp_06_inf_smoothed.txt'),
+    ('data/exp7_refe.txt', 'data/exp_07_inf_smoothed.txt'),
 ]
 
 # --- 3. Model Parameters ---

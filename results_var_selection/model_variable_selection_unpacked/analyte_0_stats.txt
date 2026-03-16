@@ -1,0 +1,5 @@
+Index: 0
+Latent Variables (k): 6
+RMSECV: 0.11769195702651669
+Y Mean (Ymed): [1.17565]
+Y Std (Ysig): [0.2806749]
