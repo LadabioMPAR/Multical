@@ -24,7 +24,7 @@ DATA_FILES = [
 ]
 
 # --- 3. Model Parameters ---
-MODEL_TYPE = 1          # 1 = PLS (Partial Least Squares)
+MODEL_TYPE =3          # 1 = PLS (Partial Least Squares)
                         # 2 = SPA (Successive Projections Algorithm)
                         # 3 = PCR (Principal Component Regression)
 
@@ -56,8 +56,8 @@ VAL_FRACTION = 0.20       # Fraction for validation holdout
 # Text-based pipeline definition.
 # [Operation, Param1, Param2, ...]
 PRETREATMENT = [
-    ['Cut', 4400, 7500, 1], # Cut spectral region (Min, Max, Plot?)
-    ['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
+    ['Cut', 4160, 10000, 1], # Cut spectral region (Min, Max, Plot?)
+    #['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
 
 ]
 
