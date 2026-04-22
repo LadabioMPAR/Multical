@@ -19,10 +19,10 @@ RESULTS_DIR = "results_var_selection"
 
 MODEL_NAME = "model_variable_selection.pkl" # Filename for the saved model (must end with .pkl)
 DATA_FILES = [
-    #('data/exp4_refe.txt', 'data/exp4_nonda.txt'),
+    ('data/exp4_refe.txt', 'data/exp4_nonda.txt'),
     ('data/exp5_refe.txt', 'data/exp5_nonda.txt'),
-    #('data/exp6_refe.txt', 'data/exp6_nonda.txt'),
-    #('data/exp7_refe.txt', 'data/exp7_nonda.txt'),  
+    ('data/exp6_refe.txt', 'data/exp6_nonda.txt'),
+    ('data/exp7_refe.txt', 'data/exp7_nonda.txt'),  
 ]
 
 # --- 3. Model Parameters ---

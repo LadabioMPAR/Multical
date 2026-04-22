@@ -24,7 +24,7 @@ DATA_FILES = [
 ]
 
 # --- 3. Model Parameters ---
-MODEL_TYPE =3          # 1 = PLS (Partial Least Squares)
+MODEL_TYPE =1          # 1 = PLS (Partial Least Squares)
                         # 2 = SPA (Successive Projections Algorithm)
                         # 3 = PCR (Principal Component Regression)
 
@@ -57,7 +57,7 @@ VAL_FRACTION = 0.20       # Fraction for validation holdout
 # [Operation, Param1, Param2, ...]
 PRETREATMENT = [
     ['Cut', 4160, 10000, 1], # Cut spectral region (Min, Max, Plot?)
-    #['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
+    ['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
 
 ]
 
@@ -217,7 +217,8 @@ def main():
     best_k_list = best_k_dict 
     print(f"Optimal LVs detected: {best_k_list}")
 
-    train_and_save_model_pls(absor_pre_final, x0, wl_final, best_k_list, os.path.join(RESULTS_DIR, model_name), rmsecv_list=RMSECV_conc)
+    best_rmsecv_correct = [RMSECV_conc[best_k_list[i]-1, i] if isinstance(best_k_list, dict) else RMSECV_conc[best_k_list[i]-1, i] for i in range(nc)]
+    train_and_save_model_pls(absor_pre_final, x0, wl_final, best_k_list, os.path.join(RESULTS_DIR, model_name), rmsecv_list=best_rmsecv_correct)
     
     # Keep plots open at the end
     print("\nProcessing complete. Close plot windows to exit.")

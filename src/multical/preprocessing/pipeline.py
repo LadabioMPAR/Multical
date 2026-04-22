@@ -33,13 +33,13 @@ def apply_pretreatment(pretreat_list, absor, lambda_, plot=True, output_dir=None
         
     for i, step in enumerate(pretreat_list):
         method = step[0]
-        print(f"Applying {method}")
+        print(f"Applying {method}, shape before={absor.shape}")
         
         # Scilab often has 'plot' flag as last element
         # We will check if the last element is 1 (True) or 0 (False)
         # But we also have a global 'plot' arg here.
         
-        step_plot = step[-1] == 1 if len(step) > 1 else False
+        print(f"shape after={absor.shape}"); step_plot = step[-1] == 1 if len(step) > 1 else False
 
         if method == 'MA':
             # {'MA', radius, alis_type, plot}
