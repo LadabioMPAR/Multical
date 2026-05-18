@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from src.multical.core.engine import MulticalEngine
 from src.multical.preprocessing.pipeline import apply_pretreatment
 from src.multical.core.saving import train_and_save_model_pls
+from src.multical.models.pls import PLS
+from src.multical.utils import zscore_matlab_style
 # =============================================================================
 #                                 CONFIGURATION
 # =============================================================================
@@ -17,14 +19,16 @@ model_name = "model_calibration.pkl" # Filename for the saved model (must end wi
 # List of (Concentration_File, Absorbance_File)
 # Ensure these are in your 'data/' folder
 DATA_FILES = [
-    ('data/exp4_refe.txt', 'data/exp4_nonda.txt'),
-    ('data/exp5_refe.txt', 'data/exp5_nonda.txt'),
-    ('data/exp6_refe.txt', 'data/exp6_nonda.txt'),
-    ('data/exp7_refe.txt', 'data/exp7_nonda.txt'),
+    ('data/splits/exp4_refe_cal.txt', 'data/splits/exp4_nonda_cal.txt'),
+    ('data/splits/exp5_refe_cal.txt', 'data/splits/exp5_nonda_cal.txt'),
+    ('data/splits/exp6_refe_cal.txt', 'data/splits/exp6_nonda_cal.txt'),
+    ('data/splits/exp7_refe_cal.txt', 'data/splits/exp7_nonda_cal.txt'),
+    ('data/splits/exp8_refe_cal.txt', 'data/splits/exp8_nonda_cal.txt'),
 ]
 
+
 # --- 3. Model Parameters ---
-MODEL_TYPE =3          # 1 = PLS (Partial Least Squares)
+MODEL_TYPE = 1          # 1 = PLS (Partial Least Squares)
                         # 2 = SPA (Successive Projections Algorithm)
                         # 3 = PCR (Principal Component Regression)
 
@@ -56,8 +60,8 @@ VAL_FRACTION = 0.20       # Fraction for validation holdout
 # Text-based pipeline definition.
 # [Operation, Param1, Param2, ...]
 PRETREATMENT = [
-    ['Cut', 4160, 10000, 1], # Cut spectral region (Min, Max, Plot?)
-    #['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
+    ['Cut', 4400, 7500, 1], # Cut spectral region (Min, Max, Plot?)
+    ['SG', 7, 2, 1, 1],  # Savitzky-Golay: radius=7, Poly=2, Deriv=1
 
 ]
 
@@ -65,6 +69,30 @@ PRETREATMENT = [
 OUTLIER_REMOVAL = 0     # 0 = Off, 1 = On (Student t-test on residuals)
 USE_F_TEST = True       # Use Osten F-test for automatic model selection (Optimal k)
 PRE_ANALYSIS = [['LB'], ['PCA']] # Analyses to run before calibration
+
+# --- 7. Publication Plot Settings ---
+PLOT_PARAMS = {
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'DejaVu Sans', 'Calibri'],
+    'font.size': 16,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'axes.linewidth': 1.5,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
+    'xtick.direction': 'out',
+    'ytick.direction': 'out',
+    'xtick.major.width': 1.5,
+    'ytick.major.width': 1.5,
+    'legend.fontsize': 12,
+    'legend.frameon': True,
+    'legend.loc': 'best',
+    'lines.linewidth': 2,
+    'lines.markersize': 8,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.format': 'png',
+}
 
 # =============================================================================
 #                              MAIN EXECUTION
@@ -118,6 +146,93 @@ def load_data(files):
     absor0 = np.vstack([wavelengths, absor_data]) 
     
     return x0, absor0, wavelengths, absor_data
+
+
+def predict_pls2_cv(absor, x0, max_k, folds, cv_type='venetian'):
+    n_samples = absor.shape[0]
+    n_analytes = x0.shape[1]
+
+    y_pred_cv = np.zeros((n_samples, n_analytes, max_k))
+    pls_engine = PLS()
+
+    indices = np.arange(n_samples)
+    if cv_type == 'random':
+        indices = np.random.permutation(n_samples)
+
+    fold_size = int(np.ceil(n_samples / folds))
+
+    for i in range(folds):
+        if cv_type == 'venetian':
+            val_idx = np.arange(i, n_samples, folds)
+        else:
+            start = i * fold_size
+            end = min((i + 1) * fold_size, n_samples)
+            val_idx_raw = np.arange(start, end)
+            val_idx_raw = val_idx_raw[val_idx_raw < n_samples]
+            val_idx = indices[val_idx_raw]
+
+        if len(val_idx) == 0:
+            continue
+
+        mask = np.ones(n_samples, dtype=bool)
+        mask[val_idx] = False
+        train_idx = np.arange(n_samples)[mask]
+
+        x_train_raw = absor[train_idx, :]
+        x_val_raw = absor[val_idx, :]
+        y_train_raw = x0[train_idx, :]
+
+        combined_x = np.vstack([x_train_raw, x_val_raw])
+        combined_x_norm, _, _ = zscore_matlab_style(combined_x)
+        n_tr = len(train_idx)
+        x_train = combined_x_norm[:n_tr, :]
+        x_val = combined_x_norm[n_tr:, :]
+
+        y_train_norm, ymed_y, ysig_y = zscore_matlab_style(y_train_raw)
+
+        _, _, p, _, q, w, _, _ = pls_engine.nipals(x_train, y_train_norm, max_k)
+
+        for k in range(1, max_k + 1):
+            wk = w[:, :k]
+            pk = p[:, :k]
+            qk = q[:, :k]
+            pw = pk.T @ wk
+            pw_inv = np.linalg.pinv(pw)
+            beta_k = wk @ pw_inv @ qk.T
+
+            ytp_norm = x_val @ beta_k
+            ytp = ytp_norm * ysig_y + ymed_y
+
+            y_pred_cv[val_idx, :, k - 1] = ytp
+
+    return y_pred_cv
+
+
+def predict_pls2_cal(absor, x0, max_k):
+    n_samples = absor.shape[0]
+    n_analytes = x0.shape[1]
+    y_pred_cal = np.zeros((n_samples, n_analytes, max_k))
+    pls_engine = PLS()
+
+    x_norm, _, _ = zscore_matlab_style(absor)
+    y_norm, ymed_y, ysig_y = zscore_matlab_style(x0)
+
+    _, _, p, _, q, w, _, _ = pls_engine.nipals(x_norm, y_norm, max_k)
+
+    for k in range(1, max_k + 1):
+        wk = w[:, :k]
+        pk = p[:, :k]
+        qk = q[:, :k]
+        pw = pk.T @ wk
+        pw_inv = np.linalg.pinv(pw)
+        beta_k = wk @ pw_inv @ qk.T
+
+        yp_norm = x_norm @ beta_k
+        yp = yp_norm * ysig_y + ymed_y
+
+        y_pred_cal[:, :, k - 1] = yp
+
+    return y_pred_cal
 
 def main():
     # --- Setup Styling ---
@@ -218,6 +333,89 @@ def main():
     print(f"Optimal LVs detected: {best_k_list}")
 
     train_and_save_model_pls(absor_pre_final, x0, wl_final, best_k_list, os.path.join(RESULTS_DIR, model_name), rmsecv_list=RMSECV_conc)
+
+    # --- Predicted_vs_Measured_Pub (same style as variable selection script) ---
+    if MODEL_TYPE == 1 and VALIDATION_MODE == 'kfold':
+        plt.rcParams.update(PLOT_PARAMS)
+
+        y_pred_cv_all = predict_pls2_cv(absor_pre_final, x0, MAX_LATENT_VARS, K_FOLDS, CV_TYPE)
+        y_pred_cal_all = predict_pls2_cal(absor_pre_final, x0, MAX_LATENT_VARS)
+
+        best_k_final = []
+        for j in range(nc):
+            if isinstance(best_k_dict, dict) and j in best_k_dict:
+                k_sel = best_k_dict[j]
+            else:
+                k_sel = np.argmin(RMSECV_conc[:, j]) + 1
+            best_k_final.append(k_sel)
+
+        # Match run_variable_selection.py behavior: prioritize Glucose and Xylose.
+        plot_indices = []
+        plot_names = []
+        if len(ANALYTES) > 1:
+            if 'gl' in ANALYTES:
+                idx = ANALYTES.index('gl')
+                plot_indices.append(idx)
+                plot_names.append('Glucose')
+            if 'xy' in ANALYTES:
+                idx = ANALYTES.index('xy')
+                plot_indices.append(idx)
+                plot_names.append('Xylose')
+        if not plot_indices:
+            plot_indices = [1, 2] if len(ANALYTES) >= 3 else list(range(len(ANALYTES)))
+            plot_names = [ANALYTES[i] for i in plot_indices]
+
+        fig_pred, axes_pred = plt.subplots(len(plot_indices), 1, figsize=(6, 5 * len(plot_indices)))
+        if len(plot_indices) == 1:
+            axes_pred = [axes_pred]
+
+        for i, (idx, name) in enumerate(zip(plot_indices, plot_names)):
+            ax = axes_pred[i]
+            analyte_color = COLORS[idx] if idx < len(COLORS) else 'blue'
+            k_sel = best_k_final[idx]
+
+            y_meas = x0[:, idx]
+            y_cal = y_pred_cal_all[:, idx, k_sel - 1]
+            y_cv = y_pred_cv_all[:, idx, k_sel - 1]
+
+            ax.scatter(y_meas, y_cal, c=analyte_color, marker='o', facecolors='none', alpha=0.6, label='Calibration', edgecolors='black')
+            ax.scatter(y_meas, y_cv, c=analyte_color, marker='x', alpha=0.8, label='Cross-Validation')
+
+            min_val = min(y_meas.min(), y_cal.min(), y_cv.min())
+            max_val = max(y_meas.max(), y_cal.max(), y_cv.max())
+            buff = (max_val - min_val) * 0.05
+            ax.plot([min_val - buff, max_val + buff], [min_val - buff, max_val + buff], 'k--', alpha=0.5)
+
+            sse_cal = np.sum((y_meas - y_cal) ** 2)
+            sst = np.sum((y_meas - np.mean(y_meas)) ** 2)
+            r2_cal = 1 - sse_cal / sst
+            rmse_cal = np.sqrt(np.mean((y_meas - y_cal) ** 2))
+
+            sse_cv = np.sum((y_meas - y_cv) ** 2)
+            r2_cv = 1 - sse_cv / sst
+            rmse_cv = np.sqrt(np.mean((y_meas - y_cv) ** 2))
+
+            stats_text = (
+                f"Cal: $R^2$={r2_cal:.3f}, RMSE={rmse_cal:.3f}\n"
+                f"CV: $R^2$={r2_cv:.3f}, RMSE={rmse_cv:.3f}"
+            )
+
+            props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+            ax.text(0.05, 0.95, stats_text, transform=ax.transAxes, verticalalignment='top', bbox=props)
+
+            letter = chr(97 + i)
+            ax.set_title(f'{letter}) {name} - Predicted vs Measured (LVs={k_sel})', loc='left')
+            ax.set_ylabel(f'Predicted {UNITS}')
+            ax.set_xlabel(f'Measured {UNITS}')
+            ax.legend()
+
+        fig_pred.tight_layout()
+        fig_pred.savefig(os.path.join(RESULTS_DIR, 'Predicted_vs_Measured_Pub.png'))
+        print(f"Saved Prediction Plot to: {os.path.join(RESULTS_DIR, 'Predicted_vs_Measured_Pub.png')}")
+    elif MODEL_TYPE != 1:
+        print("Skipping Predicted_vs_Measured_Pub: only implemented for PLS (MODEL_TYPE=1).")
+    else:
+        print("Skipping Predicted_vs_Measured_Pub: only implemented for kfold validation.")
     
     # Keep plots open at the end
     print("\nProcessing complete. Close plot windows to exit.")

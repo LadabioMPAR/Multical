@@ -19,10 +19,11 @@ RESULTS_DIR = "results_var_selection"
 
 MODEL_NAME = "model_variable_selection.pkl" # Filename for the saved model (must end with .pkl)
 DATA_FILES = [
-    #('data/exp4_refe.txt', 'data/exp4_nonda.txt'),
-    ('data/exp5_refe.txt', 'data/exp5_nonda.txt'),
-    #('data/exp6_refe.txt', 'data/exp6_nonda.txt'),
-    #('data/exp7_refe.txt', 'data/exp7_nonda.txt'),  
+    ('data/splits/exp4_refe_cal.txt', 'data/splits/exp4_nonda_cal.txt'),
+    ('data/splits/exp5_refe_cal.txt', 'data/splits/exp5_nonda_cal.txt'),
+    ('data/splits/exp6_refe_cal.txt', 'data/splits/exp6_nonda_cal.txt'),
+    ('data/splits/exp7_refe_cal.txt', 'data/splits/exp7_nonda_cal.txt'),
+    ('data/splits/exp8_refe_cal.txt', 'data/splits/exp8_nonda_cal.txt')
 ]
 
 # --- 3. Model Parameters ---
@@ -66,37 +67,26 @@ PRETREATMENT = [
 
 # --- 6. Plot Settings (Publication Quality) ---
 PLOT_PARAMS = {
-    # Font Configuration
     'font.family': 'sans-serif',
     'font.sans-serif': ['Arial', 'DejaVu Sans', 'Calibri'],
-    'font.size': 16,            # Base Text Size
-    
-    # Axes
+    'font.size': 16,
     'axes.titlesize': 16,
     'axes.labelsize': 14,
-    'axes.linewidth': 1.5,      # Edge width
-    
-    # Ticks
+    'axes.linewidth': 1.5,
     'xtick.labelsize': 14,
     'ytick.labelsize': 14,
     'xtick.direction': 'out',
     'ytick.direction': 'out',
     'xtick.major.width': 1.5,
     'ytick.major.width': 1.5,
-
-    # Legend
     'legend.fontsize': 12,
-    'legend.frameon': True,     # Box around legend?
+    'legend.frameon': True,
     'legend.loc': 'best',
-    
-    # Lines & Markers
     'lines.linewidth': 2,
     'lines.markersize': 8,
-    
-    # Saving
     'savefig.dpi': 300,
     'savefig.bbox': 'tight',
-    'savefig.format': 'png'
+    'savefig.format': 'png',
 }
 
 # =============================================================================
@@ -223,8 +213,10 @@ def predict_pls2_cal(absor, x0, max_k):
 
 
 def main():
-    # Use configurable plot settings
+    
     plt.rcParams.update(PLOT_PARAMS)
+    plt.rcParams['font.weight'] = 'bold'
+    plt.rcParams['axes.labelweight'] = 'bold'
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
     
@@ -367,6 +359,16 @@ def main():
     Y_pred_cv_all = predict_pls2_cv(absor_final, x0, MAX_LATENT_VARS, K_FOLDS, CV_TYPE)
     Y_pred_cal_all = predict_pls2_cal(absor_final, x0, MAX_LATENT_VARS)
     
+    with open(os.path.join(RESULTS_DIR, "cv_predictions.pkl"), "wb") as f:
+        import pickle
+        pickle.dump({
+            "y_meas": x0,
+            "Y_pred_cv_all": Y_pred_cv_all,
+            "Y_pred_cal_all": Y_pred_cal_all,
+            "best_k_final": best_k_final
+        }, f)
+    print("Saved CV predictions for test script usage.")
+    
     # We only care about Glucose (idx 1) and Xylose (idx 2)
     # Check if indices exist (ANALYTES might change)
     plot_indices = []
@@ -440,7 +442,7 @@ def main():
         min_val = min(y_meas.min(), y_cal.min(), y_cv.min())
         max_val = max(y_meas.max(), y_cal.max(), y_cv.max())
         buff = (max_val - min_val) * 0.05
-        ax.plot([min_val-buff, max_val+buff], [min_val-buff, max_val+buff], 'k--', alpha=0.5)
+        ax.plot([min_val-buff, max_val+buff], [min_val-buff, max_val+buff], 'k--', alpha=0.5, linewidth=2.5)
         
         # Stats
         sse_cal = np.sum((y_meas - y_cal)**2)

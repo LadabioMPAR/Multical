@@ -15,10 +15,11 @@ MODEL_PATH = "results_var_selection/model_variable_selection.pkl" # Path to trai
 
 # --- 2. Data Files ---
 INFERENCE_FILES = [
-        ('data/exp4_refe.txt', 'data/exp_04_inf_smoothed.txt'),
-        ('data/exp5_refe.txt', 'data/exp_05_inf_smoothed.txt'),
-        ('data/exp6_refe.txt', 'data/exp_06_inf_smoothed.txt'),
-        ('data/exp7_refe.txt', 'data/exp_07_inf_smoothed.txt'),
+    ('data/exp4_refe.txt', 'data/exp_04_inf_smoothed.txt'),
+    ('data/exp5_refe.txt', 'data/exp_05_inf_smoothed.txt'),
+    ('data/exp6_refe.txt', 'data/exp_06_inf_smoothed.txt'),
+    ('data/exp7_refe.txt', 'data/exp_07_inf_smoothed.txt'),
+    ('data/exp8_refe.txt', 'data/exp8_inf.txt') 
 ]
 
 # --- 3. Model Parameters ---
@@ -33,6 +34,30 @@ PRETREATMENT = [
     ['Cut', 4400, 7500, 1],
     ['SG', 7, 2, 1, 1],
 ]
+
+# --- 5. Plot Parameters ---
+PLOT_PARAMS = {
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'DejaVu Sans', 'Calibri'],
+    'font.size': 16,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'axes.linewidth': 1.5,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
+    'xtick.direction': 'out',
+    'ytick.direction': 'out',
+    'xtick.major.width': 1.5,
+    'ytick.major.width': 1.5,
+    'legend.fontsize': 12,
+    'legend.frameon': True,
+    'legend.loc': 'best',
+    'lines.linewidth': 2,
+    'lines.markersize': 8,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.format': 'png',
+}
 
 # =============================================================================
 #                              MAIN EXECUTION
@@ -124,6 +149,7 @@ def filter_to_model_wavelengths(absor_pre, wl_pre, wl_model):
 
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
+    plt.rcParams.update(PLOT_PARAMS)
     plt.rcParams['figure.max_open_warning'] = 100
 
     # 1. Load Data

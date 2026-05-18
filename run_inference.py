@@ -44,11 +44,13 @@ MODEL_PATH = "results/model_calibration.pkl"
 #   - Spectra: Rows=Samples, Cols=Wavelengths (1st row=Wavelengths or header)
 #   - Reference: Rows=Samples, Cols=[Time, Ref1, Ref2...]
 INFERENCE_FILES = [
-    ('data/exp4_refe.txt', 'data/exp_04_inf_smoothed.txt'),
-    ('data/exp5_refe.txt', 'data/exp_05_inf_smoothed.txt'),
-    ('data/exp6_refe.txt', 'data/exp_06_inf_smoothed.txt'),
-    ('data/exp7_refe.txt', 'data/exp_07_inf_smoothed.txt'),
+    ('data/splits/exp4_refe_test.txt', 'data/splits/exp4_nonda_test.txt'),
+    ('data/splits/exp5_refe_test.txt', 'data/splits/exp5_nonda_test.txt'),
+    ('data/splits/exp6_refe_test.txt', 'data/splits/exp6_nonda_test.txt'),
+    ('data/splits/exp7_refe_test.txt', 'data/splits/exp7_nonda_test.txt'),
+    #('data/splits/exp8_refe_test.txt', 'data/splits/exp8_nonda_test.txt'),
 ]
+
 
 # --- 3. Model Parameters ---
 # Must match the calibration configuration
@@ -64,6 +66,30 @@ PRETREATMENT = [
     ['Cut', 4400, 7500, 0],
     ['SG', 7, 2, 1, 0],
 ]
+
+# --- 4. Plot Settings (Publication Quality) ---
+PLOT_PARAMS = {
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'DejaVu Sans', 'Calibri'],
+    'font.size': 16,
+    'axes.titlesize': 16,
+    'axes.labelsize': 14,
+    'axes.linewidth': 1.5,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
+    'xtick.direction': 'out',
+    'ytick.direction': 'out',
+    'xtick.major.width': 1.5,
+    'ytick.major.width': 1.5,
+    'legend.fontsize': 12,
+    'legend.frameon': True,
+    'legend.loc': 'best',
+    'lines.linewidth': 2,
+    'lines.markersize': 8,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.format': 'png',
+}
 
 # =============================================================================
 #                            HELPER FUNCTIONS
@@ -163,6 +189,7 @@ def main():
     5. Plots time-series comparison.
     """
     os.makedirs(RESULTS_DIR, exist_ok=True)
+    plt.rcParams.update(PLOT_PARAMS)
     plt.rcParams['figure.max_open_warning'] = 100
 
     # 1. Load Data
