@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python -c \"import numpy as np; x=np\\.random\\.rand\\(61, 3\\); absor=np\\.random\\.rand\\(61, 8801\\); np\\.linalg\\.lstsq\\(x, absor, rcond=None\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Set-Content -Path test_analysis\\.py -Value @\"\nimport sys\nwith open\\('src/multical/analysis\\.py', 'r'\\) as f:\n    text = f\\.read\\(\\)\n\n# insert print\ntext = text\\.replace\\(\"K, _, _, _ = np\\.linalg\\.lstsq\\(x, absor, rcond=None\\)\", \"print\\(f'shapes: x=\\{x\\.shape\\}, absor=\\{absor\\.shape\\}'\\); K, _, _, _ = np\\.linalg\\.lstsq\\(x, absor, rcond=None\\)\"\\)\n\nwith open\\('src/multical/analysis\\.py', 'w'\\) as f:\n    f\\.write\\(text\\)\n\"@\npython test_analysis\\.py\npython run_calibration\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

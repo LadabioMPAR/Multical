@@ -38,7 +38,7 @@ def func_analysis(analysis_list, absor, wavelengths, x=None, block=True, output_
             # --- LB Logic ---
             # Case 1: No intercept (K = x \ absor) -> Minimize || xK - absor ||
             # np.linalg.lstsq(a, b) solves ax = b
-            K, _, _, _ = np.linalg.lstsq(x, absor, rcond=None)
+            print(f'shapes: x={x.shape}, absor={absor.shape}'); K, _, _, _ = np.linalg.lstsq(x, absor, rcond=None)
             absorc = x @ K
             
             # Global min/max for plotting limits
