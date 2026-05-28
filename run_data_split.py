@@ -15,14 +15,15 @@ DATA_FILES = [
     ('data/exp5_nonda.txt', 'data/exp5_refe.txt'),
     ('data/exp6_nonda.txt', 'data/exp6_refe.txt'),
     ('data/exp7_nonda.txt', 'data/exp7_refe.txt'),
-    #('data/exp8_nonda.txt', 'data/exp8_refe.txt'),
+    ('data/exp8_nonda.txt', 'data/exp8_refe.txt'),
+    ('data/exp9_nonda.txt', 'data/exp9_refe.txt')
 ]
 
 # Output directory for the split files
 OUTPUT_DIR = "data/splits"
 
 # Fraction of data to use for testing 
-DEFAULT_TEST_FRACTION = 0.25
+DEFAULT_TEST_FRACTION = 0.2
 
 # =============================================================================
 #                                  ALGORITHM

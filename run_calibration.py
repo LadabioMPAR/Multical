@@ -24,6 +24,7 @@ DATA_FILES = [
     ('data/splits/exp6_refe_cal.txt', 'data/splits/exp6_nonda_cal.txt'),
     ('data/splits/exp7_refe_cal.txt', 'data/splits/exp7_nonda_cal.txt'),
     ('data/splits/exp8_refe_cal.txt', 'data/splits/exp8_nonda_cal.txt'),
+    ('data/splits/exp9_refe_cal.txt', 'data/splits/exp9_nonda_cal.txt')
 ]
 
 
@@ -66,7 +67,11 @@ PRETREATMENT = [
 ]
 
 # --- 6. Analysis Settings ---
-OUTLIER_REMOVAL = 0     # 0 = Off, 1 = On (Student t-test on residuals)
+EVALUATE_OUTLIERS = True
+OUTLIER_CONF_LEVEL = 0.95
+REMOVE_OUTLIERS = False
+
+OUTLIER_REMOVAL = 0     # (Deprecated legacy setting) 0 = Off, 1 = On (Student t-test on residuals)
 USE_F_TEST = True       # Use Osten F-test for automatic model selection (Optimal k)
 PRE_ANALYSIS = [['LB'], ['PCA']] # Analyses to run before calibration
 
@@ -285,6 +290,7 @@ def main():
         OptimModel = ['kfold', 5, 'venetian']
 
     nc = len(ANALYTES)
+            
     engine = MulticalEngine()
     
     # Run
@@ -294,6 +300,25 @@ def main():
         analysis_list=PRE_ANALYSIS, output_dir=RESULTS_DIR, outlier=OUTLIER_REMOVAL, 
         use_ftest=USE_F_TEST, colors=COLORS
     )
+
+    # --- Outlier Evaluation Post-Calibration ---
+    if EVALUATE_OUTLIERS:
+        from src.multical.core.outliers import evaluate_and_plot_outliers
+        absor_pre, wl_pre = apply_pretreatment(PRETREATMENT, absor0[1:], absor0[0], plot=False)
+        absor_test = np.vstack([wl_pre, absor_pre])
+        
+        best_k_final = []
+        for j in range(nc):
+            if isinstance(best_k_dict, dict) and j in best_k_dict:
+                k_sel = best_k_dict[j]
+            else:
+                k_sel = np.argmin(RMSECV_conc[:, j]) + 1
+            best_k_final.append(k_sel)
+
+        evaluate_and_plot_outliers(
+            x0, absor_test, ANALYTES, best_k_final, RESULTS_DIR, COLORS, 
+            conf_level=OUTLIER_CONF_LEVEL
+        )
 
     # --- Helper for cleaner output ---
     def print_metric_table(title, matrix, names):

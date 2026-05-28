@@ -23,7 +23,8 @@ DATA_FILES = [
     ('data/splits/exp5_refe_cal.txt', 'data/splits/exp5_nonda_cal.txt'),
     ('data/splits/exp6_refe_cal.txt', 'data/splits/exp6_nonda_cal.txt'),
     ('data/splits/exp7_refe_cal.txt', 'data/splits/exp7_nonda_cal.txt'),
-    ('data/splits/exp8_refe_cal.txt', 'data/splits/exp8_nonda_cal.txt')
+    ('data/splits/exp8_refe_cal.txt', 'data/splits/exp8_nonda_cal.txt'),
+    ('data/splits/exp9_refe_cal.txt', 'data/splits/exp9_nonda_cal.txt')
 ]
 
 # --- 3. Model Parameters ---
@@ -320,6 +321,21 @@ def main():
 
     if RMSECV is not None:
         print("\nFinal Model Generated.")
+
+    # --- Outlier Evaluation Post-Calibration ---
+    from src.multical.core.outliers import evaluate_and_plot_outliers
+    best_k_tmp = []
+    for j in range(nc):
+        if j in best_k_dict:
+            best_k_tmp.append(best_k_dict[j])
+        else:
+            best_k_tmp.append(np.argmin(RMSECV_conc[:, j]) + 1)
+            
+    # For outlier evaluation, absor0_final contains wavelengths on row 0 and samples on row 1..end.
+    evaluate_and_plot_outliers(
+        x0, absor0_final, ANALYTES, best_k_tmp, RESULTS_DIR, COLORS, 
+        conf_level=0.95
+    )
 
     # --- SAVE SELECTION MODEL ---
     from src.multical.core.saving import train_and_save_model_pls

@@ -20,6 +20,7 @@ INFERENCE_FILES = [
     ('data/splits/exp6_refe_test.txt', 'data/splits/exp6_nonda_test.txt'),
     ('data/splits/exp7_refe_test.txt', 'data/splits/exp7_nonda_test.txt'),
     ('data/splits/exp8_refe_test.txt', 'data/splits/exp8_nonda_test.txt'),
+    ('data/splits/exp9_refe_test.txt', 'data/splits/exp9_nonda_test.txt')
 ]
 
 # --- 3. Model Parameters ---

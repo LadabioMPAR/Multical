@@ -44,11 +44,11 @@ MODEL_PATH = "results/model_calibration.pkl"
 #   - Spectra: Rows=Samples, Cols=Wavelengths (1st row=Wavelengths or header)
 #   - Reference: Rows=Samples, Cols=[Time, Ref1, Ref2...]
 INFERENCE_FILES = [
-    ('data/splits/exp4_refe_test.txt', 'data/splits/exp4_nonda_test.txt'),
-    ('data/splits/exp5_refe_test.txt', 'data/splits/exp5_nonda_test.txt'),
-    ('data/splits/exp6_refe_test.txt', 'data/splits/exp6_nonda_test.txt'),
-    ('data/splits/exp7_refe_test.txt', 'data/splits/exp7_nonda_test.txt'),
-    #('data/splits/exp8_refe_test.txt', 'data/splits/exp8_nonda_test.txt'),
+    ('data/splits_joint/exp4_refe_test.txt', 'data/splits_joint/exp4_nonda_test.txt'),
+    ('data/splits_joint/exp5_refe_test.txt', 'data/splits_joint/exp5_nonda_test.txt'),
+    ('data/splits_joint/exp6_refe_test.txt', 'data/splits_joint/exp6_nonda_test.txt'),
+    ('data/splits_joint/exp7_refe_test.txt', 'data/splits_joint/exp7_nonda_test.txt'),
+    #('data/splits_joint/exp8_refe_test.txt', 'data/splits_joint/exp8_nonda_test.txt'),
 ]
 
 

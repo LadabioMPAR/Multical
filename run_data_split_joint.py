@@ -15,11 +15,12 @@ DATA_FILES = [
     ('data/exp5_nonda.txt', 'data/exp5_refe.txt'),
     ('data/exp6_nonda.txt', 'data/exp6_refe.txt'),
     ('data/exp7_nonda.txt', 'data/exp7_refe.txt'),
-    #('data/exp8_nonda.txt', 'data/exp8_refe.txt'),
+    ('data/exp8_nonda.txt', 'data/exp8_refe.txt'),
+    ('data/exp9_nonda.txt', 'data/exp9_refe.txt')
 ]
 
 # Output directory for the split files
-OUTPUT_DIR = "data/splits"
+OUTPUT_DIR = "data/splits_joint"
 
 # Fraction of data to use for testing (e.g., 0.3 means 30% for test)
 DEFAULT_TEST_FRACTION = 0.2
@@ -177,9 +178,24 @@ def main():
         num_cal = num_samples - num_test
         
         print(f"Total samples: {num_samples} | Cal: {num_cal} | Test: {num_test}")
-        print("Running Kennard-Stone algorithm...")
+        print("Running Joint X-Y Kennard-Stone algorithm...")
 
-        cal_idx, test_idx = kennard_stone(X, num_cal, ignore_first_col=not args.keep_first_col_dist)
+        # 1. Strip the "Time" column from X if necessary
+        X_calc = X[:, 1:] if not args.keep_first_col_dist and X.shape[1] > 1 else X
+        
+        # 2. Normalize both matrices (Z-score scaling)
+        X_norm = (X_calc - np.mean(X_calc, axis=0)) / np.std(X_calc, axis=0)
+        
+        # Ensure Y is 2D for processing
+        Y_proc = Y if Y.ndim == 2 else Y.reshape(-1, 1)
+        Y_norm = (Y_proc - np.mean(Y_proc, axis=0)) / np.std(Y_proc, axis=0)
+        
+        # 3. Concatenate horizontally
+        Z_combined = np.hstack((X_norm, Y_norm))
+        
+        # 4. Pass the combined Z matrix into Kennard-Stone
+        # We set ignore_first_col=False because we already stripped it in X_calc
+        cal_idx, test_idx = kennard_stone(Z_combined, num_cal, ignore_first_col=False)
 
         print("Splitting data...")
         X_cal = X[cal_idx, :]
