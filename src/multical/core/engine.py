@@ -15,13 +15,17 @@ class MulticalEngine:
     def __init__(self):
         pass
         
-    def run(self, Selecao, optkini, lini, kmax, nc, cname, unid, x0, absor0, frac_test, dadosteste, OptimModel, pretreat_list, analysis_list=None, output_dir=None, outlier=0, use_ftest=True, colors=None, times=None):
+    def run(self, Selecao, optkini, lini, kmax, nc, cname, unid, x0, absor0, frac_test, dadosteste, OptimModel, pretreat_list, analysis_list=None, output_dir=None, outlier=0, use_ftest=True, colors=None, times=None, plots_dir=None, data_dir=None):
         """
         Main execution engine.
         """
         if colors is None:
              # Default loop of colors if not provided
              colors = ['blue'] * nc
+             
+        p_dir = plots_dir if plots_dir else output_dir
+        d_dir = data_dir if data_dir else output_dir
+        
         x0 = np.array(x0)
         absor0 = np.array(absor0)
         
@@ -342,19 +346,19 @@ class MulticalEngine:
         if output_dir:
             # Save RMSEcalconc (Original Units)
             data_cal = np.hstack([k_col, RMSEcal_conc])
-            np.savetxt(os.path.join(output_dir, 'Erro_cal.txt'), data_cal, header=header_str, fmt='%g', delimiter='\t')
+            np.savetxt(os.path.join(d_dir, 'Erro_cal.txt'), data_cal, header=header_str, fmt='%g', delimiter='\t')
             
             # Save RMSECVconc (Original Units)
             data_cv = np.hstack([k_col, RMSECV_conc])
-            np.savetxt(os.path.join(output_dir, 'Erro_cv.txt'), data_cv, header=header_str, fmt='%g', delimiter='\t')
+            np.savetxt(os.path.join(d_dir, 'Erro_cv.txt'), data_cv, header=header_str, fmt='%g', delimiter='\t')
             
             # Save RMSEcal (Normalized)
             data_cal_norm = np.hstack([k_col, RMSEcal])
-            np.savetxt(os.path.join(output_dir, 'Erro_cal_norm.txt'), data_cal_norm, header=header_str, fmt='%g', delimiter='\t')
+            np.savetxt(os.path.join(d_dir, 'Erro_cal_norm.txt'), data_cal_norm, header=header_str, fmt='%g', delimiter='\t')
             
             # Save RMSECV (Normalized)
             data_cv_norm = np.hstack([k_col, RMSECV])
-            np.savetxt(os.path.join(output_dir, 'Erro_cv_norm.txt'), data_cv_norm, header=header_str, fmt='%g', delimiter='\t')
+            np.savetxt(os.path.join(d_dir, 'Erro_cv_norm.txt'), data_cv_norm, header=header_str, fmt='%g', delimiter='\t')
             
             # Save minimos.txt (based on CONC, or normalized? Original code used conc. 
             # If plots are normalized, maybe the user wants min of normalized? 
@@ -363,7 +367,7 @@ class MulticalEngine:
             min_rmse = np.min(RMSECV_conc, axis=0)
             min_idx = np.argmin(RMSECV_conc, axis=0) + 1 
             minimos = np.vstack([min_rmse, min_idx])
-            np.savetxt(os.path.join(output_dir, 'minimos.txt'), minimos, fmt='%g', delimiter='\t')
+            np.savetxt(os.path.join(d_dir, 'minimos.txt'), minimos, fmt='%g', delimiter='\t')
         
         # --- Pre-calculate Model Selection (Osten F-test) ---
         best_k_ftest = {} # Dictionary to store best k for each component if f-test used
@@ -490,7 +494,7 @@ class MulticalEngine:
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             
         if output_dir:
-            fig_rmse.savefig(os.path.join(output_dir, 'RMSE_Calibration_CV.png'), dpi=300, bbox_inches='tight')
+            fig_rmse.savefig(os.path.join(p_dir, 'RMSE_Calibration_CV.png'), dpi=300, bbox_inches='tight')
             
             
         plt.tight_layout()
@@ -601,7 +605,7 @@ class MulticalEngine:
                  ax.legend()
         
         if output_dir:
-            fig_pred.savefig(os.path.join(output_dir, 'Predicted_vs_Measured.png'), dpi=300, bbox_inches='tight')
+            fig_pred.savefig(os.path.join(p_dir, 'Predicted_vs_Measured.png'), dpi=300, bbox_inches='tight')
                  
         
         plt.tight_layout()
