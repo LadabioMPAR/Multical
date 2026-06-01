@@ -3,11 +3,11 @@ from src.multical.models.pls import PLS
 from src.multical.utils import zscore_matlab_style
 from scipy.stats import f as f_dist
 
-def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian'):
+def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian', target_idx=None):
     """
     Optimized RMSECV calculation that runs NIPALS once per fold up to kmax.
     drastically faster than re-running PLS for each k.
-    Supports PLS2 (Multi-Y).
+    Supports PLS2 (Multi-Y). Optionally targets a single analyte via target_idx.
     """
     # Normalize X (target Y for PLS)
     xmax = np.max(x, axis=0) # (3,)
@@ -15,7 +15,8 @@ def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian'):
     x_norm = x / xmax
     
     nd, nl = absor.shape
-    ny = x.shape[1] # Number of Y variables
+    # Set the number of targets evaluated for the mean calculation
+    ny = 1 if target_idx is not None else x.shape[1]
     
     # CV Indices
     if cv_type == 'random':
@@ -89,6 +90,11 @@ def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian'):
              # SSE Aggregate
              # Difference from Y_val_target (which is x_norm[val_idx])
              diff = Y_val_pred - Y_val_target
+             
+             # If targeting a specific analyte, isolate its error
+             if target_idx is not None:
+                 diff = diff[:, target_idx:target_idx+1]
+                 
              sse_all[k-1] += np.sum(diff**2)
 
     # Calculate RMSECV for all k
@@ -98,7 +104,10 @@ def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian'):
     rmsecv_k = np.sqrt(sse_all / total_elements)
     
     # Scale back to original units average
-    rmsecv_k = rmsecv_k * np.mean(xmax)
+    if target_idx is not None:
+        rmsecv_k = rmsecv_k * xmax[target_idx]
+    else:
+        rmsecv_k = rmsecv_k * np.mean(xmax)
         
     return np.min(rmsecv_k), np.argmin(rmsecv_k) + 1, rmsecv_k
 
@@ -141,8 +150,8 @@ def select_k_ftest(RMSECV, n_cal):
 
 def pso_worker_wrapper(args):
     # Unpack arguments
-    mask, absor, x, kmax, folds, cv_type = args
+    mask, absor, x, kmax, folds, cv_type, target_idx = args
     if np.sum(mask) < 2: return 1e9
     absor_sub = absor[:, mask]
-    rmse, _, _ = calculate_rmsecv_fast(absor_sub, x, kmax, folds, cv_type)
+    rmse, _, _ = calculate_rmsecv_fast(absor_sub, x, kmax, folds, cv_type, target_idx=target_idx)
     return rmse

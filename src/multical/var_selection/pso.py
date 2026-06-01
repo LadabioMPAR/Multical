@@ -2,7 +2,7 @@ import numpy as np
 from multiprocessing import Pool, cpu_count
 from src.multical.var_selection.utils import pso_worker_wrapper
 
-def run_pso(absor, x, kmax, folds, cv_type, n_particles=30, max_iter=50, w=0.9, c1=1.49, c2=1.49):
+def run_pso(absor, x, kmax, folds, cv_type, n_particles=30, max_iter=50, w=0.9, c1=1.49, c2=1.49, target_idx=None):
     """
     Performs Particle Swarm Optimization (PSO) for variable selection with Parallel Batch Processing.
     Uses a binary PSO approach where position [0,1] is probability of inclusion.
@@ -49,7 +49,7 @@ def run_pso(absor, x, kmax, folds, cv_type, n_particles=30, max_iter=50, w=0.9, 
             
             # 2. Evaluate in Parallel
             # Create args list. Note: Absor/X are reused, Copy-on-Write handles memory on Linux
-            args_list = [(m, absor, x, kmax, folds, cv_type) for m in masks_to_eval]
+            args_list = [(m, absor, x, kmax, folds, cv_type, target_idx) for m in masks_to_eval]
             
             # This blocks until all particles are evaluated
             scores = pool.map(pso_worker_wrapper, args_list)

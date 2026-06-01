@@ -1,7 +1,7 @@
 import numpy as np
 from src.multical.var_selection.utils import calculate_rmsecv_fast
 
-def run_simulated_annealing(absor, x, kmax, folds, cv_type, max_iter=100, initial_temp=0.1, alpha=0.90):
+def run_simulated_annealing(absor, x, kmax, folds, cv_type, max_iter=100, initial_temp=0.1, alpha=0.90, target_idx=None):
     """
     Performs Simulated Annealing for variable selection.
     """
@@ -14,7 +14,7 @@ def run_simulated_annealing(absor, x, kmax, folds, cv_type, max_iter=100, initia
     # Initial Cost
     absor_sub = absor[:, current_mask]
     # We only need the scalar RMSE
-    current_rmse, _, _ = calculate_rmsecv_fast(absor_sub, x, kmax, folds, cv_type)
+    current_rmse, _, _ = calculate_rmsecv_fast(absor_sub, x, kmax, folds, cv_type, target_idx=target_idx)
     
     best_mask = current_mask.copy()
     best_rmse = current_rmse
@@ -40,7 +40,7 @@ def run_simulated_annealing(absor, x, kmax, folds, cv_type, max_iter=100, initia
         
         # Evaluate Neighbor
         absor_neigh = absor[:, neighbor_mask]
-        neigh_rmse, _, _ = calculate_rmsecv_fast(absor_neigh, x, kmax, folds, cv_type)
+        neigh_rmse, _, _ = calculate_rmsecv_fast(absor_neigh, x, kmax, folds, cv_type, target_idx=target_idx)
         
         # Metastability / Acceptance
         delta = neigh_rmse - current_rmse

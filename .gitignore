@@ -156,3 +156,28 @@ dmypy.json
 cython_debug/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
+
+# Artifacts and data
+data/
+results*/
+parity/
+teste/
+docs/_build/
+multical_session.json
+
+# Multical Exclusions
+data/
+results/
+results_gui/
+results_inference/
+results_inference_pub/
+results_inference_var_sel/
+results_inference_var_sel_pub/
+results_pretreatment_plots/
+results_publication_plots/
+results_test/
+results_var_selection/
+parity/
+teste/
+docs/_build/
+multical_session.json
