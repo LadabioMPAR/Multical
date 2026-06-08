@@ -55,11 +55,11 @@ SA_PARAMS = {
 
 # C) PSO Settings
 PSO_PARAMS = {
-    'n_particles': 200,
-    'max_iter': 10000,
+    'n_particles': 100,
+    'max_iter': 500,
     'w': 0.9,   # Inertia weight
-    'c1': 1.49, # Cognitive weight
-    'c2': 1.49  # Social weight
+    'c1': 1.8, # Cognitive weight
+    'c2': 1.8  # Social weight
 }
 
 # D) Optimization Target
