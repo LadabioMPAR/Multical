@@ -49,9 +49,9 @@ python gui_main.py
 For reproducible research and batch processing, use the provided `run_` scripts.
 
 1.  **Configure Calibration**:
-    Edit `run_calibration.py` to set your data files and parameters.
+    Edit `scripts/calibration/run_calibration.py` to set your data files and parameters.
     ```python
-    # Example Configuration in run_calibration.py
+    # Example Configuration in scripts/calibration/run_calibration.py
     DATA_FILES = [
         ('data/reference.txt', 'data/spectra.txt'),
     ]
@@ -60,20 +60,20 @@ For reproducible research and batch processing, use the provided `run_` scripts.
 
 2.  **Run Calibration**:
     ```bash
-    python run_calibration.py
+    python scripts/calibration/run_calibration.py
     ```
     This generates performance plots and saves the model to `results/`.
 
 3.  **Variable Selection (Optional)**:
     Identify key wavelengths:
     ```bash
-    python run_variable_selection.py
+    python scripts/calibration/run_variable_selection.py
     ```
 
 4.  **Run Inference**:
     Predict concentrations for new spectra using a trained model:
     ```bash
-    python run_inference.py
+    python scripts/inference/run_inference.py
     ```
 
 ## Documentation
