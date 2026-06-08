@@ -94,6 +94,7 @@ class MulticalEngine:
              colors = ['blue'] * nc # Fallback
 
         d_dir = output_dir
+        p_dir = output_dir
         
         cname = [c.strip() for c in cname]
         
