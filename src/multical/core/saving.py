@@ -70,6 +70,104 @@ def train_and_save_model_pls(x_cal_pre, y_cal, wavelengths, k_list, filename, rm
         pickle.dump(model_data, f)
     print("Save complete.")
 
+def train_and_save_model_svr(x_cal_pre, y_cal, wavelengths, params_list, filename, rmsecv_list=None):
+    """
+    Trains one SVR model per analyte on the full calibration set and saves them.
+
+    Each analyte gets its own (independently tuned) hyper-parameters, mirroring the
+    per-analyte 'optimal k' philosophy of train_and_save_model_pls.
+
+    Args:
+        x_cal_pre:  (n_samples, n_features) Pretreated calibration spectra.
+        y_cal:      (n_samples, n_analytes) Calibration concentrations (real units).
+        wavelengths:(n_features,) Wavelengths vector.
+        params_list:List of length n_analytes. Each item is a dict with the keys
+                    'C', 'epsilon', 'gamma', 'kernel' for that analyte's SVR.
+        filename:   Output file (joblib pickle, .pkl extension recommended).
+        rmsecv_list:(Optional) List of RMSECV values for each analyte.
+    """
+    import joblib
+    from ..models.svr import SVRModel
+
+    n_analytes = y_cal.shape[1]
+
+    model_data = {
+        'type': 'SVR',
+        'wavelengths': wavelengths,
+        'analytes': []
+    }
+
+    print("\n--- Training Final SVR Model for Saving ---")
+
+    for i in range(n_analytes):
+        p = params_list[i]
+        y_curr = y_cal[:, i].reshape(-1, 1)
+
+        svr = SVRModel()
+        # X_test=None -> fits the model (internal StandardScaler on X and Y) and returns None
+        svr.fit_predict(
+            x_cal_pre, y_curr, None,
+            C=p['C'], epsilon=p['epsilon'],
+            gamma=p.get('gamma', 'scale'), kernel=p.get('kernel', 'rbf'),
+            degree=p.get('degree', 3), coef0=p.get('coef0', 0.0)
+        )
+
+        analyte_dict = {
+            'index': i,
+            'params': p,
+            'model': svr,
+            'rmsecv': rmsecv_list[i] if rmsecv_list is not None and i < len(rmsecv_list) else None
+        }
+        model_data['analytes'].append(analyte_dict)
+        print(f"  Analyte {i+1}: Trained with {p}")
+
+    if not filename.endswith('.pkl'):
+        filename += '.pkl'
+
+    os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+    print(f"Saving model to {filename}...")
+    joblib.dump(model_data, filename)
+    print("Save complete.")
+
+
+def load_and_predict_svr(x_new_pre, wavelengths_new, filename):
+    """
+    Loads a saved SVR model (per-analyte) and predicts on new pretreated data.
+
+    Mirrors load_and_predict_pls: returns (y_pred, rmsecv_list).
+    """
+    import joblib
+
+    if not filename.endswith('.pkl'):
+        filename += '.pkl'
+
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Model file {filename} not found.")
+
+    model_data = joblib.load(filename)
+
+    if model_data.get('type') != 'SVR':
+        raise ValueError(f"Model type mismatch. Expected SVR, got {model_data.get('type')}")
+
+    wl_saved = model_data['wavelengths']
+    if len(wl_saved) != len(wavelengths_new):
+        print(f"Warning: Wavelength count mismatch ({len(wl_saved)} vs {len(wavelengths_new)}).")
+
+    n_analytes = len(model_data['analytes'])
+    n_samples = x_new_pre.shape[0]
+
+    y_pred = np.zeros((n_samples, n_analytes))
+    rmsecv_list = []
+
+    for i in range(n_analytes):
+        params = model_data['analytes'][i]
+        rmsecv_list.append(params['rmsecv'] if params.get('rmsecv') is not None else 0.0)
+
+        y_pred[:, i] = params['model'].predict(x_new_pre).flatten()
+
+    return y_pred, rmsecv_list
+
+
 def load_and_predict_pls(x_new_pre, wavelengths_new, filename):
     """
     Loads a saved PLS model and predicts on new data.

@@ -11,10 +11,13 @@ class SVRModel:
         self.scaler_x = None
         self.scaler_y = None
 
-    def fit_predict(self, X_train, Y_train, X_test, C=1.0, epsilon=0.1, gamma='scale', kernel='rbf'):
+    def fit_predict(self, X_train, Y_train, X_test, C=1.0, epsilon=0.1, gamma='scale', kernel='rbf', degree=3, coef0=0.0):
         """
         Fits SVR and predicts on X_test.
         Handles multi-output using MultiOutputRegressor.
+
+        degree / coef0 are only used by the 'poly' and 'sigmoid' kernels; they are
+        ignored by 'linear' and 'rbf' (sklearn behaviour).
         """
         # 1. Scale Data
         self.scaler_x = StandardScaler()
@@ -28,7 +31,7 @@ class SVRModel:
         Y_train_scaled = self.scaler_y.fit_transform(Y_train)
         
         # 2. Define Model
-        svr = SVR(kernel=kernel, C=C, epsilon=epsilon, gamma=gamma)
+        svr = SVR(kernel=kernel, C=C, epsilon=epsilon, gamma=gamma, degree=degree, coef0=coef0)
         self.model = MultiOutputRegressor(svr)
         
         # 3. Fit
