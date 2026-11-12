@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import os
-from src.multical.utils import zscore_matlab_style
+from .utils import zscore_matlab_style
 
 def func_analysis(analysis_list, absor, wavelengths, x=None, block=True, output_dir=None, prefix="", times=None):
     """

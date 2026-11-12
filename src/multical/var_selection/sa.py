@@ -1,5 +1,5 @@
 import numpy as np
-from src.multical.var_selection.utils import calculate_rmsecv_fast
+from .utils import calculate_rmsecv_fast
 
 def run_simulated_annealing(absor, x, kmax, folds, cv_type, max_iter=100, initial_temp=0.1, alpha=0.90, target_idx=None):
     """

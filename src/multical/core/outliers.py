@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from src.multical.models.pls import PLS
-from src.multical.utils import zscore_matlab_style
+from ..models.pls import PLS
+from ..utils import zscore_matlab_style
 
 def evaluate_and_plot_outliers(x0, absor0_pre, analyte_names, best_k_list, output_dir, colors, conf_level=0.95):
     """

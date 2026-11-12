@@ -1,6 +1,6 @@
 import numpy as np
-from src.multical.models.pls import PLS
-from src.multical.utils import zscore_matlab_style
+from ..models.pls import PLS
+from ..utils import zscore_matlab_style
 from scipy.stats import f as f_dist
 
 def calculate_rmsecv_fast(absor, x, kmax, folds=5, cv_type='venetian', target_idx=None):

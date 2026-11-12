@@ -1,6 +1,6 @@
 import numpy as np
 from multiprocessing import Pool, cpu_count
-from src.multical.var_selection.utils import pso_worker_wrapper
+from .utils import pso_worker_wrapper
 
 def run_pso(absor, x, kmax, folds, cv_type, n_particles=30, max_iter=50, w=0.9, c1=1.49, c2=1.49,
             target_idx=None, seed=None, return_history=False, verbose=True, lambda_sparsity=0.0,

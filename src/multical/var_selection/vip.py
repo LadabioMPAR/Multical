@@ -1,7 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import os
-from src.multical.utils import zscore_matlab_style
+from ..utils import zscore_matlab_style
 
 def calculate_vip(model, X, Y, k, wavelengths=None, output_dir=None):
     """
@@ -36,6 +35,9 @@ def calculate_vip(model, X, Y, k, wavelengths=None, output_dir=None):
         vip_scores[j] = np.sqrt(p * weight_sum / ssy_total)
 
     if output_dir:
+        # Imported here so the numerical path does not depend on pyplot
+        import matplotlib.pyplot as plt
+
         # Plot VIP
         fig, ax = plt.subplots(figsize=(10, 5))
         if wavelengths is not None:
