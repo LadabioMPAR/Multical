@@ -10,19 +10,21 @@ from .registry import (
     Importer, Model, Pretreatment, Splitter, pretreatment, register,
 )
 from .dataset import Dataset
+from .pairing import MATCH_MODES, TimeMatch, match_times, pair_with_reference
 from .recipe import apply_recipe, fit_recipe, normalize_recipe
 from .pretreatments import recipe_from_legacy
 from . import models as _models, splitters as _splitters  # noqa: F401  (register the built-ins)
-from .config import RunConfig
+from .config import RunConfig, default_pretreatment
 from .results import AnalyteResult, CalibrationResult
 from .calibrate import CalibrationCancelled, predict, run_calibration
-from ..io import txt_pair as _txt_pair  # noqa: F401,E402  (register the built-in importer; keep last)
+from ..io import spp as _spp, txt_pair as _txt_pair  # noqa: F401,E402  (register the built-in importers; keep last)
 
 __all__ = [
     "Param", "resolve_params",
     "IMPORTERS", "MODELS", "PRETREATMENTS", "SPLITTERS",
     "Importer", "Model", "Pretreatment", "Splitter", "pretreatment", "register",
     "Dataset", "apply_recipe", "fit_recipe", "normalize_recipe", "recipe_from_legacy",
-    "RunConfig", "AnalyteResult", "CalibrationResult",
+    "RunConfig", "default_pretreatment", "AnalyteResult", "CalibrationResult",
     "CalibrationCancelled", "predict", "run_calibration",
+    "MATCH_MODES", "TimeMatch", "match_times", "pair_with_reference",
 ]

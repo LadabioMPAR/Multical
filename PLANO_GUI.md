@@ -8,7 +8,7 @@ Convenções: `arquivo:linha` aponta a evidência; `[não verificado]` marca o q
 2. A GUI atual (`gui_main.py`) não serve de base: quebra ao final de toda execução e oferece SPA/PCR que o motor não calcula.
 3. Recomendação de stack: **PySide6 + matplotlib embutido + PyInstaller (onedir)**, com formulários gerados a partir de esquemas de parâmetros.
 4. A extensibilidade vem de quatro registros (importadores, pré-tratamentos, modelos, validações); a GUI só lê os registros.
-5. O maior bloqueio é o `.sp`: não há leitor nem arquivo de exemplo no repositório.
+5. O leitor de `.spp` está pronto (seção 6). Cada arquivo é a série temporal de um experimento, então a ligação com os valores medidos é pelo tempo.
 6. Antes de qualquer tela é preciso uma camada de API sem gráficos/prints acoplados, validada por teste de equivalência numérica contra o motor atual.
 
 ---
@@ -221,7 +221,7 @@ Barra lateral fixa com as etapas numeradas (feita, atual, bloqueada), botões **
 ```
 
 **Tela 1 — Importar.** Objetivo: carregar espectros e ligá-los aos valores de referência.
-- Entradas: arquivos/pasta `.sp` (ou par `.txt` legado); planilha de referência.
+- Entradas: um `.spp` por experimento (ou par `.txt` legado); tabela de referência com tempo + analitos por experimento. A tela oferece a escolha "tempo exato" ou "janela" (com o raio em minutos). Ver seção 6: o wireframe abaixo ainda supõe um espectro por arquivo e será refeito na fase 2.
 - Padrões: todos os arquivos selecionados; analitos = colunas da planilha; unidade `g/L` (`run_calibration.py:42`).
 - Validações (texto leigo): "3 arquivos têm faixa espectral diferente dos demais e foram desmarcados"; "12 espectros não têm valor medido: servem para previsão, não para criar o modelo"; "Só há 8 amostras com valor medido; o modelo tende a ser pouco confiável" (limiar a definir, pergunta 5).
 - Avançado: interpolar para grade comum; unidade do eixo x; coluna de experimento/lote; coluna de tempo.
@@ -302,7 +302,7 @@ Barra lateral fixa com as etapas numeradas (feita, atual, bloqueada), botões **
 ```
 
 **Tela 7 — Prever novas amostras.** Objetivo: obter concentrações de espectros novos com um modelo salvo.
-- Entradas: arquivo `.multical` (ou `.pkl` antigo); arquivos `.sp`.
+- Entradas: arquivo `.multical` (ou `.pkl` antigo); arquivos `.spp`.
 - Padrões: pré-tratamento aplicado automaticamente a partir do pacote do modelo (hoje é repetido à mão, `run_inference.py:68`).
 - Validações: "Estes espectros cobrem uma faixa diferente da usada no modelo" bloqueia a previsão (hoje só há aviso, `saving.py:187-188`); cada amostra recebe o selo "dentro/fora do que o modelo conhece" (T²/Q).
 - Avançado: interpolar para a grade do modelo; comparar com valores medidos, se houver.
@@ -318,34 +318,40 @@ Barra lateral fixa com as etapas numeradas (feita, atual, bloqueada), botões **
 
 ---
 
-## 6. Importação de `.sp`
+## 6. Importação de `.spp`
 
-**Bloqueio.** Não há leitor nem arquivo `.sp` no repositório ou nos ramos remotos. O formato não pode ser confirmado sem exemplos.
+**Situação (2026-11-12): leitor pronto** em `src/multical/io/spp.py` (contêiner em `src/multical/io/_cfb.py`), sem dependência nova, registrado como importador `spp`. A extensão é `.spp`, não `.sp`. As hipóteses anteriores desta seção (PerkinElmer, biblioteca `specio`, um espectro por arquivo) estavam erradas e foram removidas.
 
-**O que pedir a você (exatamente):**
-1. 3 arquivos `.sp` reais, de dias ou experimentos diferentes.
-2. Os mesmos 3 espectros exportados em texto/CSV pelo software do equipamento (gabarito para validar o leitor).
-3. Marca, modelo e software do espectrômetro.
-4. Unidade do eixo x (nm ou cm⁻¹) e se o eixo y é absorbância ou transmitância.
-5. A planilha onde hoje são anotadas as concentrações medidas, como está.
+**Formato**, decifrado a partir de 6 arquivos de exemplo (não há especificação pública):
+- O arquivo é um documento composto OLE. Dentro dele, o bloco `CONTENTS` é um conjunto de propriedades: número de pontos, primeiro valor do eixo x e passo, espectros reservados e espectros gravados, unidades (`cm-1`, `Secs`, `Abs`) e os nomes dos blocos de dados.
+- Bloco de dados: espectros × pontos em `float64`, um espectro após o outro. Bloco de tempos: um `float64` por espectro, em segundos desde o início da aquisição.
+- **Um arquivo guarda a série temporal inteira de um experimento**: nos exemplos, 8801 pontos (10000 → 1200 cm⁻¹, passo 1), um espectro a cada 120 s, até 2000 ou 2200 espectros (142–156 MB).
+- O arquivo nasce com espaço para o total reservado; só os primeiros "gravados" são reais, o resto é zero. O leitor devolve apenas os gravados.
+- Em um dos exemplos o relógio aparece como segundos negativos (contador de milissegundos de 32 bits que deu a volta); o leitor soma 2³²/1000 s e o tempo volta a começar em ~2 s, como nos outros arquivos.
+- Arquivo `.spp.dcs` ao lado: resumo da aquisição; não é necessário para ler os espectros.
 
-**Como confirmar o formato** (fase 0, com os exemplos): abrir os primeiros bytes. Hipótese mais provável: `.sp` da PerkinElmer, que existe em variante binária (assinatura `PEPE`, estrutura em blocos) e em variante texto (cabeçalho `PE …` e seção `#DATA`) `[não verificado: conhecimento geral, sem arquivo para testar]`. Se for outro fabricante, esta seção é refeita.
+**O que o leitor entrega.**
+- `spp_info(caminho)`: quantos espectros, faixa, unidades e tempos, sem carregar os espectros (~0,01 s).
+- `read_spp(caminho, indices=None)`: `Dataset` com o eixo x em ordem crescente (1200 → 10000), como nos arquivos de texto atuais; `indices` carrega só os espectros pedidos. Arquivo inteiro de 2000 espectros: ~0,2 s.
+- `read_spp_files([...])`: vários experimentos em um `Dataset`; arquivos com o mesmo nome (`Untitled.spp`) são distinguidos pela pasta.
+- Arquivo sem espectros gravados, arquivo que não é `.spp` e arquivo truncado dão mensagem clara em português.
 
-**Opções de leitura.**
-| Opção | Prós | Contras |
-|---|---|---|
-| Biblioteca existente (candidata: `specio`) | pronta; cobre outros formatos | manutenção e compatibilidade com Python atual `[não verificado]`; mais uma dependência no .exe |
-| Leitor próprio em `multical/io/sp_reader.py` | sem dependência; controlado; testável contra o gabarito | escrever e manter ~100–150 linhas; cobre só as variantes que o laboratório usa |
-| Exportar texto pelo software do equipamento | funciona já | passo manual a cada medida; contraria o objetivo |
+**Verificação.**
+- Feita: os 3 arquivos com dados (1762, 2000 e 1010 espectros) são lidos; os valores conferem com uma segunda leitura independente dos bytes; tempos crescentes com intervalo mediano de 120,01 s; bandas da água em 5200 e 6900 cm⁻¹ no lugar esperado; ordem e passo do eixo iguais aos das exportações em texto já existentes (`data/jao_espectros.txt`: 10000 → 1200, passo 1).
+- **Não feita:** comparação com os mesmos espectros exportados em texto pelo software do equipamento. Nenhuma exportação em `data/` corresponde aos experimentos dos exemplos. Uma exportação de um desses arquivos fecharia a verificação.
+- Testes automáticos: `tests/test_spp.py` usa arquivos `.spp` sintéticos pequenos gerados por `tests/_spp_writer.py` (os reais são grandes e não vão para o repositório). Com `MULTICAL_SPP_SAMPLES=<pasta>` os mesmos testes percorrem arquivos reais.
+- Arquivos de exemplo sem dados: `marcio 2.spp` (142 MB só de zeros) e dois de 5 kB.
 
-Recomendação: testar a biblioteca nos 3 exemplos; se ler corretamente e instalar no Python do build, usar; caso contrário, leitor próprio. Em ambos os casos o teste automático compara com o gabarito do item 2 (tolerância 1e-6).
-
-**Associação com os valores de referência.** Premissa a confirmar: um `.sp` contém um espectro, enquanto o formato atual guarda um experimento inteiro por arquivo, com as linhas de concentração na mesma ordem das linhas de espectro (`gui_main.py:345-365`; o motor só confere a contagem, `engine.py:66-68`).
-- Chave de ligação: nome do arquivo sem extensão.
-- Planilha de referência (`.xlsx` ou `.csv`): coluna `arquivo`, uma coluna por analito, colunas opcionais `experimento` e `tempo`.
-- Botão **Gerar planilha-modelo**: cria a planilha já com os nomes dos arquivos importados; o colega preenche no Excel e recarrega.
-- Relatório de ligação na tela: espectros sem valor, valores sem espectro, nomes duplicados.
-- Ler `.xlsx` exige `openpyxl` (dependência nova; `.csv` não exige).
+**Associação com os valores de referência (decidido em 2026-11-12, implementado).** Como o arquivo é uma série temporal, a ligação é pelo tempo, não pelo nome do arquivo:
+- Tempo dos espectros: segundos desde o primeiro espectro, como gravado no `.spp`. Tempo da tabela de referência: **sempre em minutos**, no mesmo relógio.
+- Tabela de referência por experimento, como os `*_refe.txt` atuais: coluna de tempo + uma coluna por analito. Leitor em `src/multical/io/reference.py` (`read_reference_table`): texto ou CSV, separado por tabulação, ponto e vírgula, vírgula ou espaços; linha de nomes opcional; vírgula decimal aceita. `.xlsx` não é lido (exigiria `openpyxl`); a mensagem pede para salvar como CSV.
+- O usuário escolhe entre dois modos (`api.MATCH_MODES`):
+  - **Tempo exato** (`exact`, padrão): o espectro mais próximo do tempo da amostra. A amostra fica sem espectro se o mais próximo estiver além do intervalo usual entre espectros (2 min nos exemplos), ou seja, fora do período gravado.
+  - **Janela** (`window`): a média de todos os espectros a até `raio` minutos do tempo da amostra; o raio é informado pelo usuário. Janela sem nenhum espectro deixa a amostra de fora.
+- Amostras sem espectro não entram no conjunto e são listadas em frases prontas para a tela (`TimeMatch.problems()`).
+- Funções: `api.match_times`, `api.pair_with_reference` (espectros já em memória), `read_spp_with_reference` (lê do `.spp` só os espectros necessários: 0,07 s para 13 amostras em um arquivo de 142 MB) e `Dataset.concat` para reunir os experimentos antes de calibrar.
+- Os espectros sem valor de referência (a grande maioria) ficam disponíveis para previsão ao longo do tempo (tela 7).
+- Em aberto: valor medido ausente para um analito em uma linha (hoje a tabela precisa estar completa); raio em minutos (e não em número de espectros).
 
 **Conversão para o formato interno.** O importador devolve `Dataset`. Para o núcleo atual: `absor0 = vstack([wavelengths, X])` e `x0 = Y`, como em `gui_main.py:378-381`. Grades diferentes entre arquivos: recusar com mensagem clara por padrão; interpolação para grade comum só no modo Avançado.
 
@@ -373,9 +379,9 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 
 | Fase | Entregável | Arquivos | Depende de | Risco principal | Pronto quando |
 |---|---|---|---|---|---|
-| **0 Preparação** | trabalho pendente em commit; pacote instalável; números de referência; leitor `.sp` provado | `pyproject.toml`; imports relativos nos 6 arquivos da seção 1; `tests/fixtures/`; `tests/golden/` | respostas 1, 7, 8 | formato `.sp` diferente do esperado | `pip install -e .` funciona; os 5 scripts principais rodam sem mudança de resultado; 3 `.sp` lidos batem com o gabarito |
+| **0 Preparação** | trabalho pendente em commit; pacote instalável; números de referência; leitor `.spp` provado | `pyproject.toml`; imports relativos nos 6 arquivos da seção 1; `tests/fixtures/`; `tests/golden/` | respostas 1, 7, 8 | formato `.sp` diferente do esperado | `pip install -e .` funciona; os 5 scripts principais rodam sem mudança de resultado; os `.spp` de exemplo são lidos e conferidos |
 | **1 API sem interface** | `multical.api` com `Dataset`, registros, `run_calibration`, `plots`; PLS + pré-tratamentos atuais + k-fold/holdout | `src/multical/api/*`, `src/multical/io/*`; núcleo intocado ou só refatorado internamente | fase 0; resposta 4 | divergência numérica ao separar cálculo de gráfico | teste de equivalência passa (abaixo); `import multical.api` não carrega `matplotlib.pyplot` |
-| **2 MVP calibrar** | telas 0–6 com PLS; execução em segundo plano; exportação | `src/multical_gui/*` | fase 1; resposta 5 | usabilidade para leigos | um colega sem treinamento vai do `.sp` ao `resultados.xlsx` sem ajuda; um .exe de teste abre em máquina sem Python |
+| **2 MVP calibrar** | telas 0–6 com PLS; execução em segundo plano; exportação | `src/multical_gui/*` | fase 1; resposta 5 | usabilidade para leigos | um colega sem treinamento vai do `.spp` ao `resultados.xlsx` sem ajuda; um .exe de teste abre em máquina sem Python |
 | **3 Prever** | tela 7; pacote `.multical`; leitura de `.pkl` antigo; selo dentro/fora | `api/bundle.py`, `api/predict.py`, `pages/predict.py` | fase 2 | pré-tratamentos com estado mal reproduzidos | previsão pela GUI = `load_and_predict_pls` do script nos mesmos dados (1e-10) |
 | **4 Extensibilidade provada** | SVR, PCR, SPA, LOEXO, Kennard-Stone, receitas; pasta `plugins/` | só registros e adaptadores; **nenhuma mudança em `multical_gui/`** | fase 3 | contrato insuficiente para SVR (grade) | `git diff --stat` da fase mostra zero linhas em `src/multical_gui/`; um plugin de exemplo aparece na GUI |
 | **5 Distribuição** | instalador Windows; guia do usuário de 2 páginas | `packaging/multical.spec`, `packaging/installer.iss`, `docs/` | fase 4; resposta 6 | antivírus/SmartScreen; tamanho | instala e roda em 2 máquinas limpas; PSO (multiprocessing) funciona no .exe |
@@ -392,6 +398,13 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 
 ## 9. Perguntas abertas
 
+**Decisões registradas em 2026-11-12.**
+- **Pergunta 1:** resolvida. Arquivos `.spp` de exemplo recebidos e leitor pronto (seção 6). Falta apenas, como conferência final, uma exportação em texto de um dos mesmos arquivos.
+- **Pergunta 2:** interface em português.
+- **Pergunta 3:** a premissa "um espectro por arquivo" era falsa; cada `.spp` é a série temporal de um experimento. A ligação com os valores medidos é pelo tempo: `.spp` em segundos desde o primeiro espectro, tabela de referência sempre em minutos, e o usuário escolhe entre tempo exato e janela com raio informado (seção 6). Implementado em `api/pairing.py`.
+- **Pergunta 5 (em parte):** receita padrão = apenas Savitzky-Golay com janela de 15 pontos, polinômio de 2º grau e 1ª derivada. Implementado como padrão de `RunConfig` (`api/config.py`, `default_pretreatment()`); `pretreatment=[]` continua significando "sem pré-tratamento". Ainda em aberto: validação recomendada e limites dos avisos amarelo/vermelho.
+- **Testes:** 57 passam (`py -m unittest discover -s tests -t .`), 1 a mais com `MULTICAL_SPP_SAMPLES` definido.
+
 **Decisões registradas em 2026-11-11.**
 - **Pergunta 2 (em parte):** os colegas vão tanto calibrar modelos quanto prever com modelos prontos. A tela inicial mantém as duas entradas com o mesmo peso e as fases 2 e 3 seguem na ordem do roteiro. Idioma da interface: ainda em aberto.
 - **Pergunta 4a:** a normalização conjunta (calibração + amostras de validação) vale só dentro da validação cruzada; na validação externa e na previsão, usam-se apenas os parâmetros da calibração. Na prática o motor atual já normaliza X com o conjunto de calibração inteiro em cada fold, porque treino + validação do fold somam todas as amostras (`engine.py:233-235`); esse comportamento é mantido e os números de referência não mudam. Pendência: o modo holdout (`'Val'`, `engine.py:148-158`) hoje também normaliza com tudo junto; fica como está até você dizer se ele conta como validação externa.
@@ -399,7 +412,7 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 - **Pergunta 4b:** um PLS por analito, tanto na validação quanto no modelo salvo. O erro mostrado passa a ser o do modelo que é de fato salvo. Consequência: o RMSECV da API nova não coincide com o de `MulticalEngine.run` (PLS conjunto); o teste de equivalência da fase 1 compara com `calculate_rmsecv_fast` chamado com uma única coluna de Y e com `train_and_save_model_pls` + `load_and_predict_pls`. Atenção: `calculate_rmsecv_fast(..., target_idx=j)` **não** é PLS por analito; ele ajusta o PLS conjunto e só isola o erro do analito j (`var_selection/utils.py:52`, `:95-96`). A seleção de variáveis por PSO/SA, que usa `target_idx`, otimiza portanto um modelo conjunto.
 - **Fase 1:** concluída. `src/multical/api/` e `src/multical/io/txt_pair.py`; 34 testes passam (`py -m unittest discover -s tests -t .`). Nos arquivos reais `data/splits/*_cal.txt` (65 amostras), a API reproduz o código atual por analito com diferença relativa de 1e-15.
 - **Pergunta 8:** resolvida sem versionar dados reais; os testes de referência usam dados sintéticos (`tests/_cases.py`).
-- **Fase 0:** concluída no ramo `gui`, exceto o leitor de `.sp` (pergunta 1).
+- **Fase 0:** concluída no ramo `gui`; o leitor de `.spp` entrou em 2026-11-12.
 
 1. **`.sp`**: pode fornecer os 5 itens da seção 6? → destrava a fase 0 e a tela 1.
 2. **Quem faz o quê**: os colegas vão criar modelos ou principalmente prever com modelos que você cria? Interface só em pt-BR? → define a ordem das fases 2 e 3 e a tela inicial.

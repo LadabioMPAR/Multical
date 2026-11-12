@@ -70,6 +70,36 @@ class Dataset:
             times=None if self.times is None else self.times[index],
         )
 
+    @staticmethod
+    def concat(parts):
+        """Stack datasets (for instance one per experiment) that share the spectral range and the analytes."""
+        parts = list(parts)
+        if not parts:
+            raise ValueError("Nenhum conjunto de dados foi informado.")
+        first = parts[0]
+        for part in parts[1:]:
+            if part.wavelengths.size != first.wavelengths.size or not np.allclose(part.wavelengths, first.wavelengths, atol=1e-6):
+                raise ValueError("Os conjuntos têm uma faixa espectral diferente e não podem ser reunidos.")
+            if (part.Y is None) != (first.Y is None) or part.analytes != first.analytes:
+                raise ValueError("Os conjuntos não têm os mesmos analitos e não podem ser reunidos.")
+        if len(parts) == 1:
+            return first
+
+        def joined(name):
+            values = [getattr(part, name) for part in parts]
+            return None if any(v is None for v in values) else np.concatenate(values)
+
+        return Dataset(
+            X=np.vstack([part.X for part in parts]),
+            wavelengths=first.wavelengths.copy(),
+            Y=None if first.Y is None else np.vstack([part.Y for part in parts]),
+            analytes=list(first.analytes),
+            units=first.units,
+            sample_ids=[sample for part in parts for sample in part.sample_ids],
+            groups=joined("groups"),
+            times=joined("times"),
+        )
+
     @classmethod
     def from_legacy(cls, x0, absor0, analytes=None, units=""):
         """Build from the matrices used by the scripts: `absor0` has the wavelengths in row 0."""

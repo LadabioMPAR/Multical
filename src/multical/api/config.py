@@ -11,9 +11,15 @@ FORMAT_VERSION = 1
 SELECTION_RULES = ("ftest", "min")
 
 
+def default_pretreatment():
+    """Recipe used when none is chosen: Savitzky-Golay, 15-point window, 2nd degree, 1st derivative."""
+    return [{"id": "sg", "params": {"radius": 7, "poly_order": 2, "deriv": 1}}]
+
+
 @dataclass
 class RunConfig:
-    pretreatment: List[dict] = field(default_factory=list)     # [{"id": ..., "params": {...}}]
+    # [{"id": ..., "params": {...}}]; pass [] to use the spectra as they are
+    pretreatment: List[dict] = field(default_factory=default_pretreatment)
     model: dict = field(default_factory=lambda: {"id": "pls", "params": {}})
     validation: dict = field(default_factory=lambda: {"id": "kfold", "params": {}})
     selection: str = "ftest"          # "ftest": Osten F-test; "min": lowest validation error

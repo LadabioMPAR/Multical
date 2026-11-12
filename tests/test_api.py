@@ -226,6 +226,11 @@ class ConfigAndRegistry(ApiTestCase):
         cfg = api.RunConfig().resolved()
         self.assertEqual(cfg.model, {"id": "pls", "params": {"max_k": 15}})
         self.assertEqual(cfg.validation, {"id": "kfold", "params": {"folds": 5, "order": "venetian"}})
+        # Default recipe: Savitzky-Golay only, 15-point window, 2nd degree, 1st derivative.
+        self.assertEqual(cfg.pretreatment, [{"id": "sg", "params": {"radius": 7, "poly_order": 2, "deriv": 1}}])
+        self.assertEqual(api.RunConfig(pretreatment=[]).resolved().pretreatment, [])
+        api.RunConfig().pretreatment.append({"id": "snv", "params": {}})
+        self.assertEqual(len(api.RunConfig().pretreatment), 1)
 
     def test_new_methods_plug_in_without_touching_the_engine(self):
         @api.pretreatment(id="test_double", label="Dobrar", params=[api.Param("factor", "Fator", "float", 2.0, min=0)])
