@@ -19,7 +19,11 @@ dependencies = [
 
 [project.optional-dependencies]
 ann = ["torch"]      # only needed by multical.models.ann_torch
+gui = ["PySide6-Essentials"]   # the desktop interface (multical_gui)
 test = ["pytest"]    # optional: the tests also run with `python -m unittest`
+
+[project.gui-scripts]
+multical-gui = "multical_gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

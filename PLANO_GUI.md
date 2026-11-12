@@ -403,7 +403,23 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 - **Pergunta 2:** interface em português.
 - **Pergunta 3:** a premissa "um espectro por arquivo" era falsa; cada `.spp` é a série temporal de um experimento. A ligação com os valores medidos é pelo tempo: `.spp` em segundos desde o primeiro espectro, tabela de referência sempre em minutos, e o usuário escolhe entre tempo exato e janela com raio informado (seção 6). Implementado em `api/pairing.py`.
 - **Pergunta 5 (em parte):** receita padrão = apenas Savitzky-Golay com janela de 15 pontos, polinômio de 2º grau e 1ª derivada. Implementado como padrão de `RunConfig` (`api/config.py`, `default_pretreatment()`); `pretreatment=[]` continua significando "sem pré-tratamento". Ainda em aberto: validação recomendada e limites dos avisos amarelo/vermelho.
-- **Testes:** 57 passam (`py -m unittest discover -s tests -t .`), 1 a mais com `MULTICAL_SPP_SAMPLES` definido.
+- **Fase 2 (MVP calibrar): implementada** em `src/multical_gui/` (PySide6-Essentials 6.12, que funciona no Python 3.14 desta máquina). Abrir com `py abrir_multical.py`.
+  - Telas: Início, Importar dados, Inspecionar espectros, Pré-tratamento, Modelo e validação, Resultados, Exportar. Barra lateral com as etapas, que só abrem quando a anterior está completa; interruptor **Avançado**; treino em segundo plano com progresso e Cancelar.
+  - Importar: um experimento = arquivo de espectros (`.spp`, ou o par `.txt` atual) + tabela de valores medidos; escolha entre tempo exato e janela com raio em minutos; nomes dos analitos e unidade editáveis.
+  - Formulários gerados dos `Param` (`widgets.py`, `ParamForm`): pré-tratamentos, modelos e validações aparecem a partir dos registros, sem código de tela por método.
+  - API nova usada pelas telas: `api/bundle.py` (arquivo `.multical`: zip com `manifest.json` + `arrays.npz`, sem pickle; `save_model`/`load_model`, e `api.predict` aceita o modelo carregado), `api/export.py` (pasta com modelo, tabelas CSV com `;` e vírgula decimal, figuras PNG 300 dpi, relatório PDF, `config.json`), `api/assessment.py` (frases e semáforo).
+  - A interface força o esquema de cores claro, porque no modo escuro do Windows os textos ficavam ilegíveis.
+  - Testes: `tests/test_gui.py` percorre a interface sem abrir janela (importar → excluir amostra → receita → treinar → resultados → exportar → recarregar o modelo), além de cancelamento e erros. `tests/test_export.py` cobre o arquivo de modelo e a exportação.
+  - Conferido também com os dados reais `data/exp4..9_*.txt` (79 amostras): importação 0,4 s, tela de pré-tratamento 1,3 s, treino 2,6 s.
+- **Ficou fora da fase 2** (em relação ao desenho da seção 5):
+  - Tela 7 "Usar um modelo pronto" (fase 3); o botão existe, desativado. O arquivo `.multical` já é gravado e relido.
+  - Salvar/reabrir projeto (`.mcproj`) e lista de projetos recentes.
+  - Amostras suspeitas por T² de Hotelling e resíduo Q; por enquanto a tela lista as amostras com erro de validação acima de 2,5 vezes o erro típico.
+  - `resultados.xlsx` (exigiria `openpyxl`) e `reproduzir.py`; saem CSV e `config.json`.
+  - Receitas nomeadas salvas pelo usuário; sugestão automática de validação por experimento (o esquema ainda não está nos registros, fase 4).
+- **Limites provisórios, a definir pelo laboratório (pergunta 5):** semáforo por R² de validação (verde ≥ 0,90, amarelo ≥ 0,70), aviso com menos de 20 amostras, mínimo de 6 amostras em uso. Todos em `api/assessment.py` e `pages/inspect_page.py`.
+- **Observação nos dados reais:** só com o Savitzky-Golay padrão, a região ruidosa abaixo de ~4000 cm⁻¹ domina o sinal tratado (gl: R² de validação 0,43; cb 0,77; xy 0,39). O corte 4400–7500 usado em `run_calibration.py` não faz parte do padrão escolhido; dá para adicioná-lo no modo Avançado.
+- **Testes:** 65 passam (`py -m unittest discover -s tests -t .`), 1 a mais com `MULTICAL_SPP_SAMPLES` definido.
 
 **Decisões registradas em 2026-11-11.**
 - **Pergunta 2 (em parte):** os colegas vão tanto calibrar modelos quanto prever com modelos prontos. A tela inicial mantém as duas entradas com o mesmo peso e as fases 2 e 3 seguem na ordem do roteiro. Idioma da interface: ainda em aberto.
