@@ -412,14 +412,25 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
   - Testes: `tests/test_gui.py` percorre a interface sem abrir janela (importar → excluir amostra → receita → treinar → resultados → exportar → recarregar o modelo), além de cancelamento e erros. `tests/test_export.py` cobre o arquivo de modelo e a exportação.
   - Conferido também com os dados reais `data/exp4..9_*.txt` (79 amostras): importação 0,4 s, tela de pré-tratamento 1,3 s, treino 2,6 s.
 - **Ficou fora da fase 2** (em relação ao desenho da seção 5):
-  - Tela 7 "Usar um modelo pronto" (fase 3); o botão existe, desativado. O arquivo `.multical` já é gravado e relido.
+  - Tela 7 "Usar um modelo pronto": feita na fase 3 (abaixo).
   - Salvar/reabrir projeto (`.mcproj`) e lista de projetos recentes.
   - Amostras suspeitas por T² de Hotelling e resíduo Q; por enquanto a tela lista as amostras com erro de validação acima de 2,5 vezes o erro típico.
   - `resultados.xlsx` (exigiria `openpyxl`) e `reproduzir.py`; saem CSV e `config.json`.
   - Receitas nomeadas salvas pelo usuário; sugestão automática de validação por experimento (o esquema ainda não está nos registros, fase 4).
 - **Limites provisórios, a definir pelo laboratório (pergunta 5):** semáforo por R² de validação (verde ≥ 0,90, amarelo ≥ 0,70), aviso com menos de 20 amostras, mínimo de 6 amostras em uso. Todos em `api/assessment.py` e `pages/inspect_page.py`.
 - **Observação nos dados reais:** só com o Savitzky-Golay padrão, a região ruidosa abaixo de ~4000 cm⁻¹ domina o sinal tratado (gl: R² de validação 0,43; cb 0,77; xy 0,39). O corte 4400–7500 usado em `run_calibration.py` não faz parte do padrão escolhido; dá para adicioná-lo no modo Avançado.
-- **Testes:** 65 passam (`py -m unittest discover -s tests -t .`), 1 a mais com `MULTICAL_SPP_SAMPLES` definido.
+- **Fase 3 (prever): implementada.** Na tela inicial, "Usar um modelo pronto" abre a tela **Estimar amostras**.
+  - Tela: abre um `.multical`, mostra o que ele estima (analitos, unidade, erro típico e faixa calibrada de cada um), recebe arquivos `.spp` ou texto de espectros, estima em segundo plano (progresso e Cancelar), mostra tabela e gráfico ao longo do tempo e salva a tabela em CSV. "Usar um espectro a cada N" acelera séries longas.
+  - Selo por amostra, com dois motivos possíveis (`api/prediction.py`, `Prediction.notes`):
+    - **espectro diferente dos usados para criar o modelo**: distâncias T² de Hotelling e resíduo Q em um resumo por componentes principais dos espectros de calibração como o modelo os vê (`api/domain.py`). Os limites vêm das próprias amostras de calibração, cada uma avaliada por um resumo feito sem ela.
+    - **valor fora da faixa calibrada**: estimativa além do menor/maior valor medido na calibração, com folga de 10% da faixa.
+  - O resumo e a faixa são gravados no `.multical`; modelos sem eles continuam funcionando, sem o selo.
+  - `api.predict_report` faz a estimativa em blocos; `api.export_predictions` grava o CSV.
+  - Modelos antigos `.pkl`: `api.load_legacy_pls(caminho, receita)` lê os PLS salvos pelos scripts sem executar código do arquivo (só números e matrizes são aceitos) e exige a receita, que o `.pkl` não guarda. **A tela ainda não abre `.pkl`**; ela explica isso ao usuário.
+  - Conferido nos dados reais (somente leitura): o `results/model_calibration.pkl` lido pela API dá as mesmas estimativas do `load_and_predict_pls` (diferença relativa 4e-15); das 14 amostras de teste de `data/splits`, nenhuma é marcada como fora; na série `exp_04_inf.txt` (438 espectros, 6 s) tudo fica dentro até 720 min, que é onde termina a calibração desse experimento, e os espectros depois de ~930 min são marcados; um `.spp` inteiro de 1010 espectros leva 14 s.
+  - Parâmetros provisórios do selo (em `api/domain.py` e `api/prediction.py`): até 10 componentes ou 95% da variância, confiança de 99%, folga de 10% na faixa.
+- **Erro encontrado em script existente (não corrigido):** `scripts/calibration/run_calibration.py:363` passa a matriz inteira de erros como `rmsecv_list`; o `.pkl` guarda, para o analito i, a linha de erros de todos os analitos com i+1 variáveis latentes, e não o erro daquele analito. Por isso `load_legacy_pls` trata o erro típico desses arquivos como desconhecido.
+- **Testes:** 76 passam (`py -m unittest discover -s tests -t .`), 1 a mais com `MULTICAL_SPP_SAMPLES` definido.
 
 **Decisões registradas em 2026-11-11.**
 - **Pergunta 2 (em parte):** os colegas vão tanto calibrar modelos quanto prever com modelos prontos. A tela inicial mantém as duas entradas com o mesmo peso e as fases 2 e 3 seguem na ordem do roteiro. Idioma da interface: ainda em aberto.

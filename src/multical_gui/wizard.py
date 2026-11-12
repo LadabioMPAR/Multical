@@ -9,6 +9,7 @@ from .pages.export_page import ExportPage
 from .pages.import_page import ImportPage
 from .pages.inspect_page import InspectPage
 from .pages.model_page import ModelPage
+from .pages.predict_page import PredictPage
 from .pages.pretreat_page import PretreatPage
 from .pages.results_page import ResultsPage
 from .pages.start_page import StartPage
@@ -50,11 +51,16 @@ class MainWindow(QMainWindow):
         self.back = QPushButton("◀ Voltar")
         self.next = QPushButton("Avançar ▶", objectName="primary")
 
-        self.pages = [cls(self.project, self) for cls in
-                      (StartPage, ImportPage, InspectPage, PretreatPage, ModelPage, ResultsPage, ExportPage)]
-        for number, page in enumerate(self.pages):
+        create = [cls(self.project, self) for cls in
+                  (StartPage, ImportPage, InspectPage, PretreatPage, ModelPage, ResultsPage, ExportPage)]
+        self.predict_page = PredictPage(self.project, self)
+        # Two paths share the first screen: creating a model (the numbered steps) and using one.
+        self.flows = {"create": create, "predict": [create[0], self.predict_page]}
+        for page in create + [self.predict_page]:
             self.stack.addWidget(page)
-            self.steps.addItem(QListWidgetItem(page.title if number == 0 else f"{number}. {page.title}"))
+        self.pages = []
+        self.current = 0
+        self.set_flow("create")
 
         header = QHBoxLayout()
         header.addWidget(self.title, 1)
@@ -80,10 +86,24 @@ class MainWindow(QMainWindow):
         self.back.clicked.connect(lambda: self.go_to(self.current - 1))
         self.next.clicked.connect(lambda: self.go_to(self.current + 1))
         self.advanced.toggled.connect(self._set_advanced)
-        self.current = 0
         self._show(0)
 
     # ---- navigation ------------------------------------------------------
+    def set_flow(self, name):
+        """Show the steps of one path ("create" or "predict") in the side bar."""
+        self.flow = name
+        self.pages = self.flows[name]
+        self.steps.blockSignals(True)
+        self.steps.clear()
+        for number, page in enumerate(self.pages):
+            self.steps.addItem(QListWidgetItem(page.title if number == 0 else f"{number}. {page.title}"))
+        self.steps.blockSignals(False)
+
+    def start_flow(self, name):
+        """Leave the first screen along one of the paths."""
+        self.set_flow(name)
+        self.go_to(1)
+
     def blocking_message(self, target):
         """Why the screen `target` cannot be opened yet (None when it can)."""
         for page in self.pages[:target]:
@@ -108,7 +128,7 @@ class MainWindow(QMainWindow):
         page = self.pages[index]
         page.set_advanced(self.advanced.isChecked())
         page.enter()
-        self.stack.setCurrentIndex(index)
+        self.stack.setCurrentWidget(page)
         self.title.setText(page.title)
         self.message.setText("")
         self.refresh_nav()

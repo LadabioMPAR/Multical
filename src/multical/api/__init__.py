@@ -18,7 +18,8 @@ from .config import RunConfig, default_pretreatment
 from .results import AnalyteResult, CalibrationResult
 from .calibrate import CalibrationCancelled, predict, run_calibration
 from .assessment import assess, dataset_warnings, spectrum_warnings
-from .bundle import SavedModel, load_model, save_model
+from .bundle import SavedModel, load_legacy_pls, load_model, save_model
+from .prediction import Prediction, export_predictions, predict_report
 from ..io import spp as _spp, txt_pair as _txt_pair  # noqa: F401,E402  (register the built-in importers; keep last)
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "CalibrationCancelled", "predict", "run_calibration",
     "MATCH_MODES", "TimeMatch", "match_times", "pair_with_reference",
     "assess", "dataset_warnings", "spectrum_warnings", "SavedModel", "load_model", "save_model",
+    "load_legacy_pls", "Prediction", "export_predictions", "predict_report",
 ]

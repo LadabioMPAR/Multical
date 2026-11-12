@@ -10,8 +10,8 @@ import numpy as np
 
 from multical import api
 from multical.io.reference import read_reference_table
-from multical.io.spp import read_spp_with_reference, spp_info
-from multical.io.txt_pair import read_txt_pairs
+from multical.io.spp import read_spp, read_spp_with_reference, spp_info
+from multical.io.txt_pair import read_txt_pairs, read_txt_spectra
 
 
 @dataclass
@@ -31,6 +31,27 @@ def default_experiment_name(spectra_path):
     if stem.lower() in ("untitled", "sem título", "sem titulo"):
         stem = os.path.basename(os.path.dirname(os.path.abspath(spectra_path))) or stem
     return stem
+
+
+def load_spectra(path, every=1, taken=()):
+    """
+    Spectra of one file for estimating (no measured values), one in every `every`.
+    Times are returned in minutes whatever the file type; `taken` are experiment
+    names already in use, so two files called "Untitled" stay apart.
+    """
+    name = default_experiment_name(path)
+    base, n = name, 2
+    while name in taken:
+        name, n = f"{base} ({n})", n + 1
+    every = max(int(every), 1)
+    if str(path).lower().endswith(".spp"):
+        count = spp_info(path)["n_spectra"]
+        data = read_spp(path, indices=np.arange(0, count, every) if every > 1 else None, group=name)
+        data.times = data.times / 60.0
+        data.sample_ids = [f"{name}_{t:.1f}min".replace(".", ",") for t in data.times]
+        return data
+    data = read_txt_spectra(path, group=name)
+    return data.subset(np.arange(0, data.n_samples, every)) if every > 1 else data
 
 
 class Project:

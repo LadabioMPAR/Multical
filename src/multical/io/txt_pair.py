@@ -16,6 +16,32 @@ from ..api.dataset import Dataset
 from ..api.registry import IMPORTERS, Importer, register
 
 
+def read_txt_spectra(path, group=None):
+    """
+    Read a text file of spectra alone: header row "Time x1 x2 ...", then one row
+    per spectrum with the time (minutes) first. Returns a Dataset without measured
+    values, with the x axis in increasing order.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Arquivo não encontrado: {path}")
+    base = os.path.basename(path)
+    name = group if group is not None else os.path.splitext(base)[0]
+    try:
+        with open(path, "r") as handle:
+            header = handle.readline().split()
+        wl = np.array([float(v) for v in header[1:]])
+        table = np.loadtxt(path, skiprows=1, ndmin=2)
+    except ValueError:
+        raise ValueError(f"{base} não está no formato esperado (cabeçalho com o eixo e uma linha por espectro).") from None
+    if table.shape[1] != wl.size + 1 or wl.size < 2:
+        raise ValueError(f"{base}: o cabeçalho tem {wl.size} pontos e as linhas têm {table.shape[1] - 1} valores.")
+    times, X = table[:, 0], table[:, 1:]
+    if wl[0] > wl[-1]:
+        wl, X = wl[::-1], X[:, ::-1]
+    return Dataset(X=np.ascontiguousarray(X), wavelengths=wl.copy(), sample_ids=[f"{name}_{t:g}min" for t in times],
+                   groups=np.array([name] * X.shape[0]), times=times)
+
+
 def read_txt_pairs(pairs, analytes=None, units=""):
     """`pairs` is a list of (reference_file, spectra_file). Returns a Dataset."""
     X_parts, Y_parts, ids, groups, times = [], [], [], [], []

@@ -84,3 +84,34 @@ def plot_before_after(wl_before, X_before, wl_after, X_after):
     bottom.plot(np.asarray(wl_after), np.asarray(X_after).T, linewidth=0.7)
     bottom.set(title="Depois do pré-tratamento", xlabel=X_LABEL, ylabel="Sinal tratado")
     return fig
+
+
+def plot_prediction_over_time(prediction, analyte):
+    """Estimates of one analyte along the time, one line per experiment, with the typical error as a band."""
+    j = prediction.analytes.index(analyte)
+    unit = f" ({prediction.units})" if prediction.units else ""
+    n = len(prediction.sample_ids)
+    x = np.asarray(prediction.times, dtype=float) if prediction.times is not None else np.arange(1, n + 1, dtype=float)
+    groups = ["" for _ in range(n)] if prediction.groups is None else [str(g) for g in prediction.groups]
+    error = prediction.typical_error[j]
+    ok = prediction.ok
+    fig = Figure(figsize=(7, 4.5), layout="constrained")
+    ax = fig.add_subplot()
+    for number, name in enumerate(dict.fromkeys(groups)):
+        rows = np.array([i for i, g in enumerate(groups) if g == name])
+        rows = rows[np.argsort(x[rows])]
+        color = f"C{number % 10}"
+        ax.plot(x[rows], prediction.Y[rows, j], color=color, linewidth=1.2, marker="o", markersize=2.5, label=name or None)
+        if error == error:
+            ax.fill_between(x[rows], prediction.Y[rows, j] - error, prediction.Y[rows, j] + error, color=color, alpha=0.15)
+    if not ok.all():
+        ax.plot(x[~ok], prediction.Y[~ok, j], linestyle="none", marker="x", color="red", markersize=6,
+                label="Fora do que o modelo conhece")
+    low, high = prediction.ranges[j]
+    if low == low:
+        ax.axhline(low, color="gray", linestyle=":", linewidth=1)
+        ax.axhline(high, color="gray", linestyle=":", linewidth=1, label="Faixa calibrada")
+    ax.set(title=f"{analyte} estimado", xlabel="Tempo (min)" if prediction.times is not None else "Amostra",
+           ylabel=f"{analyte}{unit}")
+    ax.legend(fontsize=8, loc="best")
+    return fig

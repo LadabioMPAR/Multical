@@ -50,3 +50,4 @@ class CalibrationResult:
     x_mean: Optional[np.ndarray]    # autoscaling of X (None when the model does not ask for it)
     x_std: Optional[np.ndarray]
     per_analyte: Dict[str, AnalyteResult]
+    domain: Optional[dict] = None   # summary of the calibration spectra (see domain.py)

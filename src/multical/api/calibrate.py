@@ -12,6 +12,7 @@ import numpy as np
 from ..utils import zscore_matlab_style
 from ..var_selection.utils import select_k_ftest
 from .config import RunConfig
+from .domain import fit_domain
 from .recipe import apply_recipe, fit_recipe
 from .registry import MODELS, SPLITTERS
 from .results import AnalyteResult, CalibrationResult
@@ -154,31 +155,50 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
         config=config, analytes=names, units=dataset.units,
         wavelengths_in=dataset.wavelengths.copy(), wavelengths=wl_pre, X_pre=X_pre, Y=Y,
         sample_ids=list(dataset.sample_ids), validated=validated, pretreatment_states=states,
-        x_mean=x_mean, x_std=x_std, per_analyte=per_analyte,
+        x_mean=x_mean, x_std=x_std, per_analyte=per_analyte, domain=fit_domain(Xs),
     )
+
+
+def _same_grid(a, b):
+    return a.size == b.size and np.allclose(a, b, rtol=0, atol=1e-6 * max(1.0, np.ptp(b)))
+
+
+def model_input(result, X, wavelengths):
+    """
+    New spectra as the fitted model expects them: the grid is checked, then the
+    stored pretreatment and scaling are applied as they were learned.
+    `result` is a CalibrationResult or a model read from a file.
+    """
+    X = np.atleast_2d(np.asarray(X, dtype=float))
+    wavelengths = np.asarray(wavelengths, dtype=float).ravel()
+    expected = result.wavelengths_in
+    if expected is not None and not _same_grid(wavelengths, expected):
+        raise ValueError(
+            "Estes espectros não estão na mesma faixa/resolução usada para criar o modelo "
+            f"({wavelengths.size} pontos recebidos, {expected.size} esperados)."
+        )
+    X_pre, wl_pre = apply_recipe(result.config.pretreatment, result.pretreatment_states, X, wavelengths)
+    expected_pre = getattr(result, "wavelengths_pre", None)
+    if expected_pre is not None and not _same_grid(wl_pre, np.asarray(expected_pre, dtype=float).ravel()):
+        raise ValueError(
+            f"Depois do pré-tratamento os espectros têm {wl_pre.size} pontos e o modelo espera {np.size(expected_pre)}. "
+            "Confira se a receita informada é a mesma usada para criar o modelo."
+        )
+    if result.x_mean is not None:
+        X_pre = (X_pre - result.x_mean) / result.x_std
+    return X_pre
 
 
 def predict(result, X, wavelengths):
     """
     Predict every analyte of a calibration for new spectra.
 
-    The spectra must be on the same grid used in the calibration; the stored
-    pretreatment and scaling are applied as they were learned.
+    The spectra must be on the same grid used in the calibration.
     Returns an array (n_samples, n_analytes), columns in the order of `result.analytes`.
     """
-    X = np.atleast_2d(np.asarray(X, dtype=float))
-    wavelengths = np.asarray(wavelengths, dtype=float).ravel()
-    expected = result.wavelengths_in
-    if wavelengths.size != expected.size or not np.allclose(wavelengths, expected, rtol=0, atol=1e-6 * max(1.0, np.ptp(expected))):
-        raise ValueError(
-            "Estes espectros não estão na mesma faixa/resolução usada para criar o modelo "
-            f"({wavelengths.size} pontos recebidos, {expected.size} esperados)."
-        )
-    X_pre, _ = apply_recipe(result.config.pretreatment, result.pretreatment_states, X, wavelengths)
-    if result.x_mean is not None:
-        X_pre = (X_pre - result.x_mean) / result.x_std
+    X_pre = model_input(result, X, wavelengths)
     model = MODELS.get(result.config.model["id"])
-    out = np.empty((X.shape[0], len(result.analytes)))
+    out = np.empty((X_pre.shape[0], len(result.analytes)))
     for j, name in enumerate(result.analytes):
         out[:, j] = model.predict(result.per_analyte[name].model_state, X_pre)
     return out

@@ -90,7 +90,6 @@ class WizardEndToEnd(unittest.TestCase):
             self.imp.add_experiment(spp, ref)
 
     def test_steps_are_locked_until_the_previous_one_is_done(self):
-        self.assertFalse(self.start.use.isEnabled())
         self.start.create.click()
         self.assertEqual(self.window.current, 1)
         self.assertFalse(self.window.go_to(2))
@@ -240,6 +239,134 @@ class WizardEndToEnd(unittest.TestCase):
         self._wait(lambda: self.project.result is not None and self.model.worker is None)
         self.assertEqual(self.project.result.analytes, ["gl"])
         self.assertEqual(self.project.result.config.validation["id"], "loo")
+
+
+@unittest.skipIf(QApplication is None, "PySide6 não está instalado")
+class UseAModel(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from multical_gui.state import Project
+        cls.app = QApplication.instance() or QApplication([])
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.tmp = cls._tmp.name
+        cls.files = [_write_experiment(cls.tmp, f"exp{i}", i) for i in (1, 2, 3)]
+        project = Project()
+        for spp, ref in cls.files:
+            project.add_experiment(spp, ref)
+        cls.result = api.run_calibration(project.active_dataset(), project.config)
+        cls.model_path = api.save_model(cls.result, os.path.join(cls.tmp, "modelo"))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def setUp(self):
+        from multical_gui.wizard import MainWindow
+        self.window = MainWindow()
+        self.window.show()
+        self.addCleanup(self.window.close)
+        self.page = self.window.predict_page
+
+    def _wait(self, condition, timeout=60):
+        end = time.time() + timeout
+        while not condition() and time.time() < end:
+            self.app.processEvents()
+            time.sleep(0.005)
+        self.app.processEvents()
+        self.assertTrue(condition(), "a interface não chegou ao estado esperado a tempo")
+
+    def _run(self):
+        self.page.run_button.click()
+        self._wait(lambda: self.page.worker is None)
+
+    def test_estimates_a_time_series_and_saves_the_table(self):
+        self.assertEqual(self.window.steps.count(), 7)
+        self.window.pages[0].use.click()
+        self.assertEqual((self.window.flow, self.window.steps.count()), ("predict", 2))
+        self.assertIs(self.window.stack.currentWidget(), self.page)
+        self.assertFalse(self.page.run_button.isEnabled())
+        self.assertFalse(self.window.next.isVisible())
+
+        self.assertTrue(self.page.load_model(self.model_path))
+        self.assertIn("gl, xy · g/L · criado com 24 amostras", self.page.model_info.text())
+        self.assertIn("gl: erro típico ±", self.page.model_info.text())
+        self.assertFalse(self.page.run_button.isEnabled())           # still no spectra
+        self.page.add_spectra(self.files[0][0])
+        self.page.add_spectra(self.files[0][0])                        # the same file twice counts once
+        self.assertEqual(self.page.files.count(), 1)
+        self.page.every.setValue(3)
+        self._run()
+
+        prediction = self.page.prediction
+        self.assertEqual(len(prediction.sample_ids), 15)               # 45 spectra, one in every three
+        np.testing.assert_allclose(prediction.times[:3], [2 / 60, 362 / 60, 722 / 60])
+        self.assertEqual(self.page.table.rowCount(), 15)
+        self.assertEqual(self.page.table.columnCount(), 5)
+        self.assertEqual(self.page.table.horizontalHeaderItem(2).text(), "gl (g/L)")
+        self.assertEqual(self.page.analyte.count(), 2)
+        self.assertIn("espectros estimados", self.page.status.text())
+        self.assertEqual(self.page.banner.level, "warning" if prediction.n_outside else "ok")
+        middle = np.flatnonzero((prediction.times > 11) & (prediction.times < 81))
+        self.assertTrue(prediction.ok[middle].all())                   # the calibrated part of the experiment
+
+        from multical.io.spp import read_spp
+        whole = read_spp(self.files[0][0])
+        np.testing.assert_allclose(prediction.Y, api.predict(self.result, whole.X[::3], whole.wavelengths), rtol=1e-12)
+
+        csv_path = self.page.save_table(os.path.join(self.tmp, "estimativas.csv"))
+        with open(csv_path, encoding="utf-8-sig") as handle:
+            self.assertEqual(len(handle.read().splitlines()), 16)
+        self.assertEqual(self.page.banner.level, "ok")
+
+        self.page.every.setValue(1)                                   # changing an input clears the old estimates
+        self.assertIsNone(self.page.prediction)
+        self.assertEqual(self.page.table.rowCount(), 0)
+        self.assertFalse(self.page.save_button.isEnabled())
+
+    def test_strange_spectra_are_flagged_and_bad_inputs_explained(self):
+        self.window.start_flow("predict")
+        self.assertFalse(self.page.load_model(os.path.join(self.tmp, "antigo.pkl")))
+        self.assertIn("Modelos antigos", self.page.banner.text())
+        not_a_model = os.path.join(self.tmp, "falso.multical")
+        with open(not_a_model, "w") as handle:
+            handle.write("nada")
+        self.assertFalse(self.page.load_model(not_a_model))
+        self.assertEqual(self.page.banner.level, "error")
+        self.assertTrue(self.page.load_model(self.model_path))
+
+        from multical.io.spp import read_spp
+        whole = read_spp(self.files[1][0])
+        strange = whole.X[10:16].copy()
+        strange[:, 120:150] += 3.0                                    # a band the calibration never had
+        text = os.path.join(self.tmp, "estranhos.txt")
+        header = "Time\t" + "\t".join(f"{w:.10g}" for w in whole.wavelengths)
+        np.savetxt(text, np.column_stack([np.arange(6) * 3.0, strange]), fmt="%.12g", delimiter="\t", header=header, comments="")
+        self.page.add_spectra(text)
+        self._run()
+        self.assertEqual(self.page.prediction.n_outside, 6)
+        self.assertEqual(self.page.banner.level, "warning")
+        self.assertIn("espectro diferente", self.page.table.item(0, 4).text())
+
+        other_grid = os.path.join(self.tmp, "outra_faixa.txt")
+        np.savetxt(other_grid, np.column_stack([np.arange(6) * 3.0, strange[:, :200]]), fmt="%.12g", delimiter="\t",
+                   header="Time\t" + "\t".join(f"{w:.10g}" for w in whole.wavelengths[:200]), comments="")
+        self.page.files.setCurrentRow(0)
+        self.page.remove_file.click()
+        self.page.add_spectra(other_grid)
+        self._run()
+        self.assertIsNone(self.page.prediction)
+        self.assertEqual(self.page.banner.level, "error")
+        self.assertIn("mesma faixa", self.page.banner.text())
+
+        self.page.add_spectra(self.files[2][0])
+        self.page.run()
+        self.page.cancel()
+        self._wait(lambda: self.page.worker is None)
+        self.assertIsNone(self.page.prediction)
+
+        self.window.go_to(0)                                          # back to the first screen, other path
+        self.window.pages[0].create.click()
+        self.assertEqual((self.window.flow, self.window.steps.count(), self.window.current), ("create", 7, 1))
 
 
 if __name__ == "__main__":
