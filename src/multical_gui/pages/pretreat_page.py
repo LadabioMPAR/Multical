@@ -171,6 +171,11 @@ class PretreatPage(Page):
             self.error.set_message(self._problem, "error")
             self.canvas.show_message("A receita não pôde ser aplicada.")
             return
+        except Exception as error:      # a method from a plugin may fail in any way; the screen must stay usable
+            self._problem = f"Erro inesperado no pré-tratamento: {type(error).__name__}: {error}"
+            self.error.set_message(self._problem, "error")
+            self.canvas.show_message("A receita não pôde ser aplicada.")
+            return
         self.error.set_message("")
         self.canvas.set_figure(plots.plot_before_after(data.wavelengths, data.X, wl, X))
 

@@ -12,6 +12,7 @@ import numpy as np
 from ..utils import zscore_matlab_style
 from ..var_selection.utils import select_k_ftest
 from .config import RunConfig
+from .contract import check_cv_path, check_predictions, check_split, check_state
 from .domain import fit_domain
 from .recipe import apply_recipe, fit_recipe
 from .registry import MODELS, SPLITTERS
@@ -73,7 +74,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
 
     rng = np.random.RandomState(config.seed)
     folds = [
-        (np.asarray(tr), np.asarray(va))
+        check_split(splitter, tr, va, n)
         for tr, va in splitter.split(n, groups=dataset.groups, X=X_pre, Y=Y, rng=rng, **config.validation["params"])
     ]
     if not folds:
@@ -103,7 +104,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
     def fit_setting(X_fit, y_fit, index):
         """Fit the model with the settings of candidate `index` (models without a sweep)."""
         extra = grid[index][1] if grid else {}
-        return model.fit(X_fit, y_fit, **{**params, **extra})
+        return check_state(model, model.fit(X_fit, y_fit, **{**params, **extra}))
 
     total = len(names) * (len(folds) + 1)
     done = 0
@@ -123,20 +124,21 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
             if cancel is not None and cancel():
                 raise CalibrationCancelled()
             if model.sweep:
-                y_cv[:, va] = model.cv_path(Xs[tr], y[tr], Xs[va], max_k, **params)
+                y_cv[:, va] = check_cv_path(model, model.cv_path(Xs[tr], y[tr], Xs[va], max_k, **params), max_k, len(va))
             else:
                 for c in range(len(candidates)):
                     if cancel is not None and cancel():
                         raise CalibrationCancelled()
-                    y_cv[c, va] = model.predict(fit_setting(Xs[tr], y[tr], c), Xs[va])
+                    y_cv[c, va] = check_predictions(model, model.predict(fit_setting(Xs[tr], y[tr], c), Xs[va]), len(va))
             step(f"{name}: validação {f + 1} de {len(folds)}")
 
         if cancel is not None and cancel():
             raise CalibrationCancelled()
         if model.sweep:
-            y_cal = np.asarray(model.cv_path(Xs, y, Xs, max_k, **params))
+            y_cal = check_cv_path(model, model.cv_path(Xs, y, Xs, max_k, **params), max_k, n)
         else:
-            y_cal = np.vstack([model.predict(fit_setting(Xs, y, c), Xs) for c in range(len(candidates))])
+            y_cal = np.vstack([check_predictions(model, model.predict(fit_setting(Xs, y, c), Xs), n)
+                               for c in range(len(candidates))])
 
         everyone = np.ones(n, dtype=bool)
         rmsecv = _rmse(y_cv, y, validated)
@@ -152,7 +154,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
             best_index = int(np.argmin(rmsecv))
 
         if model.sweep:
-            state = model.fit(Xs, y, k=int(candidates[best_index]), **params)
+            state = check_state(model, model.fit(Xs, y, k=int(candidates[best_index]), **params))
         else:
             state = fit_setting(Xs, y, best_index)
         step(f"{name}: modelo final")
@@ -211,5 +213,5 @@ def predict(result, X, wavelengths):
     model = MODELS.get(result.config.model["id"])
     out = np.empty((X_pre.shape[0], len(result.analytes)))
     for j, name in enumerate(result.analytes):
-        out[:, j] = model.predict(result.per_analyte[name].model_state, X_pre)
+        out[:, j] = check_predictions(model, model.predict(result.per_analyte[name].model_state, X_pre), X_pre.shape[0])
     return out

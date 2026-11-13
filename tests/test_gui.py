@@ -14,14 +14,35 @@ from ._spp_writer import write_spp
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+if os.path.isdir(r"C:\Windows\Fonts"):      # without fonts the offscreen platform draws wide placeholder boxes
+    os.environ.setdefault("QT_QPA_FONTDIR", r"C:\Windows\Fonts")
 
 try:
-    from PySide6.QtCore import Qt
+    from PySide6.QtCore import QSettings, Qt
     from PySide6.QtWidgets import QApplication
 except ImportError:          # pragma: no cover
     QApplication = None
 
 from multical import api  # noqa: E402
+
+_SETTINGS = None
+
+
+def setUpModule():
+    """Keep the tests away from the user's own settings and from dialogs that wait for an answer."""
+    global _SETTINGS
+    if QApplication is None:
+        return
+    _SETTINGS = tempfile.TemporaryDirectory()
+    QSettings.setDefaultFormat(QSettings.IniFormat)
+    QSettings.setPath(QSettings.IniFormat, QSettings.UserScope, _SETTINGS.name)
+    from multical_gui.wizard import MainWindow
+    MainWindow.ask_about_unsaved = lambda self: "discard"
+
+
+def tearDownModule():
+    if _SETTINGS is not None:
+        _SETTINGS.cleanup()
 
 POINTS = 300
 ANALYTES = ["gl", "xy"]
@@ -123,8 +144,10 @@ class WizardEndToEnd(unittest.TestCase):
         self.imp.exact.setChecked(True)
         np.testing.assert_array_equal(self.project.dataset.X, exact)
 
-        self.imp.analytes.setText("glicose, xilose")
-        self.imp.analytes.editingFinished.emit()
+        self.assertEqual(self.imp.analyte_table.rowCount(), 2)
+        self.assertEqual([self.imp.analyte_table.item(r, 1).text() for r in range(2)], ANALYTES)   # from the file header
+        self.imp.analyte_table.item(0, 1).setText("glicose")
+        self.imp.analyte_table.item(1, 1).setText("xilose")
         self.assertEqual(self.project.dataset.analytes, ["glicose", "xilose"])
         self.imp.units.setText("mg/mL")
         self.imp.units.editingFinished.emit()
@@ -368,6 +391,36 @@ class UseAModel(unittest.TestCase):
         self.window.pages[0].create.click()
         self.assertEqual((self.window.flow, self.window.steps.count(), self.window.current), ("create", 7, 1))
 
+    def test_side_bar_cannot_change_the_screen_while_one_is_being_shown(self):
+        # Hiding the first screen can hand the keyboard focus to the side bar, whose list then picks a
+        # current row by itself; that used to send the program back to the first screen without showing it.
+        start = self.window.pages[0]
+        self.window.steps.blockSignals(True)
+        self.window.steps.setCurrentRow(-1)
+        self.window.steps.blockSignals(False)
+        emitted = []
+        original = self.window.stack.setCurrentWidget
+
+        def swap(widget):                                             # what Qt does when the list gains focus
+            self.window.steps.setCurrentRow(0)
+            emitted.append(self.window.steps.signalsBlocked())
+            original(widget)
+
+        self.window.stack.setCurrentWidget = swap
+        start.use.click()
+        self.window.stack.setCurrentWidget = original
+        self.assertEqual(emitted, [True])
+        self.assertEqual((self.window.flow, self.window.current, self.window.steps.currentRow()), ("predict", 1, 1))
+        self.assertIs(self.window.stack.currentWidget(), self.page)
+        self.assertTrue(self.window.back.isVisible())
+
+    def test_window_fits_a_small_laptop_screen(self):
+        for flow in ("create", "predict"):
+            self.window.set_flow(flow)
+            hint = self.window.minimumSizeHint()
+            self.assertLessEqual(hint.width(), 1150, flow)
+            self.assertLessEqual(hint.height(), 700, flow)
+
 
 @unittest.skipIf(QApplication is None, "PySide6 não está instalado")
 class MethodsFromTheRegistries(unittest.TestCase):
@@ -449,6 +502,344 @@ class MethodsFromTheRegistries(unittest.TestCase):
                 self._train()
                 self.assertEqual(self.project.result.config.validation["id"], scheme)
                 self.window.go_to(4)
+
+
+@unittest.skipIf(QApplication is None, "PySide6 não está instalado")
+class InstalledProgram(unittest.TestCase):
+    """What the packaged program relies on: its self-check and the guide next to it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_self_check_passes_and_writes_its_report(self):
+        from multical_gui.app import main
+        with tempfile.TemporaryDirectory() as tmp:
+            report = os.path.join(tmp, "relatorio.txt")
+            self.assertEqual(main(["Multical", "--autoteste", report]), 0)
+            with open(report, encoding="utf-8") as handle:
+                text = handle.read()
+        self.assertEqual(text.count("OK  "), 6, text)
+        self.assertIn("Pré-tratamentos: cut, sg", text)
+        self.assertIn("Tudo certo.", text)
+        self.assertIn("modelos pls, pcr, spa, svr", text)
+
+    def test_self_check_reports_a_failure(self):
+        from multical_gui import selftest
+        original = selftest.CHECKS
+        selftest.CHECKS = (("Verificação quebrada", lambda: 1 / 0),)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                report = os.path.join(tmp, "relatorio.txt")
+                self.assertEqual(selftest.run(report), 1)
+                with open(report, encoding="utf-8") as handle:
+                    text = handle.read()
+        finally:
+            selftest.CHECKS = original
+        self.assertIn("FALHA  Verificação quebrada: ZeroDivisionError", text)
+        self.assertIn("1 verificação(ões) falharam", text)
+
+    def test_guide_is_reachable_from_the_first_screen(self):
+        from multical_gui.app import guide_path
+        from multical_gui.wizard import MainWindow
+        path = guide_path()
+        self.assertTrue(path and path.endswith(os.path.join("docs", "guia_do_usuario.html")))
+        with open(path, encoding="utf-8") as handle:
+            html = handle.read()
+        folder = os.path.dirname(path)
+        import re
+        images = re.findall(r'src="([^"]+)"', html)
+        self.assertGreaterEqual(len(images), 3)
+        for image in images:
+            self.assertTrue(os.path.isfile(os.path.join(folder, image)), image)
+        window = MainWindow()
+        window.show()
+        self.addCleanup(window.close)
+        self.assertTrue(window.pages[0].guide.isVisible())
+
+
+@unittest.skipIf(QApplication is None, "PySide6 não está instalado")
+class TextSpectraAnalytesAndProjects(unittest.TestCase):
+    """Spectra in text files, telling the analytes apart, and saving/opening projects."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.tmp = cls._tmp.name
+        cls.files = [_write_experiment(cls.tmp, f"exp{i}", i) for i in (1, 2, 3)]
+        from multical.io.spp import read_spp
+        cls.series = read_spp(cls.files[0][0])
+        cls.table = np.loadtxt(cls.files[0][1], delimiter=";", skiprows=1,
+                               converters=lambda v: float(v.replace(",", ".")), encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def setUp(self):
+        from multical_gui.wizard import MainWindow
+        self.window = MainWindow()
+        self.window.show()
+        self.addCleanup(self.window.close)
+        self.project = self.window.project
+        self.imp = self.window.pages[1]
+        self.window.go_to(1)
+
+    def _text_spectra(self, name, rows, minutes):
+        """Write spectra as the '_nonda.txt' files: header with the axis, then time (min) and one spectrum per row."""
+        path = os.path.join(self.tmp, name)
+        header = "Time\t" + "\t".join(f"{w:.10g}" for w in self.series.wavelengths)
+        np.savetxt(path, np.column_stack([minutes, self.series.X[rows]]), fmt="%.12g", delimiter="\t", header=header, comments="")
+        return path
+
+    def _table(self, name, rows, header="tempo;gl;xy"):
+        path = os.path.join(self.tmp, name)
+        with open(path, "w", encoding="utf-8") as handle:
+            if header:
+                handle.write(header + "\n")
+            for row in rows:
+                handle.write(";".join(f"{v:.4f}".replace(".", ",") for v in row) + "\n")
+        return path
+
+    # ---- spectra in text files ---------------------------------------------
+    def test_text_file_with_one_spectrum_per_sample_is_linked_by_row(self):
+        times = self.table[:, 0]
+        rows = [int(np.argmin(np.abs(self.series.times / 60.0 - t))) for t in times]
+        spectra = self._text_spectra("exp1_nonda.txt", rows, times)
+        self.imp.add_experiment(spectra, self.files[0][1])
+        exp = self.project.experiments[0]
+        self.assertEqual((exp.kind, exp.linked_by, exp.n_spectra, exp.n_linked, exp.error), ("txt", "order", 8, 8, ""))
+        np.testing.assert_allclose(self.project.dataset.X, self.series.X[rows], rtol=1e-10)
+        np.testing.assert_allclose(self.project.dataset.Y, self.table[:, 1:], rtol=1e-12)
+        self.assertEqual(self.project.dataset.sample_ids[0], "exp1_nonda_11min")
+        self.assertIn("ligado pela ordem das linhas", self.imp.table.item(0, 5).text())
+
+        shifted = self._text_spectra("exp1_outros_tempos.txt", rows, times + 5.0)
+        self.imp.add_experiment(shifted, self.files[0][1], "tempos diferentes")
+        self.assertEqual(self.project.experiments[1].linked_by, "order")
+        self.assertIn("não coincidem", self.project.experiments[1].note)
+        self.assertIn("atenção", self.imp.table.item(1, 5).text())
+
+    def test_text_file_with_a_whole_series_is_linked_by_time_like_spp(self):
+        minutes = self.series.times / 60.0
+        spectra = self._text_spectra("exp1_serie.txt", np.arange(self.series.n_samples), minutes)
+        self.imp.add_experiment(spectra, self.files[0][1], "texto")
+        self.imp.add_experiment(self.files[0][0], self.files[0][1], "spp")
+        text, spp = self.project.experiments
+        self.assertEqual((text.kind, text.linked_by, text.n_spectra, text.n_linked), ("txt", "time", 45, 8))
+        self.assertEqual((spp.kind, spp.linked_by, spp.n_linked), ("spp", "time", 8))
+        data = self.project.dataset
+        np.testing.assert_allclose(data.X[:8], data.X[8:], rtol=1e-9)          # same spectra chosen from both files
+        self.assertIn("ligado pelo tempo", self.imp.table.item(0, 5).text())
+
+        self.imp.radius.setValue(4.0)
+        self.imp.window_mode.setChecked(True)                                   # the window applies to the text series too
+        np.testing.assert_allclose(self.project.dataset.X[:8], self.project.dataset.X[8:], rtol=1e-9)
+        self.assertFalse(np.allclose(self.project.dataset.X[:8], data.X[:8]))
+
+        with open(os.path.join(self.tmp, "nao_e_espectro.txt"), "w") as handle:
+            handle.write("isto não é um arquivo de espectros\n1 2 3\n")
+        self.imp.add_experiment(os.path.join(self.tmp, "nao_e_espectro.txt"), self.files[0][1], "ruim")
+        self.assertIn("não está no formato esperado", self.project.experiments[-1].error)
+        self.assertEqual(self.project.dataset.n_samples, 16)
+
+    # ---- analytes ----------------------------------------------------------
+    def test_analytes_follow_the_table_and_can_be_named(self):
+        three = self._table("tres.csv", np.column_stack([self.table, 100 + self.table[:, 1]]), header="")
+        self.imp.add_experiment(self.files[0][0], three)
+        table = self.imp.analyte_table
+        self.assertEqual(table.rowCount(), 3)                                   # as many analytes as the file has
+        self.assertEqual([table.item(r, 1).text() for r in range(3)], ["analito_1", "analito_2", "analito_3"])
+        self.assertEqual([table.item(r, 0).text() for r in range(3)], ["2ª", "3ª", "4ª"])
+        low, high = self.table[:, 1].min(), self.table[:, 1].max()
+        self.assertEqual(table.item(0, 2).text(), f"{low:.4g}".replace(".", ",") + " g/L")
+        self.assertEqual(table.item(2, 3).text(), f"{100 + high:.4g}".replace(".", ",") + " g/L")
+        self.assertFalse(table.item(0, 2).flags() & Qt.ItemIsEditable)
+
+        table.item(0, 1).setText("glicose")
+        table.item(2, 1).setText("etanol")
+        self.assertEqual(self.project.dataset.analytes, ["glicose", "analito_2", "etanol"])
+        table.item(1, 1).setText("Glicose")                                     # repeated name: refused and shown again
+        self.assertEqual(self.project.dataset.analytes, ["glicose", "analito_2", "etanol"])
+        self.assertEqual(table.item(1, 1).text(), "analito_2")
+        self.assertIn("não podem se repetir", self.window.message.text())
+        table.item(1, 1).setText("  ")
+        self.assertEqual(self.project.dataset.analytes[1], "analito_2")
+
+        self.project.config.analytes = ["glicose", "etanol"]
+        table.item(2, 1).setText("EtOH")                                        # the selection follows the new name
+        self.assertEqual(self.project.config.analytes, ["glicose", "EtOH"])
+        self.window.go_to(2)
+        self.window.go_to(3)
+        self.window.go_to(4)
+        model = self.window.pages[4]
+        self.assertEqual([c.text() for c in model.analyte_checks], ["glicose", "analito_2", "EtOH"])
+        self.assertEqual([c.isChecked() for c in model.analyte_checks], [True, False, True])
+
+    def test_tables_with_columns_in_another_order_are_refused(self):
+        self.imp.add_experiment(self.files[0][0], self.files[0][1])
+        swapped = self._table("trocada.csv", self.table[:, [0, 2, 1]], header="tempo;xy;gl")
+        self.imp.add_experiment(self.files[1][0], swapped, "trocado")
+        self.assertIn("não são as mesmas, na mesma ordem", self.project.experiments[1].error)
+        self.assertEqual(self.project.dataset.n_samples, 8)
+        unnamed = self._table("sem_nomes.csv", self.table, header="")
+        self.imp.add_experiment(self.files[1][0], unnamed, "sem nomes")           # nothing to compare: accepted
+        self.assertEqual(self.project.experiments[2].error, "")
+
+    # ---- projects ----------------------------------------------------------
+    def _fill_project(self):
+        for spp, ref in self.files:
+            self.imp.add_experiment(spp, ref)
+        self.imp.radius.setValue(4.0)
+        self.imp.window_mode.setChecked(True)
+        self.imp.analyte_table.item(0, 1).setText("glicose")
+        self.imp.units.setText("mg/mL")
+        self.imp.units.editingFinished.emit()
+        self.project.set_excluded([self.project.dataset.sample_ids[3], self.project.dataset.sample_ids[10]])
+        self.project.set_recipe([{"id": "snv", "params": {}}, {"id": "sg", "params": {"radius": 5, "poly_order": 2, "deriv": 2}}])
+        self.project.config.model = {"id": "pcr", "params": {"max_k": 4}}
+        self.project.config.validation = {"id": "loexo", "params": {}}
+        self.project.config.analytes = ["glicose"]
+        self.window.advanced.setChecked(True)
+
+    def test_project_is_saved_and_opened_with_everything_the_user_chose(self):
+        self.assertEqual(self.window.windowTitle(), "Multical")
+        self._fill_project()
+        self.window.refresh_nav()
+        self.assertEqual(self.window.windowTitle(), "Multical — projeto sem nome*")
+        before = self.project.to_dict()
+        X, ids = self.project.dataset.X.copy(), list(self.project.dataset.sample_ids)
+
+        path = os.path.join(self.tmp, "meu projeto")
+        self.assertTrue(self.window.save_project_as(path))
+        self.assertTrue(os.path.isfile(path + ".mcproj"))
+        self.assertFalse(self.project.dirty)
+        self.assertEqual(self.window.windowTitle(), "Multical — meu projeto.mcproj")
+        self.project.set_excluded([])
+        self.window.refresh_nav()
+        self.assertTrue(self.window.windowTitle().endswith("*"))
+        self.assertTrue(self.window.save_project())
+        self.project.set_excluded([ids[3], ids[10]])
+        self.assertTrue(self.window.save_project())
+
+        self.assertTrue(self.window.new_project())
+        self.assertTrue(self.project.is_empty)
+        self.assertEqual((self.window.current, self.window.windowTitle()), (0, "Multical"))
+        self.assertFalse(self.window.advanced.isChecked())
+
+        self.assertTrue(self.window.open_project(path + ".mcproj"))
+        self.assertEqual(self.project.to_dict(), before)
+        self.assertEqual((self.window.flow, self.window.current), ("create", 1))
+        self.assertTrue(self.window.advanced.isChecked())
+        np.testing.assert_array_equal(self.project.dataset.X, X)
+        self.assertEqual(self.project.dataset.analytes, ["glicose", "xy"])
+        self.assertEqual(self.project.dataset.units, "mg/mL")
+        self.assertEqual(self.project.excluded, {ids[3], ids[10]})
+        self.assertEqual(self.imp.table.rowCount(), 3)
+        self.assertTrue(self.imp.window_mode.isChecked())
+        self.assertIsNone(self.project.result)                                  # the model is not part of the project
+        self.assertFalse(self.project.dirty)
+
+        # the choices reach the other screens
+        self.window.go_to(2)
+        self.assertIn("22 de 24", self.window.pages[2].count.text())
+        self.window.go_to(3)
+        self.assertEqual(self.window.pages[3].steps.count(), 2)
+        self.window.go_to(4)
+        model = self.window.pages[4]
+        self.assertEqual((model.model.currentData(), model.validation.currentData()), ("pcr", "loexo"))
+        self.assertEqual([c.isChecked() for c in model.analyte_checks], [True, False])
+
+        from multical_gui.recent import recent_projects
+        self.assertEqual(recent_projects()[0], os.path.abspath(path + ".mcproj"))
+        self.window.go_to(0)
+        start = self.window.pages[0]
+        self.assertTrue(start.recent.isVisible())
+        self.assertIn("meu projeto.mcproj", start.recent.item(0).text())
+
+    def test_project_follows_its_folder_and_reports_missing_files(self):
+        import shutil
+        folder = os.path.join(self.tmp, "pasta do projeto")
+        os.makedirs(os.path.join(folder, "dados"))
+        copies = []
+        for spp, ref in self.files[:2]:
+            copies.append(tuple(shutil.copy(p, os.path.join(folder, "dados")) for p in (spp, ref)))
+        for spp, ref in copies:
+            self.imp.add_experiment(spp, ref)
+        self.assertTrue(self.window.save_project_as(os.path.join(folder, "p.mcproj")))
+
+        moved = os.path.join(self.tmp, "pasta levada para outro lugar")
+        shutil.move(folder, moved)                                              # project and data moved together
+        self.assertTrue(self.window.open_project(os.path.join(moved, "p.mcproj")))
+        self.assertEqual([e.error for e in self.project.experiments], ["", ""])
+        self.assertTrue(self.project.experiments[0].spectra_path.startswith(moved))
+        self.assertEqual(self.project.dataset.n_samples, 16)
+
+        os.remove(self.project.experiments[1].spectra_path)                     # one data file is gone
+        self.assertTrue(self.window.open_project(os.path.join(moved, "p.mcproj")))
+        self.assertIn("não encontrado", self.project.experiments[1].error)
+        self.assertEqual(self.project.dataset.n_samples, 8)
+        self.assertIn("não puderam ser lidos", self.window.message.text())
+
+    def test_unsaved_changes_are_asked_about_and_bad_files_are_refused(self):
+        from PySide6.QtWidgets import QMessageBox
+        answers = []
+        self.window.ask_about_unsaved = lambda: answers.append("asked") or self.choice
+        self.choice = "cancel"
+        self.assertTrue(self.window.new_project())                               # empty project: nothing to ask
+        self.assertEqual(answers, [])
+        self.imp.add_experiment(*self.files[0])
+        self.assertFalse(self.window.new_project())                              # asked, and the user stays
+        self.assertEqual((answers, len(self.project.experiments)), (["asked"], 1))
+        self.assertFalse(self.window.close())
+        self.assertTrue(self.window.isVisible())
+
+        saved = []
+        self.window.save_project = lambda: saved.append(True) or True
+        self.choice = "save"
+        self.assertTrue(self.window.new_project())
+        self.assertEqual(saved, [True])
+        del self.window.save_project
+
+        self.choice = "discard"
+        self.imp.add_experiment(*self.files[0])
+        warnings = []
+        original = QMessageBox.warning
+        QMessageBox.warning = staticmethod(lambda *args: warnings.append(args[2]))
+        try:
+            bad = os.path.join(self.tmp, "nao_e_projeto.mcproj")
+            with open(bad, "w") as handle:
+                handle.write("{ isto não é json")
+            self.assertFalse(self.window.open_project(bad))
+            newer = os.path.join(self.tmp, "futuro.mcproj")
+            with open(newer, "w") as handle:
+                handle.write('{"format": 99, "experiments": []}')
+            self.assertFalse(self.window.open_project(newer))
+            missing_plugin = os.path.join(self.tmp, "plugin.mcproj")
+            with open(missing_plugin, "w") as handle:
+                handle.write('{"format": 1, "experiments": [], "config": {"model": {"id": "modelo_de_plugin", "params": {}}}}')
+            self.assertFalse(self.window.open_project(missing_plugin))
+        finally:
+            QMessageBox.warning = original
+        self.assertEqual(len(warnings), 3)
+        self.assertIn("versão mais nova", warnings[1])
+        self.assertIn("modelo_de_plugin", warnings[2])
+        self.assertEqual(len(self.project.experiments), 1)                        # a refused file leaves the current project as it was
+        self.assertIsNotNone(self.project.dataset)
+
+    def test_plugins_that_failed_are_listed_on_the_first_screen(self):
+        start = self.window.pages[0]
+        self.window.go_to(0)
+        self.assertFalse(start.plugin_errors.isVisible())
+        api.PLUGIN_ERRORS.append((os.path.join(self.tmp, "meu_plugin.py"), "NameError: name 'np' is not defined\nTraceback..."))
+        try:
+            start.enter()
+            self.assertTrue(start.plugin_errors.isVisible())
+            self.assertIn("meu_plugin.py: NameError: name 'np' is not defined", start.plugin_errors.text())
+            self.assertNotIn("Traceback", start.plugin_errors.text())
+        finally:
+            del api.PLUGIN_ERRORS[:]
 
 
 if __name__ == "__main__":

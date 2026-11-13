@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multical – guia do usuário</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.5; color: #1c2430; max-width: 860px; margin: 0 auto; padding: 24px 20px 48px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  h2 { font-size: 19px; margin-top: 30px; border-bottom: 1px solid #d5dbe5; padding-bottom: 4px; }
+  p.lead { color: #4a5568; margin-top: 0; }
+  img { max-width: 100%; border: 1px solid #c9d1dc; border-radius: 4px; margin: 6px 0 2px; }
+  figcaption { font-size: 13px; color: #5a6575; margin-bottom: 10px; }
+  figure { margin: 10px 0; }
+  ol, ul { padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  table { border-collapse: collapse; margin: 8px 0; }
+  td, th { border: 1px solid #d5dbe5; padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef2f7; }
+  .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; }
+  code { background: #eef2f7; padding: 1px 4px; border-radius: 3px; }
+  @media print { body { max-width: none; padding: 0; font-size: 11pt; } h2 { break-after: avoid; } figure { break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<h1>Multical – guia do usuário</h1>
+<p class="lead">O Multical estima concentrações a partir de espectros. Primeiro você cria um modelo com espectros de
+amostras cujo valor foi medido em laboratório; depois usa esse modelo para estimar amostras novas.</p>
+
+<h2>Instalar e abrir</h2>
+<ul>
+  <li>Execute o instalador (<code>Multical-…-instalador.exe</code>) ou descompacte o arquivo <code>.zip</code> e abra
+      <code>Multical.exe</code>. Não é preciso ter Python nem senha de administrador.</li>
+  <li>Na primeira vez, o Windows pode mostrar o aviso “O Windows protegeu o computador”, porque o programa não tem
+      assinatura digital. Clique em <b>Mais informações</b> e depois em <b>Executar assim mesmo</b>.</li>
+</ul>
+
+<h2>O que ter em mãos</h2>
+<ul>
+  <li><b>Espectros</b>, um arquivo por experimento, em um destes formatos:
+    <ul>
+      <li><code>.spp</code>: o arquivo gravado pelo equipamento, com todos os espectros do experimento, um a cada
+          poucos minutos;</li>
+      <li><code>.txt</code>: arquivo de texto com o eixo espectral na primeira linha e um espectro por linha,
+          começando pelo tempo em minutos (como os arquivos <code>_nonda.txt</code>).</li>
+    </ul></li>
+  <li><b>Valores medidos</b>: uma tabela por experimento, em texto ou CSV (no Excel: <i>Salvar como → CSV</i>).
+      A primeira coluna é o <b>tempo da amostra em minutos</b>, contado do início da aquisição; as outras são os
+      analitos, sempre na mesma ordem. Uma primeira linha com os nomes é opcional. Pode haver qualquer número de
+      analitos.</li>
+</ul>
+<p>Como o programa liga cada amostra ao seu espectro:</p>
+<ul>
+  <li>se o arquivo <code>.txt</code> tem <b>um espectro para cada linha da tabela</b>, a ligação é pela ordem das
+      linhas (primeira com primeira, e assim por diante);</li>
+  <li>nos arquivos <code>.spp</code>, e nos <code>.txt</code> com a série inteira, a ligação é <b>pelo tempo</b>.</li>
+</ul>
+<p>A coluna <i>Situação</i> da tela de importação diz qual das duas foi usada em cada experimento.</p>
+
+<h2>Criar um modelo</h2>
+<p>Clique em <b>Criar um modelo</b>. As etapas ficam na barra à esquerda e só abrem quando a anterior está completa.</p>
+<ol>
+  <li><b>Importar dados.</b> Clique em <b>Adicionar experimento</b>, escolha o arquivo de espectros e a tabela de
+      valores medidos, e repita para cada experimento. Quando a ligação é pelo tempo, você escolhe entre usar
+      <i>o espectro mais próximo</i> do tempo da amostra ou <i>a média dos espectros em uma janela</i> de alguns
+      minutos em volta dela.<br>
+      O quadro <b>Analitos</b> lista uma linha para cada coluna de valores da tabela, com o menor e o maior valor
+      medido. Confira se cada coluna é o que você espera e dê <b>duplo clique no nome</b> para chamá-la como
+      quiser (glicose, etanol, pH…). Esses nomes aparecem em todas as telas, nos arquivos exportados e no modelo.</li>
+  <li><b>Inspecionar espectros.</b> Confira se as curvas fazem sentido. Desmarque as amostras que não devem entrar
+      no modelo; nada é apagado dos arquivos.</li>
+  <li><b>Pré-tratamento.</b> A receita padrão do laboratório já vem escolhida. O gráfico mostra os espectros antes
+      e depois.</li>
+  <li><b>Modelo e validação.</b> Marque o que deseja estimar e clique em <b>Treinar modelo</b>.</li>
+  <li><b>Resultados.</b> Veja se o modelo ficou bom (próxima seção).</li>
+  <li><b>Exportar.</b> Escolha a pasta e clique em <b>Exportar</b>. O arquivo <code>modelo.multical</code> é o que
+      será usado para estimar amostras novas; as tabelas, as figuras e o relatório em PDF ficam na mesma pasta.</li>
+</ol>
+<figure><img src="img/1_importar.png" alt="Tela Importar dados">
+<figcaption>Importar dados: um experimento por linha; a última coluna diz como as amostras foram ligadas e se algo
+precisa de atenção. No quadro Analitos, cada coluna da tabela recebe um nome.</figcaption></figure>
+
+<h2>Salvar e reabrir o projeto</h2>
+<ul>
+  <li><b>Arquivo → Salvar projeto</b> (Ctrl+S) grava um arquivo <code>.mcproj</code> com tudo o que você escolheu:
+      os experimentos, como as amostras são ligadas, os nomes dos analitos, as amostras retiradas, a receita, o modelo
+      e a validação. O título da janela mostra um <b>*</b> quando há alterações não salvas.</li>
+  <li><b>Arquivo → Abrir projeto</b> (Ctrl+O), o botão <b>Abrir um projeto salvo</b> ou a lista de <b>projetos
+      recentes</b> da tela inicial trazem tudo de volta.</li>
+  <li>O projeto guarda as <b>escolhas</b>, não os espectros: os arquivos de dados precisam continuar onde estavam.
+      Se você guardar o projeto na mesma pasta dos dados (ou em uma pasta acima), pode mover ou copiar a pasta inteira
+      que o projeto continua abrindo.</li>
+  <li>O <b>modelo treinado não fica no projeto</b>. Depois de reabrir, clique em <b>Treinar modelo</b> de novo (leva
+      segundos) ou use o arquivo <code>modelo.multical</code> que você exportou.</li>
+</ul>
+
+<h2>Entender os resultados</h2>
+<p>Cada linha resume o modelo de um analito. O <b>erro típico</b> é quanto a estimativa costuma se afastar do valor
+medido, em amostras que ficaram de fora do treino. O gráfico <i>Previsto × medido</i> deve ter os pontos perto da
+linha tracejada.</p>
+<table>
+  <tr><th>Cor</th><th>Significado</th></tr>
+  <tr><td><span class="dot" style="background:#2e9e5b"></span>Verde</td><td>Bom: o modelo acompanha bem os valores medidos.</td></tr>
+  <tr><td><span class="dot" style="background:#e0a100"></span>Amarelo</td><td>Atenção: serve para acompanhar tendências, não para valores exatos.</td></tr>
+  <tr><td><span class="dot" style="background:#cc3b3b"></span>Vermelho</td><td>Ruim: não use as estimativas. Fale com quem cuida dos modelos.</td></tr>
+</table>
+<p>A lista <i>Amostras com erro grande na validação</i> aponta amostras que vale conferir: pode ter havido erro de
+anotação, de medida ou de horário. Se for o caso, volte à etapa 2, desmarque a amostra e treine de novo.</p>
+<figure><img src="img/3_resultados.png" alt="Tela Resultados">
+<figcaption>Resultados: uma linha por analito, com a cor, o erro típico e o gráfico previsto × medido.</figcaption></figure>
+
+<h2>Usar um modelo pronto</h2>
+<ol>
+  <li>Na tela inicial, clique em <b>Usar um modelo pronto</b>.</li>
+  <li>Clique em <b>Abrir modelo</b> e escolha o arquivo <code>.multical</code>. A tela mostra o que ele estima, o erro
+      típico e a faixa de valores com que foi criado.</li>
+  <li>Clique em <b>Adicionar arquivo</b> e escolha os espectros das amostras novas.</li>
+  <li>Clique em <b>Estimar</b>. Em séries muito longas, “Usar um espectro a cada N” deixa o cálculo mais rápido.</li>
+  <li>Veja a tabela e o gráfico ao longo do tempo, e clique em <b>Salvar tabela (CSV)</b> para abrir no Excel.</li>
+</ol>
+<p>A coluna <b>Situação</b> diz se dá para confiar em cada estimativa:</p>
+<ul>
+  <li><b>dentro do que o modelo conhece</b>: a amostra se parece com as usadas para criar o modelo.</li>
+  <li><b>espectro diferente dos usados para criar o modelo</b>: algo mudou (outro meio, bolhas, sujeira na sonda,
+      outra fase do processo). Desconfie da estimativa.</li>
+  <li><b>fora da faixa calibrada</b>: o valor estimado é menor ou maior do que tudo o que o modelo viu. Desconfie
+      da estimativa.</li>
+</ul>
+<figure><img src="img/4_estimar.png" alt="Tela Estimar amostras">
+<figcaption>Estimar amostras: a faixa clara em volta da curva é o erro típico; os “x” vermelhos marcam as amostras
+fora do que o modelo conhece.</figcaption></figure>
+
+<h2>Se algo der errado</h2>
+<table>
+  <tr><th>Mensagem</th><th>O que fazer</th></tr>
+  <tr><td>“não contém espectros gravados”</td><td>O arquivo <code>.spp</code> está vazio (a aquisição não chegou a gravar). Use outro arquivo.</td></tr>
+  <tr><td>“amostra(s) sem espectro”</td><td>O tempo da amostra está fora do período gravado, ou a janela é estreita demais. Confira os tempos da tabela (em minutos) ou aumente a janela.</td></tr>
+  <tr><td>“faixa espectral diferente”</td><td>Os espectros não foram medidos na mesma faixa e resolução dos outros. Não podem ser usados juntos.</td></tr>
+  <tr><td>“há um valor que não é número”</td><td>Há uma célula vazia ou com texto na tabela de valores medidos. A mensagem diz a linha.</td></tr>
+  <tr><td>“As colunas da tabela … não são as mesmas”</td><td>Os analitos de uma tabela estão em outra ordem ou com outros nomes. Deixe todas as tabelas com as mesmas colunas, na mesma ordem.</td></tr>
+  <tr><td>“não está no formato esperado”</td><td>O arquivo <code>.txt</code> de espectros precisa ter o eixo na primeira linha e, em cada linha seguinte, o tempo e os valores do espectro.</td></tr>
+  <tr><td>“Arquivo não encontrado” ao abrir um projeto</td><td>Um arquivo de dados foi movido ou apagado. Coloque-o de volta, ou remova o experimento e adicione-o de novo.</td></tr>
+</table>
+
+<h2>Para quem cuida dos modelos</h2>
+<ul>
+  <li>O interruptor <b>Avançado</b>, no alto da janela, mostra a edição da receita de pré-tratamento, a escolha do
+      modelo (PLS, PCR, SPA, SVR) e da validação, e as tabelas completas de resultados.</li>
+  <li>Métodos novos podem ser acrescentados sem alterar o programa: arquivos <code>.py</code> na pasta
+      <code>plugins</code>, ao lado do programa. O arquivo <code>LEIA-ME.md</code> dessa pasta descreve o formato de
+      cada tipo de método, e a pasta <code>exemplos</code> traz um arquivo pronto para cada caso.</li>
+  <li><code>Multical.exe --autoteste relatorio.txt</code> verifica a instalação e grava o resultado no arquivo indicado.</li>
+</ul>
+
+</body>
+</html>

@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 ann = ["torch"]      # only needed by multical.models.ann_torch
 gui = ["PySide6-Essentials"]   # the desktop interface (multical_gui)
+build = ["pyinstaller", "PySide6-Essentials"]   # to make the Windows program: py packaging/build.py
 test = ["pytest"]    # optional: the tests also run with `python -m unittest`
 
 [project.gui-scripts]

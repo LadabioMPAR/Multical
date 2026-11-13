@@ -246,5 +246,220 @@ class Plugins(unittest.TestCase):
             self.assertEqual(done.stdout.strip(), expected, done.stderr)
 
 
+TEMPLATES = os.path.join(REPO, "plugins", "exemplos")
+TEMPLATE_IDS = {
+    "pretreatments": ["ex_um_a_cada_n", "ex_subtrair_media"],
+    "models": ["ex_ridge", "ex_vizinhos", "ex_ridge_auto"],
+    "splitters": ["ex_partes_por_experimento"],
+}
+
+
+def _forget_templates():
+    for registry, ids in ((api.PRETREATMENTS, TEMPLATE_IDS["pretreatments"]), (api.MODELS, TEMPLATE_IDS["models"]),
+                          (api.SPLITTERS, TEMPLATE_IDS["splitters"])):
+        for item in ids:
+            registry.unregister(item)
+    del api.PLUGIN_ERRORS[:]
+
+
+class PluginTemplates(MethodsCase):
+    """The files in plugins/exemplos are what the tutorial tells people to copy: each one must really work."""
+
+    def setUp(self):
+        _forget_templates()
+        self.loaded = api.load_plugins([TEMPLATES], reload=True)
+        self.addCleanup(_forget_templates)
+
+    def test_every_template_loads_and_registers_what_the_tutorial_says(self):
+        self.assertEqual(sorted(os.path.basename(p) for p in self.loaded),
+                         sorted(name for name in os.listdir(TEMPLATES) if name.endswith(".py")))
+        self.assertEqual(api.PLUGIN_ERRORS, [])
+        for registry, ids in ((api.PRETREATMENTS, TEMPLATE_IDS["pretreatments"]), (api.MODELS, TEMPLATE_IDS["models"]),
+                              (api.SPLITTERS, TEMPLATE_IDS["splitters"])):
+            for item in ids:
+                self.assertIn(item, registry)
+        # Nothing in the plugin folder itself except the active example: the templates are not loaded by the program.
+        active = [n for n in os.listdir(os.path.join(REPO, "plugins")) if n.endswith(".py") and not n.startswith("_")]
+        self.assertEqual(active, ["exemplo_log10.py"])
+
+    def test_template_pretreatments(self):
+        new = self.X[:4] * 1.05
+        thinned, axis, _ = api.fit_recipe([{"id": "ex_um_a_cada_n", "params": {"passo": 3}}], self.X, self.wl)
+        np.testing.assert_array_equal(thinned, self.X[:, ::3])
+        np.testing.assert_array_equal(axis, self.wl[::3])
+
+        recipe = [{"id": "ex_subtrair_media", "params": {"dividir": True}}]
+        centred, _, states = api.fit_recipe(recipe, self.X, self.wl)
+        np.testing.assert_allclose(centred.mean(axis=0), 0, atol=1e-9)
+        np.testing.assert_allclose(centred.std(axis=0, ddof=1), 1)
+        applied, _ = api.apply_recipe(recipe, states, new, self.wl)      # new spectra use the calibration mean
+        np.testing.assert_allclose(applied, (new - self.X.mean(axis=0)) / self.X.std(axis=0, ddof=1))
+
+    def test_template_models_train_save_and_predict(self):
+        new = self.X[:5] * 1.01
+        for model_id, params in (("ex_ridge", {"alfa": 0.5}), ("ex_vizinhos", {"max_k": 5}), ("ex_ridge_auto", {})):
+            with self.subTest(model=model_id):
+                config = api.RunConfig(pretreatment=[{"id": "ex_subtrair_media", "params": {}}],
+                                       model={"id": model_id, "params": params},
+                                       validation={"id": "ex_partes_por_experimento", "params": {"partes": 3}}, seed=4)
+                result = api.run_calibration(self.dataset, config)
+                self.assertTrue(result.validated.all())
+                with tempfile.TemporaryDirectory() as tmp:
+                    saved = api.load_model(api.save_model(result, os.path.join(tmp, "m")))
+                    np.testing.assert_allclose(api.predict(saved, new, self.wl), api.predict(result, new, self.wl), rtol=1e-10)
+                again = api.run_calibration(self.dataset, config)          # same seed, same draw
+                np.testing.assert_array_equal(again.per_analyte["gl"].rmsecv, result.per_analyte["gl"].rmsecv)
+        self.assertEqual(result.per_analyte["gl"].labels, ["alfa=0,01", "alfa=0,1", "alfa=1", "alfa=10", "alfa=100"])
+
+        neighbours = api.run_calibration(self.dataset, api.RunConfig(
+            pretreatment=[], model={"id": "ex_vizinhos", "params": {"max_k": 4}}, analytes=["gl"]))
+        self.assertIn("vizinho", api.assess(neighbours)[0].summary)
+        # the fast path of the template gives what fit + predict give, one complexity at a time
+        model = api.MODELS.get("ex_vizinhos")
+        train, val = self.folds[0]
+        y = self.Y[:, 1]
+        slow = np.vstack([model.predict(model.fit(self.X[train], y[train], k=k), self.X[val]) for k in range(1, 5)])
+        np.testing.assert_allclose(model.cv_path(self.X[train], y[train], self.X[val], 4), slow)
+
+    def test_template_validation_scheme(self):
+        splitter = api.SPLITTERS.get("ex_partes_por_experimento")
+        groups = self.dataset.groups
+        folds = list(splitter.split(30, groups=groups, rng=np.random.RandomState(1), partes=4))
+        self.assertEqual(len(folds), 4)
+        self.assertEqual(sorted(np.concatenate([val for _, val in folds])), list(range(30)))
+        for train, val in folds:
+            self.assertFalse(set(train) & set(val))
+            for name in ("exp1", "exp2", "exp3"):                          # every experiment has samples on both sides
+                self.assertTrue((groups[val] == name).any() and (groups[train] == name).any())
+        other = list(splitter.split(30, groups=groups, rng=np.random.RandomState(2), partes=4))
+        self.assertFalse(all(np.array_equal(a[1], b[1]) for a, b in zip(folds, other)))
+
+    def test_templates_pass_the_self_check(self):
+        from multical_gui import selftest
+        pretreatments, models = selftest._check_pretreatments(), selftest._check_models()
+        for item in TEMPLATE_IDS["pretreatments"]:
+            self.assertIn(item, pretreatments.split(" (")[0])
+        for item in TEMPLATE_IDS["models"] + TEMPLATE_IDS["splitters"]:
+            self.assertIn(item, models)
+
+    def test_python_example_of_the_tutorial_runs(self):
+        with open(os.path.join(REPO, "plugins", "LEIA-ME.md"), encoding="utf-8") as handle:
+            text = handle.read()
+        code = text.split("```python\nimport numpy as np\nfrom multical import api\n")[1].split("```")[0]
+        code = "import numpy as np\nfrom multical import api\n" + code
+        env = dict(os.environ, PYTHONPATH=os.path.join(REPO, "src"), PYTHONIOENCODING="utf-8", MULTICAL_PLUGINS="")
+        done = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, cwd=REPO)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        lines = done.stdout.strip().splitlines()
+        self.assertGreater(float(lines[0]), 0)
+        self.assertIn("[", lines[1])
+
+
+class WrongFormats(MethodsCase):
+    """A method that returns the wrong thing is named in a readable message."""
+
+    def tearDown(self):
+        for item in ("t_linhas", "t_eixo", "t_um_item", "t_estado"):
+            api.PRETREATMENTS.unregister(item)
+        for item in ("t_formato", "t_estado_modelo", "t_caminho"):
+            api.MODELS.unregister(item)
+        for item in ("t_sobreposto", "t_fora", "t_vazio"):
+            api.SPLITTERS.unregister(item)
+
+    def _run(self, **config):
+        base = {"pretreatment": [], "model": {"id": "pls", "params": {"max_k": 2}}}
+        return api.run_calibration(self.dataset, api.RunConfig(**{**base, **config}))
+
+    def test_pretreatments(self):
+        api.pretreatment(id="t_linhas", label="Remove amostras")(lambda X, wl: (X[:-1], wl))
+        api.pretreatment(id="t_eixo", label="Esquece o eixo")(lambda X, wl: (X[:, ::2], wl))
+        api.pretreatment(id="t_um_item", label="Devolve só X")(lambda X, wl: X)
+
+        @api.register(api.PRETREATMENTS)
+        class TextState(api.Pretreatment):
+            id, label = "t_estado", "Estado com texto"
+
+            def fit(self, X, wavelengths):
+                return {"modo": "rápido"}
+
+            def apply(self, X, wavelengths, state):
+                return X, wavelengths
+
+        cases = (("t_linhas", "“Remove amostras”: recebeu 30 espectros e devolveu 29"),
+                 ("t_eixo", "“Esquece o eixo”: os espectros devolvidos têm 75 pontos, mas o eixo devolvido tem 150"),
+                 ("t_um_item", "“Devolve só X”: deve devolver dois itens"),
+                 ("t_estado", "“Estado com texto”: o item 'modo' do estado não é um número"))
+        for item, message in cases:
+            with self.subTest(item=item):
+                with self.assertRaises(ValueError) as caught:
+                    self._run(pretreatment=[{"id": item, "params": {}}])
+                self.assertIn(message, str(caught.exception))
+
+    def test_models(self):
+        @api.register(api.MODELS)
+        class WrongShape(api.Model):
+            id, label = "t_formato", "Formato errado"
+
+            def fit(self, X, y):
+                return {"m": float(np.mean(y))}
+
+            def predict(self, state, X):
+                return np.full((X.shape[0], 2), state["m"])
+
+        @api.register(api.MODELS)
+        class ObjectState(api.Model):
+            id, label = "t_estado_modelo", "Guarda um objeto"
+
+            def fit(self, X, y):
+                return {"modelo": object()}
+
+            def predict(self, state, X):
+                return np.zeros(X.shape[0])
+
+        @api.register(api.MODELS)
+        class ShortPath(api.Model):
+            id, label, sweep = "t_caminho", "Caminho curto", "max_k"
+            params = (api.Param("max_k", "Máximo", "int", default=3, min=1),)
+
+            def fit(self, X, y, k):
+                return {"m": float(np.mean(y))}
+
+            def predict(self, state, X):
+                return np.full(X.shape[0], state["m"])
+
+            def cv_path(self, X_train, y_train, X_val, max_k):
+                return np.zeros((max_k - 1, X_val.shape[0]))
+
+        cases = (("t_formato", {}, "“Formato errado”: predict recebeu 6 espectros e devolveu uma matriz de formato (6, 2)"),
+                 ("t_estado_modelo", {}, "“Guarda um objeto”: o item 'modelo' do estado não é um número"),
+                 ("t_caminho", {"max_k": 3}, "“Caminho curto”: cv_path devolveu uma matriz de formato (2, 6); esperado (3, 6)"))
+        for item, params, message in cases:
+            with self.subTest(item=item):
+                with self.assertRaises(ValueError) as caught:
+                    self._run(model={"id": item, "params": params})
+                self.assertIn(message, str(caught.exception))
+
+    def test_validation_schemes(self):
+        def scheme(item, name, pairs):
+            @api.register(api.SPLITTERS)
+            class Scheme(api.Splitter):
+                id, label = item, name
+
+                def split(self, n, groups=None, X=None, Y=None, rng=None):
+                    return pairs(n)
+
+        scheme("t_sobreposto", "Repete amostras", lambda n: [(np.arange(n), np.arange(5))])
+        scheme("t_fora", "Posição inexistente", lambda n: [(np.arange(5, n), np.array([0, n]))])
+        scheme("t_vazio", "Sem validação", lambda n: [(np.arange(n), np.array([], dtype=int))])
+        cases = (("t_sobreposto", "“Repete amostras”: a mesma amostra aparece no treino e na validação"),
+                 ("t_fora", "“Posição inexistente”: as posições devem estar entre 0 e 29"),
+                 ("t_vazio", "“Sem validação”: uma das divisões ficou sem amostras"))
+        for item, message in cases:
+            with self.subTest(item=item):
+                with self.assertRaises(ValueError) as caught:
+                    self._run(validation={"id": item, "params": {}})
+                self.assertIn(message, str(caught.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

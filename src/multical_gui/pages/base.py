@@ -15,6 +15,7 @@ class Page(QWidget):
         if self.intro:
             label = QLabel(self.intro)
             label.setWordWrap(True)
+            label.setMinimumWidth(200)
             label.setObjectName("intro")
             self.body.addWidget(label)
         self.build()

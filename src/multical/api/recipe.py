@@ -7,6 +7,7 @@ prediction), so new samples are never used to compute the correction.
 """
 import numpy as np
 
+from .contract import check_pretreatment_output, check_state
 from .params import resolve_params
 from .registry import PRETREATMENTS
 
@@ -27,8 +28,8 @@ def fit_recipe(steps, X, wavelengths):
     states = []
     for step in normalize_recipe(steps):
         item = PRETREATMENTS.get(step["id"])
-        state = item.fit(X, wavelengths, **step["params"])
-        X, wavelengths = item.apply(X, wavelengths, state, **step["params"])
+        state = check_state(item, item.fit(X, wavelengths, **step["params"]))
+        X, wavelengths = check_pretreatment_output(item, X.shape[0], item.apply(X, wavelengths, state, **step["params"]))
         states.append(state)
     return X, wavelengths, states
 
@@ -42,5 +43,5 @@ def apply_recipe(steps, states, X, wavelengths):
     wavelengths = np.array(wavelengths, dtype=float)
     for step, state in zip(steps, states):
         item = PRETREATMENTS.get(step["id"])
-        X, wavelengths = item.apply(X, wavelengths, state, **step["params"])
+        X, wavelengths = check_pretreatment_output(item, X.shape[0], item.apply(X, wavelengths, state, **step["params"]))
     return X, wavelengths

@@ -115,7 +115,7 @@ class PlotCanvas(QWidget):
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._canvas = self._toolbar = None
-        self.setMinimumSize(420, 300)
+        self.setMinimumSize(360, 210)
         self.show_message("")
 
     def set_figure(self, figure):
@@ -146,6 +146,7 @@ class Banner(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWordWrap(True)
+        self.setMinimumWidth(200)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.set_message("")
 

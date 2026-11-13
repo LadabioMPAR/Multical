@@ -1,7 +1,15 @@
 """
 The state shared by the screens: which experiments were imported, which samples
 are in use, the configuration and the last result. No Qt in here.
+
+A project can be saved to a small text file (.mcproj, JSON) and opened again.
+The file keeps what the user chose (which files, how samples are linked, the
+names of the analytes, the samples taken out, the recipe, the model and the
+validation); the spectra themselves stay in their own files and are read again
+when the project is opened. A trained model is not kept in the project: export
+it, or train again after opening.
 """
+import json
 import os
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -11,7 +19,11 @@ import numpy as np
 from multical import api
 from multical.io.reference import read_reference_table
 from multical.io.spp import read_spp, read_spp_with_reference, spp_info
-from multical.io.txt_pair import read_txt_pairs, read_txt_spectra
+from multical.io.txt_pair import read_txt_spectra
+
+PROJECT_FORMAT = 1
+PROJECT_EXTENSION = ".mcproj"
+LINKED_BY = {"time": "ligado pelo tempo", "order": "ligado pela ordem das linhas"}
 
 
 @dataclass
@@ -19,11 +31,14 @@ class Experiment:
     name: str
     spectra_path: str
     reference_path: str
-    kind: str                       # "spp": time series linked by time; "txt": text pair linked row by row
+    kind: str                       # "spp": instrument time series; "txt": text file with one spectrum per row
     n_spectra: int = 0              # spectra in the file
     n_linked: int = 0               # samples with measured values and a spectrum
+    linked_by: str = ""             # "time" or "order" (see LINKED_BY); "" while the experiment is not usable
     error: str = ""                 # why the experiment could not be used ("" when it is fine)
+    note: str = ""                  # something the user should know about an experiment that is in use
     problems: List[str] = field(default_factory=list)   # samples left without a spectrum
+    header: Optional[List[str]] = None                  # column names found in the table of measured values
 
 
 def default_experiment_name(spectra_path):
@@ -56,6 +71,12 @@ def load_spectra(path, every=1, taken=()):
 
 class Project:
     def __init__(self):
+        self.path: Optional[str] = None                 # file the project was saved to or opened from
+        self._saved = None                              # what that file holds, to tell whether something changed
+        self.reset()
+
+    def reset(self):
+        """Back to an empty, unnamed project."""
         self.experiments: List[Experiment] = []
         self.match_mode = "exact"
         self.radius_min = 5.0
@@ -66,6 +87,8 @@ class Project:
         self.config = api.RunConfig()
         self.result: Optional[api.CalibrationResult] = None
         self.advanced = False
+        self.path = None
+        self._saved = self.to_dict()
 
     # ---- import ----------------------------------------------------------
     def add_experiment(self, spectra_path, reference_path, name=None):
@@ -83,64 +106,100 @@ class Project:
         self.rebuild()
 
     def _load(self, exp):
+        """Read one experiment and link its samples to spectra. Returns a Dataset with measured values."""
+        times, Y, exp.header = read_reference_table(exp.reference_path)
         if exp.kind == "spp":
             exp.n_spectra = spp_info(exp.spectra_path)["n_spectra"]
-            times, Y, header = read_reference_table(exp.reference_path)
             data, match = read_spp_with_reference(
                 exp.spectra_path, times, Y, mode=self.match_mode, radius_min=self.radius_min, group=exp.name)
-            exp.problems = match.problems()
-            return data, header
-        pair = read_txt_pairs([(exp.reference_path, exp.spectra_path)])
-        exp.n_spectra = pair.n_samples
-        data = api.Dataset(
-            X=pair.X, wavelengths=pair.wavelengths, Y=pair.Y,
-            sample_ids=[f"{exp.name}_{t:g}min" for t in pair.times],
-            groups=np.array([exp.name] * pair.n_samples), times=pair.times)
-        return data, None
+            exp.problems, exp.linked_by = match.problems(), "time"
+            return data
+
+        spectra = read_txt_spectra(exp.spectra_path, group=exp.name)
+        exp.n_spectra = spectra.n_samples
+        if spectra.n_samples == times.size:
+            # One spectrum per sample, as in the files used so far: linked row by row.
+            exp.linked_by = "order"
+            if not np.allclose(spectra.times, times, atol=1e-6):
+                exp.note = "os tempos do arquivo de espectros não coincidem com os da tabela"
+            return api.Dataset(
+                X=spectra.X, wavelengths=spectra.wavelengths, Y=Y,
+                sample_ids=[f"{exp.name}_{t:g}min" for t in times],
+                groups=np.array([exp.name] * times.size), times=times)
+        # A whole series in text: linked by the time, which these files keep in minutes.
+        series = api.Dataset(spectra.X, spectra.wavelengths, times=spectra.times * 60.0, groups=spectra.groups)
+        data, match = api.pair_with_reference(series, times, Y, mode=self.match_mode, radius_min=self.radius_min)
+        exp.problems, exp.linked_by = match.problems(), "time"
+        return data
 
     def rebuild(self):
         """Read every experiment again and assemble the calibration set."""
         self.result = None
-        parts, header = [], None
+        parts, first = [], None
         for exp in self.experiments:
-            exp.error, exp.problems, exp.n_linked = "", [], 0
+            exp.error, exp.note, exp.problems, exp.n_linked, exp.linked_by, exp.header = "", "", [], 0, "", None
             try:
-                data, names = self._load(exp)
-                if parts:
-                    first = parts[0]
+                data = self._load(exp)
+                if first is not None:
                     if data.Y.shape[1] != first.Y.shape[1]:
                         raise ValueError(f"A tabela tem {data.Y.shape[1]} colunas de valores medidos; "
                                          f"a do primeiro experimento tem {first.Y.shape[1]}.")
                     if data.wavelengths.size != first.wavelengths.size or not np.allclose(data.wavelengths, first.wavelengths, atol=1e-6):
                         raise ValueError("Os espectros têm uma faixa espectral diferente da do primeiro experimento.")
-                elif names:
-                    header = names
+                    known = parts[0][0].header
+                    if exp.header and known and [h.lower() for h in exp.header] != [h.lower() for h in known]:
+                        raise ValueError(
+                            f"As colunas da tabela ({', '.join(exp.header)}) não são as mesmas, na mesma ordem, "
+                            f"da tabela do primeiro experimento ({', '.join(known)}).")
+                else:
+                    first = data
                 exp.n_linked = data.n_samples
-                parts.append(data)
+                parts.append((exp, data))
             except (ValueError, OSError) as error:
-                exp.error = str(error)
+                exp.error, exp.linked_by = str(error), ""
         if not parts:
             self.dataset = None
             return
-        count = parts[0].Y.shape[1]
+        count = first.Y.shape[1]
         if len(self.analyte_names) != count:
-            self.analyte_names = list(header) if header and len(header) == count else [f"analito_{i + 1}" for i in range(count)]
-        for part in parts:
+            header = next((exp.header for exp, _ in parts if exp.header), None)
+            self.analyte_names = list(header) if header and len(set(header)) == count else [f"analito_{i + 1}" for i in range(count)]
+        for _, part in parts:
             part.analytes, part.units = list(self.analyte_names), self.units
-        self.dataset = api.Dataset.concat(parts)
+        self.dataset = api.Dataset.concat([part for _, part in parts])
         self.excluded &= set(self.dataset.sample_ids)
         if self.config.analytes is not None:
             self.config.analytes = [a for a in self.config.analytes if a in self.analyte_names] or None
 
+    # ---- analytes --------------------------------------------------------
+    def analyte_summary(self):
+        """One dict per analyte: column of the table, name and range of the measured values in use."""
+        if self.dataset is None:
+            return []
+        Y = self.dataset.Y
+        return [{"column": j + 2, "name": name, "low": float(np.nanmin(Y[:, j])), "high": float(np.nanmax(Y[:, j]))}
+                for j, name in enumerate(self.dataset.analytes)]
+
     def set_analyte_names(self, names):
-        names = [n.strip() for n in names if n.strip()]
-        if self.dataset is None or len(names) != len(self.dataset.analytes) or len(set(names)) != len(names):
+        names = [n.strip() for n in names]
+        if (self.dataset is None or len(names) != len(self.dataset.analytes)
+                or not all(names) or len({n.lower() for n in names}) != len(names)):
             return False
-        self.analyte_names = names
-        self.dataset.analytes = list(names)
-        self.config.analytes = None
-        self.result = None
+        if names != self.analyte_names:
+            chosen = self.config.analytes
+            if chosen is not None:      # keep the same analytes selected, under their new names
+                self.config.analytes = [new for old, new in zip(self.analyte_names, names) if old in chosen] or None
+            self.analyte_names = names
+            self.dataset.analytes = list(names)
+            self.result = None
         return True
+
+    def set_analyte_name(self, index, name):
+        names = list(self.analyte_names)
+        if not 0 <= index < len(names):
+            return False
+        names[index] = name
+        return self.set_analyte_names(names)
 
     def set_units(self, units):
         self.units = units.strip()
@@ -180,3 +239,98 @@ class Project:
         if not folds:
             return None
         return max(min(min(len(train) for train, _ in folds) - 1, data.X.shape[1]), 0)
+
+    # ---- saving and opening ----------------------------------------------
+    def to_dict(self, folder=None):
+        """
+        What the user chose, as plain data. With `folder` (where the project file
+        goes), each data file is also written relative to it, so the project still
+        opens after its folder is moved or copied together with the data.
+        """
+        def location(path):
+            entry = {"path": os.path.abspath(path)}
+            if folder:
+                try:
+                    entry["relative"] = os.path.relpath(entry["path"], folder).replace("\\", "/")
+                except ValueError:      # another drive: there is no relative path
+                    pass
+            return entry
+
+        return {
+            "format": PROJECT_FORMAT,
+            "experiments": [{"name": e.name, "spectra": location(e.spectra_path), "reference": location(e.reference_path)}
+                            for e in self.experiments],
+            "matching": {"mode": self.match_mode, "radius_min": self.radius_min},
+            "analytes": list(self.analyte_names),
+            "units": self.units,
+            "excluded": sorted(self.excluded),
+            "config": self.config.to_dict(),
+            "advanced": bool(self.advanced),
+        }
+
+    @property
+    def dirty(self):
+        """True when something chosen by the user is not in the project file yet."""
+        return self.to_dict() != self._saved
+
+    @property
+    def is_empty(self):
+        return not self.experiments
+
+    def save(self, path):
+        path = str(path)
+        if not path.lower().endswith(PROJECT_EXTENSION):
+            path += PROJECT_EXTENSION
+        folder = os.path.dirname(os.path.abspath(path))
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(self.to_dict(folder), handle, indent=2, ensure_ascii=False)
+        self.path = path
+        self._saved = self.to_dict()
+        return path
+
+    def open(self, path):
+        """Replace this project with the one in `path` and read its data files again."""
+        try:
+            with open(path, encoding="utf-8") as handle:
+                data = json.load(handle)
+            if not isinstance(data, dict) or "experiments" not in data:
+                raise ValueError("não tem a lista de experimentos")
+            if data.get("format", 0) > PROJECT_FORMAT:
+                raise ValueError("foi salvo por uma versão mais nova do Multical")
+            folder = os.path.dirname(os.path.abspath(path))
+
+            def resolve(entry):
+                relative = entry.get("relative")
+                if relative and os.path.isfile(os.path.join(folder, relative)):
+                    return os.path.normpath(os.path.join(folder, relative))
+                return entry["path"]
+
+            experiments = []
+            for item in data["experiments"]:
+                spectra = resolve(item["spectra"])
+                kind = "spp" if spectra.lower().endswith(".spp") else "txt"
+                experiments.append(Experiment(str(item["name"]), spectra, resolve(item["reference"]), kind))
+            config = api.RunConfig.from_dict(data.get("config", {}))
+            config.resolved()       # refuses methods that are not installed (for instance a missing plugin)
+            matching = data.get("matching", {})
+            mode = matching.get("mode", "exact")
+            if mode not in api.MATCH_MODES:
+                raise ValueError(f"modo de ligação desconhecido: {mode!r}")
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise ValueError(f"O arquivo não pôde ser aberto como projeto do Multical ({error}).") from None
+
+        self.reset()
+        self.experiments = experiments
+        self.match_mode, self.radius_min = mode, float(matching.get("radius_min", 5.0))
+        self.analyte_names = [str(name) for name in data.get("analytes", [])]
+        self.units = str(data.get("units", "g/L"))
+        self.config = config
+        self.advanced = bool(data.get("advanced", False))
+        self.excluded = set(data.get("excluded", []))
+        kept = set(self.excluded)
+        self.rebuild()
+        if self.dataset is None:
+            self.excluded = kept    # the data files are missing for now: do not forget the user's choices
+        self.path = str(path)
+        self._saved = self.to_dict()
+        return self

@@ -26,6 +26,7 @@ class ModelPage(Page):
 
         self.summary = QLabel()
         self.summary.setWordWrap(True)
+        self.summary.setMinimumWidth(200)
         self.body.addWidget(self.summary)
 
         self.advanced_box = QGroupBox("Ajustes avançados")
@@ -37,6 +38,9 @@ class ModelPage(Page):
         self.selection = QComboBox()
         for rule, label in SELECTION_RULES:
             self.selection.addItem(label, rule)
+        for combo in (self.model, self.validation, self.selection):
+            combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(24)
         self.seed = QSpinBox()
         self.seed.setRange(0, 999_999)
         self.seed.setToolTip("Usada quando a validação sorteia amostras. A mesma semente repete o mesmo resultado.")
