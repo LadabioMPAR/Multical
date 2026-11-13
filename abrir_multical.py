@@ -2,7 +2,10 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "src"))
+# Methods added by the user live in the "plugins" folder next to this file.
+os.environ.setdefault("MULTICAL_PLUGINS", os.path.join(HERE, "plugins"))
 
 from multical_gui.app import main  # noqa: E402
 

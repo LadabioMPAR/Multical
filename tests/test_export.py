@@ -64,10 +64,10 @@ class ExportCase(unittest.TestCase):
             written = export.export_run(self.result, folder)
             names = sorted(os.path.relpath(p, folder).replace("\\", "/") for p in written)
             self.assertEqual(names, sorted(
-                ["modelo.multical", "resumo.csv", "metricas_por_variaveis_latentes.csv", "predicoes.csv", "config.json",
+                ["modelo.multical", "resumo.csv", "metricas_por_ajuste.csv", "predicoes.csv", "config.json",
                  "relatorio.pdf"]
                 + [f"figuras/previsto_x_medido_{a}.png" for a in ANALYTES]
-                + [f"figuras/erro_por_variaveis_latentes_{a}.png" for a in ANALYTES]))
+                + [f"figuras/erro_por_ajuste_{a}.png" for a in ANALYTES]))
             for path in written:
                 self.assertGreater(os.path.getsize(path), 0)
             with open(os.path.join(folder, "resumo.csv"), encoding="utf-8-sig") as handle:

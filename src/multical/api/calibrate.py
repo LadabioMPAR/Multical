@@ -93,9 +93,17 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
                 f"o menor grupo de treino tem {smallest_train} amostras e os espectros têm {Xs.shape[1]} pontos."
             )
         candidates = np.arange(1, max_k + 1)
+        grid = None
     else:
         max_k = None
-        candidates = np.array([0])
+        grid = model.candidates(**params) or None
+        candidates = np.arange(1, len(grid) + 1) if grid else np.array([0])
+    labels = [label for label, _ in grid] if grid else None
+
+    def fit_setting(X_fit, y_fit, index):
+        """Fit the model with the settings of candidate `index` (models without a sweep)."""
+        extra = grid[index][1] if grid else {}
+        return model.fit(X_fit, y_fit, **{**params, **extra})
 
     total = len(names) * (len(folds) + 1)
     done = 0
@@ -117,7 +125,10 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
             if model.sweep:
                 y_cv[:, va] = model.cv_path(Xs[tr], y[tr], Xs[va], max_k, **params)
             else:
-                y_cv[0, va] = model.predict(model.fit(Xs[tr], y[tr], **params), Xs[va])
+                for c in range(len(candidates)):
+                    if cancel is not None and cancel():
+                        raise CalibrationCancelled()
+                    y_cv[c, va] = model.predict(fit_setting(Xs[tr], y[tr], c), Xs[va])
             step(f"{name}: validação {f + 1} de {len(folds)}")
 
         if cancel is not None and cancel():
@@ -125,7 +136,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
         if model.sweep:
             y_cal = np.asarray(model.cv_path(Xs, y, Xs, max_k, **params))
         else:
-            y_cal = np.asarray(model.predict(model.fit(Xs, y, **params), Xs)).reshape(1, n)
+            y_cal = np.vstack([model.predict(fit_setting(Xs, y, c), Xs) for c in range(len(candidates))])
 
         everyone = np.ones(n, dtype=bool)
         rmsecv = _rmse(y_cv, y, validated)
@@ -135,7 +146,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
 
         if len(candidates) == 1:
             best_index = 0
-        elif config.selection == "ftest":
+        elif config.selection == "ftest" and model.sweep:      # the F-test only makes sense for a growing complexity
             best_index = int(select_k_ftest(rmsecv, n_cal_eff)) - 1
         else:
             best_index = int(np.argmin(rmsecv))
@@ -143,12 +154,12 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
         if model.sweep:
             state = model.fit(Xs, y, k=int(candidates[best_index]), **params)
         else:
-            state = model.fit(Xs, y, **params)
+            state = fit_setting(Xs, y, best_index)
         step(f"{name}: modelo final")
 
         per_analyte[name] = AnalyteResult(
             name=name, candidates=candidates, rmsecv=rmsecv, rmsec=rmsec, r2cv=r2cv, r2cal=r2cal,
-            y_cv=y_cv, y_cal=y_cal, best_index=best_index, model_state=state,
+            y_cv=y_cv, y_cal=y_cal, best_index=best_index, model_state=state, labels=labels,
         )
 
     return CalibrationResult(

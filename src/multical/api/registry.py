@@ -87,7 +87,12 @@ class Model:
 
     If `sweep` names one of the params (for example "max_k"), the model has a
     complexity value k = 1..max: the engine calls `fit(X, y, k=..., **others)`
-    and `cv_path(...)`. Otherwise it calls `fit(X, y, **params)`.
+    and `cv_path(...)`; `sweep_label` says what k counts (singular, plural).
+
+    Otherwise the engine calls `fit(X, y, **params)`. Such a model may offer
+    several settings to be tried by validation: `candidates(**params)` returns a
+    list of (description, {param: value}) and the engine keeps the setting with
+    the lowest validation error.
 
     `scale_x = True` asks the engine to autoscale X with the mean and standard
     deviation of the whole calibration set before `fit`/`predict`.
@@ -96,7 +101,12 @@ class Model:
     label = ""
     params = ()
     sweep = None
+    sweep_label = ("nível de complexidade", "níveis de complexidade")
     scale_x = False
+
+    def candidates(self, **params):
+        """Settings to try, as [(description, {param: value}), ...]; None when there is a single setting."""
+        return None
 
     def fit(self, X, y, **params):
         """Return the fitted state (dict of arrays and numbers)."""

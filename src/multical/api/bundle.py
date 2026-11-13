@@ -93,7 +93,7 @@ def save_model(result, path):
         "n_pretreatment_steps": len(result.pretreatment_states),
         "config": result.config.to_dict(),
         "validation": {
-            name: {"k": res.best_k, "rmsecv": res.best_rmsecv, "r2cv": res.best_r2cv,
+            name: {"k": res.best_k, "setting": res.best_label, "rmsecv": res.best_rmsecv, "r2cv": res.best_r2cv,
                    "y_min": float(np.min(result.Y[:, j])), "y_max": float(np.max(result.Y[:, j]))}
             for j, (name, res) in enumerate(result.per_analyte.items())
         },

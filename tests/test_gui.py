@@ -369,5 +369,87 @@ class UseAModel(unittest.TestCase):
         self.assertEqual((self.window.flow, self.window.steps.count(), self.window.current), ("create", 7, 1))
 
 
+@unittest.skipIf(QApplication is None, "PySide6 não está instalado")
+class MethodsFromTheRegistries(unittest.TestCase):
+    """The screens were not written for these methods: they only read the registries."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.files = [_write_experiment(cls._tmp.name, f"exp{i}", i) for i in (1, 2, 3)]
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        api.PRETREATMENTS.unregister("log10")
+        api.load_plugins([os.path.join(repo, "plugins")], reload=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        api.PRETREATMENTS.unregister("log10")
+        cls._tmp.cleanup()
+
+    def setUp(self):
+        from multical_gui.wizard import MainWindow
+        self.window = MainWindow()
+        self.window.show()
+        self.addCleanup(self.window.close)
+        self.project = self.window.project
+        _, self.imp, _, self.pretreat, self.model, self.results, _ = self.window.pages
+        self.window.go_to(1)
+        for spp, ref in self.files:
+            self.imp.add_experiment(spp, ref)
+        self.window.advanced.setChecked(True)
+
+    def _train(self):
+        self.model.train_button.click()
+        end = time.time() + 120
+        while self.model.worker is not None and time.time() < end:
+            self.app.processEvents()
+            time.sleep(0.005)
+        self.app.processEvents()
+        self.assertIsNone(self.model.worker)
+        self.assertEqual(self.model.banner.text(), "")
+        self.assertIsNotNone(self.project.result)
+
+    def test_plugin_pretreatment_appears_and_works(self):
+        self.window.go_to(3)
+        position = self.pretreat.choices.findData("log10")
+        self.assertGreaterEqual(position, 0)
+        self.assertIn("exemplo de plugin", self.pretreat.choices.itemText(position))
+        self.pretreat.choices.setCurrentIndex(position)
+        self.pretreat.add.click()
+        self.assertIsNone(self.pretreat.validate())
+        self.assertEqual([s["id"] for s in self.project.config.pretreatment], ["sg", "log10"])
+        self.pretreat.form._editors["offset"].setValue(2.5)
+        self.assertEqual(self.project.config.pretreatment[1]["params"], {"offset": 2.5})
+        self.window.go_to(4)
+        self._train()
+        self.assertEqual(self.project.result.config.pretreatment[1], {"id": "log10", "params": {"offset": 2.5}})
+
+    def test_every_model_and_validation_scheme_trains_from_the_screen(self):
+        self.window.go_to(4)
+        self.assertEqual([self.model.model.itemData(i) for i in range(self.model.model.count())], api.MODELS.ids())
+        words = {"pls": "variáve", "pcr": "componente", "spa": "ponto", "svr": "ajuste escolhido"}
+        for model_id in api.MODELS.ids():
+            with self.subTest(model=model_id):
+                self.model.model.setCurrentIndex(self.model.model.findData(model_id))
+                self.assertEqual(self.project.config.model["id"], model_id)
+                self._train()
+                self.assertEqual(self.window.current, 5)
+                self.assertEqual(self.project.result.config.model["id"], model_id)
+                self.assertEqual(self.results.analytes.count(), 2)
+                self.assertIn(words[model_id], self.results.analytes.item(0).text())
+                self.results.analytes.setCurrentRow(1)
+                first = next(iter(self.project.result.per_analyte.values()))
+                self.assertEqual(self.results.table.rowCount(), len(first.candidates))
+                self.window.go_to(4)
+        self.model.model.setCurrentIndex(self.model.model.findData("pls"))
+        for scheme in api.SPLITTERS.ids():
+            with self.subTest(validation=scheme):
+                self.model.validation.setCurrentIndex(self.model.validation.findData(scheme))
+                self._train()
+                self.assertEqual(self.project.result.config.validation["id"], scheme)
+                self.window.go_to(4)
+
+
 if __name__ == "__main__":
     unittest.main()

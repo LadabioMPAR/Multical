@@ -166,16 +166,21 @@ class ModelPage(Page):
         if current > limit:
             config.model = {"id": model.id, "params": {**config.resolved().model["params"], model.sweep: limit}}
             self._build_forms()
+            label = next(p.label for p in model.params if p.name == model.sweep)
             self.banner.set_message(
-                f"O máximo de variáveis latentes foi reduzido para {limit}, que é o que a quantidade de amostras permite.", "info")
+                f"“{label}” foi reduzido para {limit}, que é o que a quantidade de amostras permite.", "info")
 
     def _describe(self):
         config = self.project.config.resolved()
         model, splitter = api.MODELS.get(config.model["id"]), api.SPLITTERS.get(config.validation["id"])
         data = self.project.active_dataset()
+        def described(item, values):
+            detail = describe_params(item.params, values)
+            return f"{item.label} ({detail})." if detail else f"{item.label}."
+
         parts = [f"Amostras em uso: {0 if data is None else data.n_samples}.",
-                 f"Modelo: {model.label} ({describe_params(model.params, config.model['params'])}).",
-                 f"Teste: {splitter.label} ({describe_params(splitter.params, config.validation['params'])})."]
+                 "Modelo: " + described(model, config.model["params"]),
+                 "Teste: " + described(splitter, config.validation["params"])]
         self.summary.setText("  ".join(parts))
         self.train_button.setEnabled(self.worker is None and any(c.isChecked() for c in self.analyte_checks))
         self.window_.refresh_nav()

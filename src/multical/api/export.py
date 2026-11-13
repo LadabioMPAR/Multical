@@ -14,7 +14,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 from . import plots
-from .assessment import LEVELS, assess
+from .assessment import LEVELS, assess, candidate_name
 from .bundle import save_model
 
 EXPORT_ITEMS = {
@@ -48,10 +48,13 @@ def _tables(result, folder):
     summary, per_k = [], []
     for item, name in zip(assess(result), result.analytes):
         res, b = result.per_analyte[name], result.per_analyte[name].best_index
-        summary.append([name, result.units, len(result.sample_ids), res.best_k, res.rmsecv[b], res.r2cv[b],
+        chosen = res.best_label if res.labels is not None else res.best_k
+        summary.append([name, result.units, len(result.sample_ids), chosen, res.rmsecv[b], res.r2cv[b],
                         res.rmsec[b], res.r2cal[b], LEVELS[item.level]])
         for i, k in enumerate(res.candidates):
-            per_k.append([name, int(k), res.rmsecv[i], res.r2cv[i], res.rmsec[i], res.r2cal[i], "sim" if i == b else ""])
+            tried = res.labels[i] if res.labels is not None else int(k)
+            per_k.append([name, tried, res.rmsecv[i], res.r2cv[i], res.rmsec[i], res.r2cal[i], "sim" if i == b else ""])
+    tried_header = candidate_name(result).lower().replace(" ", "_")
     header = ["amostra", "validada"]
     for name in result.analytes:
         header += [f"{name}_medido", f"{name}_previsto_validacao", f"{name}_previsto_calibracao"]
@@ -64,10 +67,10 @@ def _tables(result, folder):
         predictions.append(row)
     return [
         _write_csv(os.path.join(folder, "resumo.csv"),
-                   ["analito", "unidade", "amostras", "variaveis_latentes", "erro_validacao_rmsecv", "r2_validacao",
+                   ["analito", "unidade", "amostras", tried_header, "erro_validacao_rmsecv", "r2_validacao",
                     "erro_calibracao_rmsec", "r2_calibracao", "avaliacao"], summary),
-        _write_csv(os.path.join(folder, "metricas_por_variaveis_latentes.csv"),
-                   ["analito", "variaveis_latentes", "erro_validacao_rmsecv", "r2_validacao", "erro_calibracao_rmsec",
+        _write_csv(os.path.join(folder, "metricas_por_ajuste.csv"),
+                   ["analito", tried_header, "erro_validacao_rmsecv", "r2_validacao", "erro_calibracao_rmsec",
                     "r2_calibracao", "escolhido"], per_k),
         _write_csv(os.path.join(folder, "predicoes.csv"), header, predictions),
     ]
@@ -117,7 +120,7 @@ def export_run(result, folder, items=None):
         for name in result.analytes:
             figures.append((f"previsto_x_medido_{_safe(name)}", plots.plot_predicted_vs_measured(result, name)))
             if len(result.per_analyte[name].candidates) > 1:
-                figures.append((f"erro_por_variaveis_latentes_{_safe(name)}", plots.plot_error_curve(result, name)))
+                figures.append((f"erro_por_ajuste_{_safe(name)}", plots.plot_error_curve(result, name)))
     if "figures" in items:
         os.makedirs(os.path.join(folder, "figuras"), exist_ok=True)
         for stem, fig in figures:

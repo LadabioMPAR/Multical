@@ -19,12 +19,20 @@ class AnalyteResult:
     y_cal: np.ndarray          # (n_candidates, n_samples)
     best_index: int            # position of the chosen candidate
     model_state: dict          # final model, fitted with every calibration sample
+    labels: Optional[List[str]] = None   # description of each candidate when they are settings, not a complexity
 
     @property
     def best_k(self):
-        """Chosen complexity (for PLS: number of latent variables); None without a sweep."""
+        """Chosen complexity (for PLS: number of latent variables); None when the model has no such number."""
+        if self.labels is not None:
+            return None
         value = int(self.candidates[self.best_index])
         return value if value > 0 else None
+
+    @property
+    def best_label(self):
+        """Description of the chosen setting; None when the candidates are a complexity or there is only one."""
+        return None if self.labels is None else self.labels[self.best_index]
 
     @property
     def best_rmsecv(self):

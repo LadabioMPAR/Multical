@@ -10,6 +10,8 @@ from typing import List
 
 import numpy as np
 
+from .registry import MODELS
+
 R2_GOOD = 0.90            # validation R² at or above this: "bom"
 R2_ATTENTION = 0.70       # at or above this: "atenção"; below: "ruim"
 FEW_SAMPLES = 20          # fewer calibration samples than this raises a warning
@@ -34,6 +36,7 @@ class AnalyteAssessment:
 def assess(result):
     """One AnalyteAssessment per analyte of a CalibrationResult."""
     unit = f" {result.units}" if result.units else ""
+    one, many = MODELS.get(result.config.model["id"]).sweep_label
     out = []
     for j, name in enumerate(result.analytes):
         res = result.per_analyte[name]
@@ -41,7 +44,9 @@ def assess(result):
         level = "bom" if r2 >= R2_GOOD else "atencao" if r2 >= R2_ATTENTION else "ruim"
         parts = [f"erro típico ±{number(res.best_rmsecv)}{unit}", f"R² de validação {number(r2)}"]
         if res.best_k is not None:
-            parts.append(f"{res.best_k} variáve{'l' if res.best_k == 1 else 'is'} latente{'' if res.best_k == 1 else 's'}")
+            parts.append(f"{res.best_k} {one if res.best_k == 1 else many}")
+        elif res.best_label is not None:
+            parts.append(f"ajuste escolhido: {res.best_label}")
         residual = res.y_cv[res.best_index] - result.Y[:, j]
         suspects = []
         order = np.argsort(-np.abs(np.where(result.validated, residual, 0.0)))
@@ -81,3 +86,23 @@ def spectrum_warnings(dataset):
             else:
                 seen[key] = i
     return out
+
+
+def candidate_name(result):
+    """What the candidates of this calibration are called, capitalised (for headers and axis labels)."""
+    first = next(iter(result.per_analyte.values()))
+    if first.labels is not None:
+        return "Ajuste testado"
+    return MODELS.get(result.config.model["id"]).sweep_label[1].capitalize()
+
+
+def candidate_table(result, analyte):
+    """(headers, rows of text) with the error of every candidate tried for one analyte."""
+    res = result.per_analyte[analyte]
+    headers = [candidate_name(result), "Erro de validação", "R² de validação", "Erro de calibração", "R² de calibração"]
+    rows = []
+    for i, value in enumerate(res.candidates):
+        name = res.labels[i] if res.labels is not None else ("único" if int(value) == 0 else str(int(value)))
+        rows.append([name + (" (escolhido)" if i == res.best_index and len(res.candidates) > 1 else ""),
+                     number(res.rmsecv[i], 4), number(res.r2cv[i], 4), number(res.rmsec[i], 4), number(res.r2cal[i], 4)])
+    return headers, rows

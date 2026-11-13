@@ -7,7 +7,7 @@ the GUI can embed the figure or save it to a file.
 import numpy as np
 from matplotlib.figure import Figure
 
-from .assessment import number
+from .assessment import candidate_name, number
 
 
 def plot_spectra(wavelengths, X, title="Espectros", xlabel="Comprimento de onda", ylabel="Absorbância"):
@@ -27,7 +27,12 @@ def plot_error_curve(result, analyte):
     ax.plot(res.candidates, res.rmsecv, marker="o", label="Validação (RMSECV)")
     ax.plot(res.candidates, res.rmsec, marker="o", linestyle="--", label="Calibração (RMSEC)")
     ax.plot(res.candidates[res.best_index], res.rmsecv[res.best_index], "k*", markersize=14, label="Escolhido")
-    ax.set(title=f"Erro por variáveis latentes – {analyte}", xlabel="Variáveis latentes", ylabel=f"Erro{unit}")
+    name = candidate_name(result)
+    if res.labels is not None:
+        ax.set_title(f"Erro por ajuste testado – {analyte}\nescolhido: {res.best_label}", fontsize=10)
+        ax.set(xlabel=f"{name} (número na tabela)", ylabel=f"Erro{unit}")
+    else:
+        ax.set(title=f"Erro por {name.lower()} – {analyte}", xlabel=name, ylabel=f"Erro{unit}")
     ax.xaxis.get_major_locator().set_params(integer=True)
     ax.legend()
     return fig

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 
 from multical import api
 from multical.api import plots
-from multical.api.assessment import LEVELS, R2_ATTENTION, R2_GOOD, number
+from multical.api.assessment import LEVELS, R2_ATTENTION, R2_GOOD, candidate_table, number
 
 from ..widgets import Banner, PlotCanvas
 from .base import Page
@@ -61,7 +61,7 @@ class ResultsPage(Page):
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabs.addTab(self.scatter, "Previsto × medido")
-        self.tabs.addTab(self.curve, "Erro por variáveis latentes")
+        self.tabs.addTab(self.curve, "Erro por ajuste testado")
         self.tabs.addTab(self.table, "Tabela completa")
 
         splitter = QSplitter(Qt.Horizontal)
@@ -103,17 +103,16 @@ class ResultsPage(Page):
         if len(res.candidates) > 1:
             self.curve.set_figure(plots.plot_error_curve(result, item.analyte))
         else:
-            self.curve.show_message("Este modelo não tem um número de variáveis latentes a escolher.")
+            self.curve.show_message("Este modelo foi testado com um único ajuste.")
         self.suspects.setPlainText("\n".join(item.suspects) or "Nenhuma amostra se destacou.")
 
-        headers = ["Variáveis latentes", "Erro de validação", "R² de validação", "Erro de calibração", "R² de calibração"]
+        headers, rows = candidate_table(result, item.analyte)
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.setRowCount(len(res.candidates))
-        for i, k in enumerate(res.candidates):
-            values = [str(int(k)) + (" (escolhido)" if i == res.best_index else ""),
-                      number(res.rmsecv[i], 4), number(res.r2cv[i], 4), number(res.rmsec[i], 4), number(res.r2cal[i], 4)]
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.setRowCount(len(rows))
+        for i, values in enumerate(rows):
             for column, text in enumerate(values):
                 cell = QTableWidgetItem(text)
                 cell.setTextAlignment(Qt.AlignCenter)
