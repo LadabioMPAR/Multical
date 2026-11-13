@@ -1,8 +1,8 @@
 """
 Extension points.
 
-Four registries hold everything the GUI can offer: IMPORTERS, PRETREATMENTS,
-MODELS and SPLITTERS. Adding a method means writing one class (or function) and
+Five registries hold everything the GUI can offer: IMPORTERS, PRETREATMENTS,
+MODELS, SPLITTERS and SELECTORS. Adding a method means writing one class (or function) and
 registering it; no interface code changes.
 """
 import numpy as np
@@ -48,6 +48,7 @@ IMPORTERS = Registry("Importador")
 PRETREATMENTS = Registry("Pré-tratamento")
 MODELS = Registry("Modelo")
 SPLITTERS = Registry("Validação")
+SELECTORS = Registry("Seleção de variáveis")
 
 
 def register(registry):
@@ -123,6 +124,20 @@ class Model:
             out[k - 1] = self.predict(self.fit(X_train, y_train, k=k, **params), X_val)
         return out
 
+    def cv_folds(self, X, y, folds, max_k, **params):
+        """
+        `cv_path` for every (train, validation) pair of `folds` at once: shape
+        (max_k, n_samples), NaN where a sample is never left out.
+
+        A variable selection calls this thousands of times, so a model may
+        override it with a faster calculation that gives the same numbers up to
+        rounding. The validation that is reported always uses `cv_path`.
+        """
+        out = np.full((max_k, X.shape[0]), np.nan)
+        for train, val in folds:
+            out[:, val] = self.cv_path(X[train], y[train], X[val], max_k, **params)
+        return out
+
 
 class Splitter:
     """
@@ -136,6 +151,31 @@ class Splitter:
     needs_groups = False
 
     def split(self, n, groups=None, X=None, Y=None, rng=None, **params):
+        raise NotImplementedError
+
+
+class Selector:
+    """
+    Variable selection: chooses which points of the spectrum the model of ONE
+    analyte uses.
+
+    `select(X, y, error, rng, progress, **params)` receives the pretreated
+    calibration spectra (n_samples, n_points) and the measured values (1-D), and
+    returns a bool vector with one item per point (True: the point is used) or
+    the positions of the chosen points.
+
+    `error(mask)` gives the validation error of the chosen model when only the
+    points of `mask` are used (the lowest among the complexities or settings
+    tried), in the unit of the analyte; it also stops the run when the user
+    cancels. `error.folds` holds the (train, validation) positions and
+    `error.wavelengths` the axis. `rng` is a numpy RandomState made from the
+    seed of the run; `progress(fraction, message="")` reports how far it is.
+    """
+    id = ""
+    label = ""
+    params = ()
+
+    def select(self, X, y, error, rng, progress, **params):
         raise NotImplementedError
 
 

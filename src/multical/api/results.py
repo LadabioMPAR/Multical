@@ -20,6 +20,13 @@ class AnalyteResult:
     best_index: int            # position of the chosen candidate
     model_state: dict          # final model, fitted with every calibration sample
     labels: Optional[List[str]] = None   # description of each candidate when they are settings, not a complexity
+    selected: Optional[np.ndarray] = None   # bool per point of the pretreated spectrum; None: no variable selection
+    full_rmsecv: Optional[float] = None     # validation error with every point, when a variable selection was run
+
+    @property
+    def n_selected(self):
+        """Number of points of the spectrum the model uses; None when every point is used."""
+        return None if self.selected is None else int(np.sum(self.selected))
 
     @property
     def best_k(self):

@@ -8,13 +8,14 @@ Brazilian Excel opens directly.
 import csv
 import os
 import re
+import textwrap
 
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 from . import plots
-from .assessment import LEVELS, assess, candidate_name
+from .assessment import LEVELS, assess, candidate_name, selection_notes
 from .bundle import save_model
 
 EXPORT_ITEMS = {
@@ -50,7 +51,9 @@ def _tables(result, folder):
         res, b = result.per_analyte[name], result.per_analyte[name].best_index
         chosen = res.best_label if res.labels is not None else res.best_k
         summary.append([name, result.units, len(result.sample_ids), chosen, res.rmsecv[b], res.r2cv[b],
-                        res.rmsec[b], res.r2cal[b], LEVELS[item.level]])
+                        res.rmsec[b], res.r2cal[b], LEVELS[item.level],
+                        len(result.wavelengths) if res.selected is None else res.n_selected, len(result.wavelengths),
+                        res.full_rmsecv])
         for i, k in enumerate(res.candidates):
             tried = res.labels[i] if res.labels is not None else int(k)
             per_k.append([name, tried, res.rmsecv[i], res.r2cv[i], res.rmsec[i], res.r2cal[i], "sim" if i == b else ""])
@@ -65,10 +68,19 @@ def _tables(result, folder):
             res = result.per_analyte[name]
             row += [result.Y[i, j], res.y_cv[res.best_index, i], res.y_cal[res.best_index, i]]
         predictions.append(row)
-    return [
+    files = []
+    if any(result.per_analyte[name].selected is not None for name in result.analytes):
+        points = []
+        for i, position in enumerate(result.wavelengths):
+            marks = [result.per_analyte[name].selected for name in result.analytes]
+            points.append([float(position)] + ["sim" if mark is None or mark[i] else "" for mark in marks])
+        files.append(_write_csv(os.path.join(folder, "pontos_escolhidos.csv"),
+                                ["posicao_no_eixo"] + [f"{name}_usa" for name in result.analytes], points))
+    return files + [
         _write_csv(os.path.join(folder, "resumo.csv"),
                    ["analito", "unidade", "amostras", tried_header, "erro_validacao_rmsecv", "r2_validacao",
-                    "erro_calibracao_rmsec", "r2_calibracao", "avaliacao"], summary),
+                    "erro_calibracao_rmsec", "r2_calibracao", "avaliacao", "pontos_usados", "pontos_do_espectro",
+                    "erro_validacao_todos_os_pontos"], summary),
         _write_csv(os.path.join(folder, "metricas_por_ajuste.csv"),
                    ["analito", tried_header, "erro_validacao_rmsecv", "r2_validacao", "erro_calibracao_rmsec",
                     "r2_calibracao", "escolhido"], per_k),
@@ -85,11 +97,16 @@ def _summary_page(result):
         f"Modelo: {cfg.model['id']}  {cfg.model['params']}",
         f"Validação: {cfg.validation['id']}  {cfg.validation['params']}",
         "Pré-tratamento: " + ("; ".join(f"{s['id']} {s['params']}" for s in cfg.pretreatment) or "nenhum"),
-        "",
     ]
+    if cfg.variable_selection:
+        lines.append(f"Seleção de variáveis: {cfg.variable_selection['id']}  {cfg.variable_selection['params']}")
+    lines.append("")
     for item in assess(result):
         lines.append(f"[{LEVELS[item.level]}]  {item.analyte}: {item.summary}")
         lines += [f"        erro grande na validação – {s}" for s in item.suspects[:5]]
+    notes = selection_notes(result)
+    if notes:
+        lines += ["", "Seleção de variáveis:"] + [textwrap.fill(note, 105, subsequent_indent="    ") for note in notes]
     fig.text(0.08, 0.89, "\n".join(lines), fontsize=9.5, va="top", wrap=True)
     return fig
 
@@ -121,6 +138,8 @@ def export_run(result, folder, items=None):
             figures.append((f"previsto_x_medido_{_safe(name)}", plots.plot_predicted_vs_measured(result, name)))
             if len(result.per_analyte[name].candidates) > 1:
                 figures.append((f"erro_por_ajuste_{_safe(name)}", plots.plot_error_curve(result, name)))
+            if result.per_analyte[name].selected is not None:
+                figures.append((f"pontos_escolhidos_{_safe(name)}", plots.plot_selected_points(result, name)))
     if "figures" in items:
         os.makedirs(os.path.join(folder, "figuras"), exist_ok=True)
         for stem, fig in figures:

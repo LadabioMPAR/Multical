@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from .calibrate import CalibrationCancelled, model_input
+from .calibrate import CalibrationCancelled, analyte_input, model_input
 from .contract import check_predictions
 from .domain import check_domain
 from .registry import MODELS
@@ -96,7 +96,8 @@ def predict_report(model, dataset, progress=None, cancel=None, chunk=50):
         rows = slice(start, min(start + chunk, n))
         X = model_input(model, dataset.X[rows], dataset.wavelengths)
         for j, name in enumerate(model.analytes):
-            Y[rows, j] = check_predictions(fitted, fitted.predict(model.per_analyte[name].model_state, X), X.shape[0])
+            entry = model.per_analyte[name]
+            Y[rows, j] = check_predictions(fitted, fitted.predict(entry.model_state, analyte_input(entry, X)), X.shape[0])
         if domain:
             t2[rows], q[rows], inside[rows] = check_domain(domain, X)
         if progress is not None:

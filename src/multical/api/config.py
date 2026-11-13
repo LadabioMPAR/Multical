@@ -5,9 +5,9 @@ from typing import List, Optional
 
 from .params import resolve_params
 from .recipe import normalize_recipe
-from .registry import MODELS, SPLITTERS
+from .registry import MODELS, SELECTORS, SPLITTERS
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2     # 2: variable selection; written only when one is chosen, so older programs still read the rest
 SELECTION_RULES = ("ftest", "min")
 
 
@@ -25,6 +25,8 @@ class RunConfig:
     selection: str = "ftest"          # "ftest": Osten F-test; "min": lowest validation error
     seed: Optional[int] = 0           # seed for schemes that draw samples at random
     analytes: Optional[List[str]] = None   # None: every analyte in the data
+    # {"id": ..., "params": {...}}: choose, per analyte, which points of the spectrum the model uses; None: all of them
+    variable_selection: Optional[dict] = None
 
     def resolved(self):
         """Validated copy with every parameter filled in (defaults included)."""
@@ -32,6 +34,11 @@ class RunConfig:
             raise ValueError(f"Regra de escolha desconhecida: {self.selection!r}. Use 'ftest' ou 'min'.")
         model = MODELS.get(self.model["id"])
         splitter = SPLITTERS.get(self.validation["id"])
+        chosen = None
+        if self.variable_selection:
+            selector = SELECTORS.get(self.variable_selection["id"])
+            chosen = {"id": selector.id,
+                      "params": resolve_params(selector.params, self.variable_selection.get("params"), owner=selector.label)}
         return RunConfig(
             pretreatment=normalize_recipe(self.pretreatment),
             model={"id": model.id, "params": resolve_params(model.params, self.model.get("params"), owner=model.label)},
@@ -42,11 +49,12 @@ class RunConfig:
             selection=self.selection,
             seed=None if self.seed is None else int(self.seed),
             analytes=None if self.analytes is None else [str(a) for a in self.analytes],
+            variable_selection=chosen,
         )
 
     def to_dict(self):
-        return {
-            "format": FORMAT_VERSION,
+        out = {
+            "format": 2 if self.variable_selection else 1,
             "pretreatment": self.pretreatment,
             "model": self.model,
             "validation": self.validation,
@@ -54,6 +62,9 @@ class RunConfig:
             "seed": self.seed,
             "analytes": self.analytes,
         }
+        if self.variable_selection:
+            out["variable_selection"] = self.variable_selection
+        return out
 
     @classmethod
     def from_dict(cls, data):
@@ -67,6 +78,7 @@ class RunConfig:
             selection=data.get("selection", "ftest"),
             seed=data.get("seed", 0),
             analytes=data.get("analytes"),
+            variable_selection=data.get("variable_selection") or None,
         )
 
     def to_json(self):

@@ -147,6 +147,14 @@ fora do que o modelo conhece.</figcaption></figure>
 <ul>
   <li>O interruptor <b>Avançado</b>, no alto da janela, mostra a edição da receita de pré-tratamento, a escolha do
       modelo (PLS, PCR, SPA, SVR) e da validação, e as tabelas completas de resultados.</li>
+  <li><b>Seleção de variáveis</b> (tela 4, modo Avançado): o programa escolhe, para cada analito, quais pontos do
+      espectro o modelo usa. Há três métodos: <i>VIP</i> (rápido; fica com os pontos mais importantes em um PLS),
+      <i>PSO</i> e <i>recozimento simulado</i> (buscas por tentativa, que podem levar de segundos a vários minutos; a
+      tela mostra o andamento e dá para cancelar). A tela de resultados mostra quantos pontos ficaram, o erro que o
+      modelo tinha com o espectro inteiro e a aba <i>Pontos usados</i>; a escolha vai junto no arquivo
+      <code>.multical</code>. Atenção: os pontos são escolhidos olhando o erro de validação, então esse erro tende a
+      parecer menor do que será com amostras novas. Antes de adotar o modelo, confira-o com um experimento que
+      não entrou na calibração.</li>
   <li>Métodos novos podem ser acrescentados sem alterar o programa: arquivos <code>.py</code> na pasta
       <code>plugins</code>, ao lado do programa. O arquivo <code>LEIA-ME.md</code> dessa pasta descreve o formato de
       cada tipo de método, e a pasta <code>exemplos</code> traz um arquivo pronto para cada caso.</li>

@@ -5,22 +5,67 @@ Rules fixed for this layer:
 - one model per analyte, both in validation and in the final model, so the
   reported error belongs to the model that is actually kept;
 - pretreatments and the autoscaling of X are computed from the calibration set
-  only and reapplied unchanged to any other spectra.
+  only and reapplied unchanged to any other spectra;
+- a variable selection, when asked, is run for each analyte with that analyte's
+  own model, and its choice of points goes with the model.
 """
 import numpy as np
 
 from ..utils import zscore_matlab_style
 from ..var_selection.utils import select_k_ftest
 from .config import RunConfig
-from .contract import check_cv_path, check_predictions, check_split, check_state
+from .contract import check_cv_path, check_predictions, check_selection, check_split, check_state
 from .domain import fit_domain
 from .recipe import apply_recipe, fit_recipe
-from .registry import MODELS, SPLITTERS
+from .registry import MODELS, SELECTORS, SPLITTERS
 from .results import AnalyteResult, CalibrationResult
+
+SELECTION_SHARE = 0.9       # part of an analyte's progress taken by the variable selection, when there is one
 
 
 class CalibrationCancelled(Exception):
     """Raised when the `cancel` callback asks to stop."""
+
+
+class SubsetError:
+    """
+    What a variable selection calls to know how good a choice of points is:
+    `error(mask)` is the validation error of the analyte's model using only the
+    points of `mask` (the lowest among the complexities or settings tried).
+    """
+
+    def __init__(self, curve, folds, wavelengths, cancel=None):
+        self._curve, self._cancel = curve, cancel
+        self.folds = folds                  # [(train positions, validation positions), ...]
+        self.wavelengths = wavelengths      # axis of the spectra given to the selection
+        self.evaluations = 0
+
+    def _mask(self, mask):
+        mask = np.asarray(mask)
+        if mask.dtype.kind == "b":
+            return mask
+        out = np.zeros(self.wavelengths.size, dtype=bool)
+        out[mask.astype(int)] = True
+        return out
+
+    def curve(self, mask):
+        """Validation error of every complexity or setting tried, using only the points of `mask`."""
+        if self._cancel is not None and self._cancel():
+            raise CalibrationCancelled()
+        self.evaluations += 1
+        return self._curve(self._mask(mask))
+
+    def __call__(self, mask):
+        mask = self._mask(mask)
+        if not mask.any():
+            return float("inf")
+        values = self.curve(mask)
+        return float(np.min(values)) if np.all(np.isfinite(values)) else float("inf")
+
+
+def selection_seed(seed, position):
+    """Seed of the variable selection of the analyte at `position` (None: not repeatable)."""
+    return None if seed is None else (int(seed) + 7919 * (position + 1)) % (2 ** 32)
 
 
 def _rmse(pred, y, mask):
@@ -59,6 +104,7 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
 
     model = MODELS.get(config.model["id"])
     splitter = SPLITTERS.get(config.validation["id"])
+    selector = SELECTORS.get(config.variable_selection["id"]) if config.variable_selection else None
     if splitter.needs_groups and dataset.groups is None:
         raise ValueError(f"'{splitter.label}' precisa saber a qual experimento cada amostra pertence.")
 
@@ -93,51 +139,99 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
                 f"O máximo pedido ({max_k}) é maior do que os dados permitem ({limit}): "
                 f"o menor grupo de treino tem {smallest_train} amostras e os espectros têm {Xs.shape[1]} pontos."
             )
-        candidates = np.arange(1, max_k + 1)
         grid = None
     else:
         max_k = None
         grid = model.candidates(**params) or None
-        candidates = np.arange(1, len(grid) + 1) if grid else np.array([0])
     labels = [label for label, _ in grid] if grid else None
+    n_cal_eff = smallest_train if splitter.kind == "holdout" else n
+
+    def stop_if_cancelled():
+        if cancel is not None and cancel():
+            raise CalibrationCancelled()
+
+    def candidates_for(n_points):
+        """Complexities (1..max, never more than the points in use) or settings tried."""
+        if model.sweep:
+            return np.arange(1, min(max_k, n_points) + 1)
+        return np.arange(1, len(grid) + 1) if grid else np.array([0])
 
     def fit_setting(X_fit, y_fit, index):
         """Fit the model with the settings of candidate `index` (models without a sweep)."""
         extra = grid[index][1] if grid else {}
         return check_state(model, model.fit(X_fit, y_fit, **{**params, **extra}))
 
-    total = len(names) * (len(folds) + 1)
-    done = 0
+    def validate(X, y, on_fold=None):
+        """Predictions of every candidate for the samples left out of the training, shape (n_candidates, n)."""
+        n_candidates = len(candidates_for(X.shape[1]))
+        y_cv = np.full((n_candidates, n), np.nan)
+        for f, (tr, va) in enumerate(folds):
+            stop_if_cancelled()
+            if model.sweep:
+                y_cv[:, va] = check_cv_path(
+                    model, model.cv_path(X[tr], y[tr], X[va], n_candidates, **params), n_candidates, len(va))
+            else:
+                for c in range(n_candidates):
+                    stop_if_cancelled()
+                    y_cv[c, va] = check_predictions(model, model.predict(fit_setting(X[tr], y[tr], c), X[va]), len(va))
+            if on_fold is not None:
+                on_fold(f)
+        return y_cv
 
-    def step(message):
-        nonlocal done
-        done += 1
+    def search_curve(X, y):
+        """Validation error of every candidate with the points of X; the quick path of the variable selection."""
+        if not model.sweep:
+            return _rmse(validate(X, y), y, validated)
+        top = len(candidates_for(X.shape[1]))
+        with np.errstate(all="ignore"):
+            y_cv = check_cv_path(model, model.cv_folds(X, y, folds, top, **params), top, n)
+            return _rmse(y_cv, y, validated)
+
+    def choose(rmsecv):
+        if len(rmsecv) == 1:
+            return 0
+        if config.selection == "ftest" and model.sweep:      # the F-test only makes sense for a growing complexity
+            return int(select_k_ftest(rmsecv, n_cal_eff)) - 1
+        return int(np.argmin(rmsecv))
+
+    def report(position, fraction, message):
         if progress is not None:
-            progress(done / total, message)
+            progress((position + min(max(fraction, 0.0), 1.0)) / len(names), message)
 
-    n_cal_eff = smallest_train if splitter.kind == "holdout" else n
     per_analyte = {}
     for j, name in enumerate(names):
         y = Y[:, j]
-        y_cv = np.full((len(candidates), n), np.nan)
-        for f, (tr, va) in enumerate(folds):
-            if cancel is not None and cancel():
-                raise CalibrationCancelled()
-            if model.sweep:
-                y_cv[:, va] = check_cv_path(model, model.cv_path(Xs[tr], y[tr], Xs[va], max_k, **params), max_k, len(va))
-            else:
-                for c in range(len(candidates)):
-                    if cancel is not None and cancel():
-                        raise CalibrationCancelled()
-                    y_cv[c, va] = check_predictions(model, model.predict(fit_setting(Xs[tr], y[tr], c), Xs[va]), len(va))
-            step(f"{name}: validação {f + 1} de {len(folds)}")
+        selected = full_rmsecv = None
+        start = 0.0
+        if selector is not None:
+            stop_if_cancelled()
+            report(j, 0.0, f"{name}: escolhendo os pontos do espectro")
+            full_curve = _rmse(validate(Xs, y), y, validated)
+            full_rmsecv = float(full_curve[choose(full_curve)])
+            error = SubsetError(lambda mask: search_curve(Xs[:, mask], y), folds, wl_pre, cancel)
 
-        if cancel is not None and cancel():
-            raise CalibrationCancelled()
+            def selection_progress(fraction, message=""):
+                text = f"{name}: escolhendo os pontos do espectro" + (f" – {message}" if message else "")
+                report(j, SELECTION_SHARE * min(max(float(fraction), 0.0), 1.0), text)
+
+            chosen = selector.select(Xs, y, error, np.random.RandomState(selection_seed(config.seed, j)),
+                                     selection_progress, **config.variable_selection["params"])
+            selected = check_selection(selector, chosen, Xs.shape[1])
+            start = SELECTION_SHARE
+        Xj = Xs if selected is None else Xs[:, selected]
+        candidates = candidates_for(Xj.shape[1])
+        steps = len(folds) + 1
+
+        def step(done, message):
+            report(j, start + (1.0 - start) * done / steps, message)
+
+        y_cv = validate(Xj, y, on_fold=lambda f: step(f + 1, f"{name}: validação {f + 1} de {len(folds)}"))
+
+        stop_if_cancelled()
         if model.sweep:
-            y_cal = check_cv_path(model, model.cv_path(Xs, y, Xs, max_k, **params), max_k, n)
+            y_cal = check_cv_path(model, model.cv_path(Xj, y, Xj, len(candidates), **params), len(candidates), n)
         else:
-            y_cal = np.vstack([check_predictions(model, model.predict(fit_setting(Xs, y, c), Xs), n)
+            y_cal = np.vstack([check_predictions(model, model.predict(fit_setting(Xj, y, c), Xj), n)
                                for c in range(len(candidates))])
 
         everyone = np.ones(n, dtype=bool)
@@ -145,23 +239,18 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
         rmsec = _rmse(y_cal, y, everyone)
         r2cv = 1.0 - rmsecv ** 2 / np.var(y[validated])
         r2cal = 1.0 - rmsec ** 2 / np.var(y)
-
-        if len(candidates) == 1:
-            best_index = 0
-        elif config.selection == "ftest" and model.sweep:      # the F-test only makes sense for a growing complexity
-            best_index = int(select_k_ftest(rmsecv, n_cal_eff)) - 1
-        else:
-            best_index = int(np.argmin(rmsecv))
+        best_index = choose(rmsecv)
 
         if model.sweep:
-            state = check_state(model, model.fit(Xs, y, k=int(candidates[best_index]), **params))
+            state = check_state(model, model.fit(Xj, y, k=int(candidates[best_index]), **params))
         else:
-            state = fit_setting(Xs, y, best_index)
-        step(f"{name}: modelo final")
+            state = fit_setting(Xj, y, best_index)
+        step(steps, f"{name}: modelo final")
 
         per_analyte[name] = AnalyteResult(
             name=name, candidates=candidates, rmsecv=rmsecv, rmsec=rmsec, r2cv=r2cv, r2cal=r2cal,
             y_cv=y_cv, y_cal=y_cal, best_index=best_index, model_state=state, labels=labels,
+            selected=selected, full_rmsecv=full_rmsecv,
         )
 
     return CalibrationResult(
@@ -202,6 +291,19 @@ def model_input(result, X, wavelengths):
     return X_pre
 
 
+def analyte_input(entry, X):
+    """The columns of the model input (see `model_input`) used by the model of one analyte."""
+    selected = getattr(entry, "selected", None)
+    if selected is None:
+        return X
+    selected = np.asarray(selected, dtype=bool)
+    if selected.size != X.shape[1]:
+        raise ValueError(
+            f"O modelo guarda uma escolha de pontos para espectros com {selected.size} pontos, "
+            f"mas depois do pré-tratamento estes têm {X.shape[1]}.")
+    return X[:, selected]
+
+
 def predict(result, X, wavelengths):
     """
     Predict every analyte of a calibration for new spectra.
@@ -213,5 +315,6 @@ def predict(result, X, wavelengths):
     model = MODELS.get(result.config.model["id"])
     out = np.empty((X_pre.shape[0], len(result.analytes)))
     for j, name in enumerate(result.analytes):
-        out[:, j] = check_predictions(model, model.predict(result.per_analyte[name].model_state, X_pre), X_pre.shape[0])
+        entry = result.per_analyte[name]
+        out[:, j] = check_predictions(model, model.predict(entry.model_state, analyte_input(entry, X_pre)), X_pre.shape[0])
     return out

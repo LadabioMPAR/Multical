@@ -251,12 +251,13 @@ TEMPLATE_IDS = {
     "pretreatments": ["ex_um_a_cada_n", "ex_subtrair_media"],
     "models": ["ex_ridge", "ex_vizinhos", "ex_ridge_auto"],
     "splitters": ["ex_partes_por_experimento"],
+    "selectors": ["ex_mais_correlacionados"],
 }
 
 
 def _forget_templates():
     for registry, ids in ((api.PRETREATMENTS, TEMPLATE_IDS["pretreatments"]), (api.MODELS, TEMPLATE_IDS["models"]),
-                          (api.SPLITTERS, TEMPLATE_IDS["splitters"])):
+                          (api.SPLITTERS, TEMPLATE_IDS["splitters"]), (api.SELECTORS, TEMPLATE_IDS["selectors"])):
         for item in ids:
             registry.unregister(item)
     del api.PLUGIN_ERRORS[:]
@@ -275,7 +276,7 @@ class PluginTemplates(MethodsCase):
                          sorted(name for name in os.listdir(TEMPLATES) if name.endswith(".py")))
         self.assertEqual(api.PLUGIN_ERRORS, [])
         for registry, ids in ((api.PRETREATMENTS, TEMPLATE_IDS["pretreatments"]), (api.MODELS, TEMPLATE_IDS["models"]),
-                              (api.SPLITTERS, TEMPLATE_IDS["splitters"])):
+                              (api.SPLITTERS, TEMPLATE_IDS["splitters"]), (api.SELECTORS, TEMPLATE_IDS["selectors"])):
             for item in ids:
                 self.assertIn(item, registry)
         # Nothing in the plugin folder itself except the active example: the templates are not loaded by the program.
@@ -334,9 +335,25 @@ class PluginTemplates(MethodsCase):
         other = list(splitter.split(30, groups=groups, rng=np.random.RandomState(2), partes=4))
         self.assertFalse(all(np.array_equal(a[1], b[1]) for a, b in zip(folds, other)))
 
+    def test_template_variable_selection(self):
+        seen = []
+        config = api.RunConfig(pretreatment=[], model={"id": "ex_ridge", "params": {}}, analytes=["cb", "xy"],
+                               variable_selection={"id": "ex_mais_correlacionados", "params": {"tentativas": 4}})
+        result = api.run_calibration(self.dataset, config, progress=lambda f, m: seen.append(m))
+        self.assertTrue(any("2 de 4 frações testadas" in m for m in seen))
+        for name, centre in (("cb", 4800.0), ("xy", 7000.0)):
+            res = result.per_analyte[name]
+            self.assertIn(res.n_selected, (15, 60, 105, 150))                 # 10%, 40%, 70% or all of the 150 points
+            self.assertTrue(res.selected[np.argmin(np.abs(self.wl - centre))])  # the analyte's own band is kept
+            self.assertLessEqual(res.best_rmsecv, res.full_rmsecv + 1e-12)      # the whole spectrum is one of the tries
+        with tempfile.TemporaryDirectory() as tmp:
+            saved = api.load_model(api.save_model(result, os.path.join(tmp, "m")))
+        np.testing.assert_allclose(api.predict(saved, self.X[:5], self.wl), api.predict(result, self.X[:5], self.wl), rtol=1e-10)
+
     def test_templates_pass_the_self_check(self):
         from multical_gui import selftest
         pretreatments, models = selftest._check_pretreatments(), selftest._check_models()
+        self.assertIn("ex_mais_correlacionados", selftest._check_selectors())
         for item in TEMPLATE_IDS["pretreatments"]:
             self.assertIn(item, pretreatments.split(" (")[0])
         for item in TEMPLATE_IDS["models"] + TEMPLATE_IDS["splitters"]:

@@ -61,8 +61,10 @@ class ResultsPage(Page):
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabs.addTab(self.scatter, "Previsto × medido")
-        self.tabs.addTab(self.curve, "Erro por ajuste testado")
+        self.tabs.addTab(self.curve, "Erro por ajuste")
         self.tabs.addTab(self.table, "Tabela completa")
+        self.points = PlotCanvas()
+        self.tabs.addTab(self.points, "Pontos usados")
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(left)
@@ -88,7 +90,9 @@ class ResultsPage(Page):
         self.analytes.blockSignals(False)
         data = self.project.active_dataset()
         notes = api.dataset_warnings(data) if data is not None else []
-        self.warnings.set_message("\n".join(notes), "warning")
+        selection = api.selection_notes(result) if result is not None else []
+        self.warnings.set_message("\n".join(notes + selection), "warning")
+        self.tabs.setTabVisible(3, bool(selection))
         if self._items:
             self.analytes.setCurrentRow(0)
             self._show_analyte(0)
@@ -105,6 +109,8 @@ class ResultsPage(Page):
         else:
             self.curve.show_message("Este modelo foi testado com um único ajuste.")
         self.suspects.setPlainText("\n".join(item.suspects) or "Nenhuma amostra se destacou.")
+        if res.selected is not None:
+            self.points.set_figure(plots.plot_selected_points(result, item.analyte))
 
         headers, rows = candidate_table(result, item.analyte)
         self.table.setColumnCount(len(headers))

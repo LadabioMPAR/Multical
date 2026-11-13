@@ -39,6 +39,9 @@ def describe_model(model):
             parts.append(f"erro típico ±{number(error)}{unit}")
         if low == low:
             parts.append(f"calibrado de {number(low)} a {number(high)}{unit}")
+        selected = getattr(model.per_analyte[name], "selected", None)
+        if selected is not None:
+            parts.append(f"usa {int(selected.sum())} de {selected.size} pontos do espectro")
         lines.append(f"{name}: " + (", ".join(parts) or "sem informação de validação"))
     return "\n".join(lines)
 

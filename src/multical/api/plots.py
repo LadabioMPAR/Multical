@@ -91,6 +91,21 @@ def plot_before_after(wl_before, X_before, wl_after, X_after):
     return fig
 
 
+def plot_selected_points(result, analyte):
+    """Mean pretreated spectrum of the calibration with the points used by the model of one analyte marked."""
+    res = result.per_analyte[analyte]
+    axis = np.asarray(result.wavelengths, dtype=float)
+    mean = np.asarray(result.X_pre).mean(axis=0)
+    used = np.ones(axis.size, dtype=bool) if res.selected is None else np.asarray(res.selected, dtype=bool)
+    fig = Figure(figsize=(7, 4.5), layout="constrained")
+    ax = fig.add_subplot()
+    ax.plot(axis, mean, color="gray", linewidth=0.8, label="Espectro médio (tratado)")
+    ax.plot(axis[used], mean[used], linestyle="none", marker="o", markersize=2.5, color="C3", label="Pontos usados pelo modelo")
+    ax.set(title=f"{analyte}: {int(used.sum())} de {axis.size} pontos do espectro", xlabel=X_LABEL, ylabel="Sinal tratado")
+    ax.legend(fontsize=8, loc="best")
+    return fig
+
+
 def plot_prediction_over_time(prediction, analyte):
     """Estimates of one analyte along the time, one line per experiment, with the typical error as a band."""
     j = prediction.analytes.index(analyte)

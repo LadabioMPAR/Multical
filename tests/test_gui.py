@@ -503,6 +503,80 @@ class MethodsFromTheRegistries(unittest.TestCase):
                 self.assertEqual(self.project.result.config.validation["id"], scheme)
                 self.window.go_to(4)
 
+    def test_variable_selection_from_the_screen_to_the_model_file(self):
+        from multical_gui.pages.model_page import duration
+        from multical_gui.pages.predict_page import describe_model
+        from multical_gui.state import Project
+        self.window.go_to(4)
+        combo = self.model.variables
+        self.assertEqual([combo.itemData(i) for i in range(combo.count())], [None] + api.SELECTORS.ids())
+        self.assertIsNone(self.project.config.variable_selection)
+        self.assertFalse(self.model.variables_hint.isVisible())
+        self.assertNotIn("Seleção de variáveis", self.model.summary.text())
+
+        for selector in api.SELECTORS.ids():                       # every method shows its own settings
+            combo.setCurrentIndex(combo.findData(selector))
+            self.assertEqual(self.project.config.variable_selection, {"id": selector, "params": {}})
+            self.assertEqual(set(self.model.variables_form._editors), {p.name for p in api.SELECTORS.get(selector).params})
+        combo.setCurrentIndex(combo.findData("pso"))
+        self.assertTrue(self.model.variables_hint.isVisible())
+        for _ in range(3):
+            self.app.processEvents()
+        form, area = self.model.variables_form, self.model.advanced_scroll      # many settings: scrolled, never squeezed
+        self.assertGreaterEqual(form.height(), form.sizeHint().height())
+        self.assertGreaterEqual(self.model.advanced_box.height(), self.model.advanced_box.sizeHint().height())
+        if self.model.advanced_box.height() > area.viewport().height():
+            self.assertTrue(area.verticalScrollBar().isVisible())
+            self.assertGreater(area.verticalScrollBar().maximum(), 0)
+        self.model.variables_form._editors["n_particles"].setValue(6)
+        self.model.variables_form._editors["max_iter"].setValue(3)
+        chosen = self.project.config.variable_selection
+        self.assertEqual((chosen["id"], chosen["params"]["n_particles"], chosen["params"]["max_iter"]), ("pso", 6, 3))
+        self.assertIn("Seleção de variáveis: PSO", self.model.summary.text())
+        self.assertTrue(self.project.dirty)
+
+        self._train()
+        self.assertEqual(self.window.current, 5)
+        result = self.project.result
+        points = result.per_analyte["gl"].n_selected
+        self.assertTrue(2 <= points < result.wavelengths.size)
+        self.assertIn(f"{points} de {result.wavelengths.size} pontos do espectro", self.results.analytes.item(0).text())
+        self.assertTrue(self.results.tabs.isTabVisible(3))
+        self.assertIn("tende a parecer menor", self.results.warnings.text())
+        self.assertIn(f"gl: {points} de", self.results.points.figure.axes[0].get_title())
+        self.results.analytes.setCurrentRow(1)
+        self.assertIn("xy:", self.results.points.figure.axes[0].get_title())
+
+        with tempfile.TemporaryDirectory() as tmp:
+            self.window.go_to(6)
+            page = self.window.pages[6]
+            page.folder.setText(os.path.join(tmp, "execucao"))
+            names = {os.path.basename(p) for p in page.export()}
+            self.assertTrue({"pontos_escolhidos.csv", "pontos_escolhidos_gl.png", "modelo.multical"} <= names)
+            model = api.load_model(os.path.join(tmp, "execucao", "modelo.multical"))
+            self.assertIn(f"usa {points} de {result.wavelengths.size} pontos do espectro", describe_model(model))
+            data = self.project.active_dataset()
+            np.testing.assert_allclose(api.predict(model, data.X, data.wavelengths),
+                                       api.predict(result, data.X, data.wavelengths), rtol=1e-12)
+
+            path = self.project.save(os.path.join(tmp, "com selecao"))
+            reopened = Project()
+            reopened.open(path)
+            self.assertEqual(reopened.config.variable_selection, self.project.config.variable_selection)
+
+        self.window.go_to(4)                                        # the choice is still on the screen, and can be undone
+        self.assertEqual(combo.currentData(), "pso")
+        self.assertEqual(self.model.variables_form._editors["max_iter"].value(), 3)
+        combo.setCurrentIndex(0)
+        self.assertIsNone(self.project.config.variable_selection)
+        self.assertIsNone(self.model.variables_form)
+        self.assertIsNone(self.project.result)
+        self._train()
+        self.assertFalse(self.results.tabs.isTabVisible(3))
+        self.assertNotIn("pontos do espectro", self.results.analytes.item(0).text())
+
+        self.assertEqual([duration(s) for s in (2, 23, 49, 50, 100, 400)], ["5 s", "25 s", "50 s", "1 min", "2 min", "7 min"])
+
 
 @unittest.skipIf(QApplication is None, "PySide6 não está instalado")
 class InstalledProgram(unittest.TestCase):
@@ -519,7 +593,8 @@ class InstalledProgram(unittest.TestCase):
             self.assertEqual(main(["Multical", "--autoteste", report]), 0)
             with open(report, encoding="utf-8") as handle:
                 text = handle.read()
-        self.assertEqual(text.count("OK  "), 6, text)
+        self.assertEqual(text.count("OK  "), 7, text)
+        self.assertIn("Seleção de variáveis: vip (", text)
         self.assertIn("Pré-tratamentos: cut, sg", text)
         self.assertIn("Tudo certo.", text)
         self.assertIn("modelos pls, pcr, spa, svr", text)

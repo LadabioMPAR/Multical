@@ -21,7 +21,7 @@ from .config import RunConfig
 from .recipe import normalize_recipe
 from .registry import PRETREATMENTS, Pretreatment
 
-BUNDLE_FORMAT = 1
+BUNDLE_FORMAT = 2     # 2: points chosen per analyte; written only when there is a variable selection
 EXTENSION = ".multical"
 
 
@@ -34,6 +34,8 @@ class SavedAnalyte:
     r2cv: float
     y_min: Optional[float] = None     # range of the measured values used in the calibration
     y_max: Optional[float] = None
+    selected: Optional[np.ndarray] = None   # bool per point of the pretreated spectrum; None: every point is used
+    setting: Optional[str] = None           # description of the chosen setting, for models without a complexity
 
 
 @dataclass
@@ -82,10 +84,14 @@ def save_model(result, path):
         _pack(f"pre{i}", state, arrays)
     for j, name in enumerate(result.analytes):
         _pack(f"model{j}", result.per_analyte[name].model_state, arrays)
+        selected = getattr(result.per_analyte[name], "selected", None)
+        if selected is not None:
+            arrays[f"selected{j}"] = np.asarray(selected, dtype=bool)
+    with_selection = any(name.startswith("selected") for name in arrays)
     if getattr(result, "domain", None):
         _pack("domain", result.domain, arrays)
     manifest = {
-        "format": BUNDLE_FORMAT,
+        "format": 2 if with_selection else 1,
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
         "analytes": list(result.analytes),
         "units": result.units,
@@ -94,7 +100,8 @@ def save_model(result, path):
         "config": result.config.to_dict(),
         "validation": {
             name: {"k": res.best_k, "setting": res.best_label, "rmsecv": res.best_rmsecv, "r2cv": res.best_r2cv,
-                   "y_min": float(np.min(result.Y[:, j])), "y_max": float(np.max(result.Y[:, j]))}
+                   "y_min": float(np.min(result.Y[:, j])), "y_max": float(np.max(result.Y[:, j])),
+                   "n_points": res.n_selected, "rmsecv_all_points": res.full_rmsecv}
             for j, (name, res) in enumerate(result.per_analyte.items())
         },
     }
@@ -120,8 +127,10 @@ def load_model(path):
     per_analyte = {}
     for j, name in enumerate(analytes):
         info = manifest["validation"][name]
-        per_analyte[name] = SavedAnalyte(name, _unpack(f"model{j}", arrays), info["k"], info["rmsecv"], info["r2cv"],
-                                         info.get("y_min"), info.get("y_max"))
+        per_analyte[name] = SavedAnalyte(
+            name, _unpack(f"model{j}", arrays), info["k"], info["rmsecv"], info["r2cv"], info.get("y_min"), info.get("y_max"),
+            selected=arrays[f"selected{j}"].astype(bool) if f"selected{j}" in arrays.files else None,
+            setting=info.get("setting"))
     return SavedModel(
         config=RunConfig.from_dict(manifest["config"]),
         analytes=analytes,

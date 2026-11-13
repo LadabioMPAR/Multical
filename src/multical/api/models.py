@@ -44,6 +44,36 @@ class PLSModel(Model):
             out[k - 1] = (X_val @ beta).ravel() * y_std + y_mean
         return out
 
+    def cv_folds(self, X, y, folds, max_k):
+        # Used by the variable selection, which validates thousands of choices of points. With more points
+        # than samples, the same PLS is computed from the products between spectra (samples x samples)
+        # instead of the spectra themselves: for one y, every weight vector w is X'a and every loading p
+        # is X'b, with a = (deflated y)/c and b = t/(t't), so only X X' is needed.
+        n = X.shape[0]
+        if X.shape[1] <= n:
+            return super().cv_folds(X, y, folds, max_k)
+        gram = X @ X.T
+        out = np.full((max_k, n), np.nan)
+        for train, val in folds:
+            K = gram[np.ix_(train, train)]
+            yn, y_mean, y_std = _scale_y(y[train])
+            f, deflated = yn.ravel().copy(), K.copy()
+            A, B, q = np.zeros((len(train), max_k)), np.zeros((len(train), max_k)), np.zeros(max_k)
+            for i in range(max_k):
+                Kf = deflated @ f
+                c = np.sqrt(f @ Kf)
+                t = Kf / c
+                tt = t @ t
+                q[i] = (f @ t) / tt
+                A[:, i], B[:, i] = f / c, t / tt
+                Kt = deflated @ t
+                deflated = deflated - (np.outer(t, Kt) + np.outer(Kt, t)) / tt + np.outer(t, t) * ((t @ Kt) / tt ** 2)
+                f = f - t * q[i]
+            inner, cross = B.T @ K @ A, gram[np.ix_(val, train)] @ A
+            for k in range(1, max_k + 1):
+                out[k - 1, val] = cross[:, :k] @ np.linalg.pinv(inner[:k, :k]) @ q[:k] * y_std + y_mean
+        return out
+
 
 @register(MODELS)
 class PCRModel(Model):

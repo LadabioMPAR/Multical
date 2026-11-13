@@ -2,8 +2,8 @@
 
 Um plugin é um arquivo `.py` colocado nesta pasta. Quando o programa abre, ele
 executa cada arquivo, e o que o arquivo registrar aparece nas listas do
-programa, no modo **Avançado**: pré-tratamentos na tela 3, modelos e validações
-na tela 4. O formulário de ajustes, a gravação no projeto e no arquivo de
+programa, no modo **Avançado**: pré-tratamentos na tela 3, modelos, validações
+e seleções de variáveis na tela 4. O formulário de ajustes, a gravação no projeto e no arquivo de
 modelo e a exportação já vêm prontos; você escreve só o cálculo.
 
 Este documento descreve exatamente o que cada tipo de método recebe e o que
@@ -13,7 +13,7 @@ precisa devolver. A pasta `exemplos` tem um arquivo pronto para cada caso.
 
 1. Copie o exemplo mais parecido da pasta `exemplos` para esta pasta (`plugins`).
 2. Troque o `id`, o `label`, os parâmetros e o cálculo.
-3. Confira: rode o autoteste (seção 8). Ele executa todos os métodos
+3. Confira: rode o autoteste (seção 9). Ele executa todos os métodos
    registrados, inclusive o seu, e diz o que está fora do formato.
 4. Feche e abra o Multical. O método aparece nas listas do modo Avançado.
 
@@ -174,6 +174,12 @@ class MeuModelo(Model):
   `k`, com o mesmo resultado e mais devagar.
 - O programa reduz o máximo quando há poucas amostras: ele nunca passa do
   menor conjunto de treino menos 1, nem do número de pontos do espectro.
+- `cv_folds(self, X, y, folds, max_k, <os outros params>)` também é opcional e
+  só importa para a seleção de variáveis (seção 7), que valida o modelo
+  milhares de vezes: recebe todas as amostras e a lista de pares (treino,
+  validação) e devolve uma matriz `(max_k, amostras)` com a estimativa de cada
+  amostra quando ela ficou de fora. Sem ele, o programa chama `cv_path` para
+  cada par. Se escrever um, ele precisa dar os mesmos números de `cv_path`.
 - A complexidade é escolhida pelo teste F (a mais simples que não perde
   precisão) ou pelo menor erro, conforme a escolha do usuário.
 
@@ -228,18 +234,65 @@ Cada item do par é um vetor de **posições inteiras entre 0 e n − 1**. Use
 
 Exemplo: `exemplos/validacao.py`.
 
-## 7. Erros e mensagens
+## 7. Seleção de variáveis
+
+Escolhe, **para cada analito**, quais pontos do espectro o modelo usa. O
+programa chama `select` uma vez por analito, depois do pré-tratamento, e o
+modelo desse analito passa a ser validado, treinado e usado só com os pontos
+escolhidos. A escolha é gravada no arquivo de modelo.
+
+```python
+@register(SELECTORS)
+class MinhaSelecao(Selector):
+    id = "..."; label = "..."; params = (...)
+
+    def select(self, X, y, error, rng, progress, <params>):
+        return escolha
+```
+
+O que `select` recebe:
+
+| Argumento | Conteúdo |
+|---|---|
+| `X` | espectros de calibração já pré-tratados, `(amostras, pontos)`; já padronizados se o modelo escolhido tiver `scale_x = True` |
+| `y` | valores medidos do analito, `(amostras,)` |
+| `error` | função: `error(escolha)` devolve o **erro de validação** (na unidade do analito) do modelo escolhido pelo usuário usando só os pontos de `escolha`; quanto menor, melhor |
+| `rng` | gerador de sorteios (`numpy.random.RandomState`) já com a semente do projeto |
+| `progress` | função: `progress(fração, "texto")` avisa a tela de quanto já foi feito (fração de 0 a 1) |
+
+O que devolve: um vetor de verdadeiro/falso com **um item por ponto**
+(`True`: o ponto é usado), formato `(pontos,)`, ou um vetor com as posições
+inteiras dos pontos escolhidos. Pelo menos um ponto precisa ser escolhido.
+
+- `error(escolha)` aceita os mesmos dois formatos. Para modelos com número de
+  complexidade, o erro devolvido é o menor entre as complexidades testadas.
+  Uma escolha vazia, ou que o modelo não consegue calcular, devolve infinito.
+- `error.curve(escolha)` devolve o erro de cada complexidade (ou ajuste)
+  testado; `error.folds` é a lista de pares (treino, validação) em uso e
+  `error.wavelengths` é o eixo.
+- Não é preciso tratar o cancelamento: se o usuário clicar em Cancelar, a
+  próxima chamada de `error` interrompe o cálculo.
+- Para sortear, use sempre `rng`.
+- O erro mostrado na tela de resultados é calculado de novo com os pontos
+  devolvidos. Como a escolha olhou esse mesmo erro, ele tende a parecer menor
+  do que será com amostras novas; o programa avisa o usuário disso.
+
+Exemplo: `exemplos/selecao_de_variaveis.py`.
+
+## 8. Erros e mensagens
 
 - Para recusar um ajuste ou um dado, use `raise ValueError("frase para o usuário")`.
   A frase aparece em vermelho na tela, sem derrubar o programa.
 - Se o método devolver algo fora do formato (número de linhas diferente, eixo
-  com tamanho errado, estado com texto, estimativas com formato errado), o
+  com tamanho errado, estado com texto, estimativas com formato errado,
+  escolha de pontos com tamanho errado ou vazia), o
   programa mostra uma mensagem com o nome do método e o que era esperado.
 - Qualquer outro erro aparece como "Erro inesperado", com o trecho do código.
 
-## 8. Como testar
+## 9. Como testar
 
-O autoteste roda todos os pré-tratamentos, modelos e validações registrados
+O autoteste roda todos os pré-tratamentos, modelos, validações e seleções de
+variáveis registrados
 em dados de exemplo e grava um relatório:
 
 | Situação | Comando |
@@ -272,7 +325,7 @@ print(resultado.per_analyte["a"].best_rmsecv)
 print(api.predict(resultado, X[:3], dados.wavelengths))
 ```
 
-## 9. Cuidados
+## 10. Cuidados
 
 - **`id` único e definitivo.** O `id` vai para os projetos e para os arquivos
   de modelo. Se ele mudar, ou se o plugin for removido, esses arquivos deixam
@@ -281,7 +334,9 @@ print(api.predict(resultado, X[:3], dados.wavelengths))
 - **Nada de estado fora do dicionário.** Não guarde resultados em variáveis do
   arquivo ou em atributos da classe: o modelo salvo só leva o que `fit` devolveu.
 - **Tempo de cálculo.** `fit` é chamado muitas vezes (analitos × divisões ×
-  ajustes testados). O programa não trava enquanto calcula, e o usuário pode cancelar.
+  ajustes testados), e muito mais vezes quando há seleção de variáveis (cada
+  chamada de `error` é uma validação inteira). O programa não trava enquanto
+  calcula, e o usuário pode cancelar.
 - **Outras bibliotecas.** No programa instalado só existem `numpy`, `scipy`,
   `scikit-learn` e `matplotlib`. Outras bibliotecas só funcionam na cópia do
   repositório, com o Python onde foram instaladas.

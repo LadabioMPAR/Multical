@@ -86,6 +86,23 @@ def _check_models():
     return f"modelos {', '.join(done)}; validações {', '.join(api.SPLITTERS.ids())}"
 
 
+def _check_selectors():
+    """Every registered variable selection with its default settings, then the model file made with it."""
+    from multical import api
+    data = _synthetic()
+    done = []
+    for selector in api.SELECTORS:
+        result = api.run_calibration(data, api.RunConfig(
+            model={"id": "pls", "params": {"max_k": 3}}, analytes=["a"],
+            variable_selection={"id": selector.id, "params": {}}))
+        with tempfile.TemporaryDirectory() as folder:
+            model = api.load_model(api.save_model(result, os.path.join(folder, "modelo")))
+        if not np.allclose(api.predict(model, data.X, data.wavelengths), api.predict(result, data.X, data.wavelengths)):
+            raise RuntimeError(f"{selector.id}: o modelo relido não repete as estimativas")
+        done.append(f"{selector.id} ({result.per_analyte['a'].n_selected} de {result.wavelengths.size} pontos)")
+    return ", ".join(done)
+
+
 def _check_files():
     from multical import api
     from multical.api import export
@@ -132,6 +149,7 @@ CHECKS = (
     ("Processos em paralelo", _check_processes),
     ("Pré-tratamentos", _check_pretreatments),
     ("Modelos e validações", _check_models),
+    ("Seleção de variáveis", _check_selectors),
     ("Arquivos (modelo, tabelas, figuras, PDF)", _check_files),
     ("Janela", _check_window),
     ("Plugins", _check_plugins),

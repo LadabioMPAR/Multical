@@ -85,6 +85,32 @@ def check_cv_path(item, values, max_k, n_rows):
     return values
 
 
+def check_selection(item, value, n_points):
+    """What a variable selection returns: a bool per point of the spectrum, or the positions of the chosen points."""
+    try:
+        value = np.asarray(value)
+    except Exception:
+        raise ContractError(f"{_name(item)}: select deve devolver um vetor.") from None
+    if value.dtype.kind == "b":
+        if value.shape != (n_points,):
+            raise ContractError(
+                f"{_name(item)}: select devolveu um vetor de verdadeiro/falso de formato {value.shape}; "
+                f"esperado um item por ponto do espectro, formato ({n_points},).")
+        mask = value.copy()
+    elif value.dtype.kind in "iu" and value.ndim == 1:
+        if value.size and (value.min() < 0 or value.max() >= n_points):
+            raise ContractError(f"{_name(item)}: as posições devolvidas por select devem estar entre 0 e {n_points - 1}.")
+        mask = np.zeros(n_points, dtype=bool)
+        mask[value] = True
+    else:
+        raise ContractError(
+            f"{_name(item)}: select deve devolver um vetor de verdadeiro/falso (um item por ponto do espectro) "
+            "ou as posições inteiras dos pontos escolhidos.")
+    if not mask.any():
+        raise ContractError(f"{_name(item)}: nenhum ponto do espectro foi escolhido.")
+    return mask
+
+
 def check_split(item, train, val, n):
     """One (train, validation) pair of a validation scheme: positions between 0 and n - 1, without overlap."""
     try:

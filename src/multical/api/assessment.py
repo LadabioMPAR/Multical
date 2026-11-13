@@ -47,6 +47,8 @@ def assess(result):
             parts.append(f"{res.best_k} {one if res.best_k == 1 else many}")
         elif res.best_label is not None:
             parts.append(f"ajuste escolhido: {res.best_label}")
+        if res.selected is not None:
+            parts.append(f"{res.n_selected} de {res.selected.size} pontos do espectro")
         residual = res.y_cv[res.best_index] - result.Y[:, j]
         suspects = []
         order = np.argsort(-np.abs(np.where(result.validated, residual, 0.0)))
@@ -59,6 +61,24 @@ def assess(result):
             )
         out.append(AnalyteAssessment(name, level, " · ".join(parts), suspects))
     return out
+
+
+def selection_notes(result):
+    """Sentences about a variable selection: what it changed and how to read the error that comes after it."""
+    unit = f" {result.units}" if result.units else ""
+    notes = []
+    for name in result.analytes:
+        res = result.per_analyte[name]
+        if res.selected is None or res.full_rmsecv is None:
+            continue
+        notes.append(
+            f"{name}: erro típico ±{number(res.best_rmsecv)}{unit} com {res.n_selected} pontos do espectro; "
+            f"com todos os {res.selected.size} pontos era ±{number(res.full_rmsecv)}{unit}.")
+    if notes:
+        notes.append(
+            "Os pontos foram escolhidos olhando o erro de validação; por isso esse erro tende a parecer menor do que "
+            "será com amostras novas. Confirme o modelo com experimentos que não entraram na calibração.")
+    return notes
 
 
 def dataset_warnings(dataset):
