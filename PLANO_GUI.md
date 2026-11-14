@@ -398,6 +398,25 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 
 ## 9. Perguntas abertas
 
+**Pedido de 2026-11-13: adicionar vários experimentos de uma vez.**
+- Botão **“Adicionar vários arquivos…”** na tela de importação: uma única janela de escolha, com seleção múltipla, para os espectros e as tabelas de todos os experimentos. O botão de um experimento por vez continua.
+- `src/multical_gui/file_pairs.py` separa os arquivos pelo conteúdo (`.spp` e textos com 30 colunas ou mais são espectros; textos com 2 a 29 colunas de números são tabelas; o resto é ignorado) e sugere os pares pelo nome: palavras e números em comum e, no empate, o que os nomes têm de diferente. Um par só é sugerido quando cada arquivo é a única melhor opção do outro; na dúvida (por exemplo `exp8_nonda` e `exp8_inf` para um só `exp8_refe`), a linha fica em “não adicionar”. Um arquivo de espectros e uma tabela, sozinhos, são tomados como par.
+- **A sugestão nunca é aplicada sem conferência:** a janela “Conferir os experimentos” mostra cada arquivo de espectros com a tabela sugerida (trocável) e o nome do experimento (editável), lista os arquivos sem tabela e as tabelas sem uso, e recusa a mesma tabela em duas linhas. Espectros que já estão no projeto ficam de fora.
+- Os dados são lidos uma vez para o lote inteiro (`Project.add_experiments`), não uma vez por experimento.
+- Verificado nos nomes reais de `data/` (só leitura dos nomes e das primeiras linhas): `exp4..9_nonda` com `exp4..9_refe` e `abs02..05` com `x02..05` saem certos.
+- **Limite:** a janela de escolha do Windows só seleciona arquivos de uma mesma pasta. Experimentos em pastas separadas (como os `.spp` chamados “Untitled” em uma pasta por experimento) continuam sendo adicionados um por vez.
+
+**Fase 6, segunda parte (2026-11-13): plugin de rede neural e README.**
+- **Plugin opcional** `plugins/opcionais/rede_neural.py` (id `ann`), inativo até ser copiado para `plugins`. O treino chama `multical.models.ann_torch.ANNModel.fit_predict` (PyTorch, em CPU) com os valores de um analito; do resultado ficam só números (pesos e viés de cada camada, médias e desvios), e a estimativa é calculada em numpy. Assim o arquivo `.multical` de uma rede treinada na cópia do repositório abre e estima no programa instalado, que não traz o PyTorch. Sem PyTorch, “Treinar modelo” mostra uma mensagem explicando.
+- O build passa a copiar também a pasta `plugins/opcionais`.
+- **Verificado** (`tests/test_ann_plugin.py`; PyTorch 2.15.0 CPU instalado nesta máquina em 2026-11-13, a pedido do usuário): o plugin carrega sem PyTorch; a estimativa confere com a conta feita à mão para as seis funções de ativação; o treino dá as estimativas de `ANNModel.fit_predict` (diferença máxima de 8e-7 em 64 × 8.801 pontos, porque a rede calcula em precisão simples e o plugin em dupla), com e sem parada antecipada; o modelo salvo é relido e usado com o PyTorch escondido; o treino sem PyTorch é recusado com a mensagem. Os testes de treino são pulados onde o PyTorch não está instalado.
+- **Tempos** (dados sintéticos de 80 × 8.801 pontos, ajustes padrão): 2,6 s por treino; calibração inteira de 3 analitos com 5 partes em 29 s; arquivo de modelo de 5,6 MB.
+- **Pela tela** (dados sintéticos): com o plugin carregado, a rede aparece na lista de modelos com seus oito ajustes, treina, mostra o resultado e exporta um modelo que repete as estimativas.
+- **No executável** (o de `dist/`, com o arquivo copiado para `plugins` só durante o teste): o plugin carrega sem erro e o treino é recusado com a mensagem do PyTorch; o autoteste acusa essa falha em “Modelos e validações”, como o tutorial avisa.
+- **Não verificado:** abrir, no executável, um `.multical` de rede neural e estimar amostras pela tela (o cálculo usa só numpy e foi testado em Python com o PyTorch escondido); a rede nos dados reais de `data/`.
+- **README** reescrito (em inglês, como o anterior): as três formas de uso (programa, API, scripts), o que o programa faz, instalação, como gerar o programa para Windows, exemplo da API e testes. O exemplo de código do README é executado por um teste.
+- **Testes:** 134 passam; 1 pulado (precisa de `MULTICAL_SPP_SAMPLES`). Sem o PyTorch instalado, 2 a mais são pulados.
+
 **Fase 6, primeira parte (2026-11-13): seleção de variáveis por analito.**
 - **Decisão do usuário:** a seleção é feita por analito, com o modelo do próprio analito (e não com o PLS conjunto que `run_pso` e `run_simulated_annealing` otimizam quando recebem `target_idx`).
 - **Registro novo `SELECTORS`** (`api/registry.py`, contrato `Selector.select(X, y, error, rng, progress, **params)`), ao lado dos outros quatro; aceita plugins. Métodos embutidos em `api/selection.py`: `vip` (com a busca do limite de 0,1 a 1,4 de `scripts/calibration/run_variable_selection.py`, ou limite fixo), `pso` e `sa`. Os sorteios são feitos na mesma ordem do código original.

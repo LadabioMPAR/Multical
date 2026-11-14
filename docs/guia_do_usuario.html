@@ -62,7 +62,13 @@ amostras cujo valor foi medido em laboratório; depois usa esse modelo para esti
 <p>Clique em <b>Criar um modelo</b>. As etapas ficam na barra à esquerda e só abrem quando a anterior está completa.</p>
 <ol>
   <li><b>Importar dados.</b> Clique em <b>Adicionar experimento</b>, escolha o arquivo de espectros e a tabela de
-      valores medidos, e repita para cada experimento. Quando a ligação é pelo tempo, você escolhe entre usar
+      valores medidos, e repita para cada experimento. Para adicionar vários de uma vez, clique em
+      <b>Adicionar vários arquivos</b> e selecione juntos os espectros e as tabelas de todos os experimentos
+      (segure Ctrl ou Shift para marcar mais de um). O programa junta cada arquivo de espectros à tabela de nome
+      mais parecido (<code>exp4_nonda.txt</code> com <code>exp4_refe.txt</code>, por exemplo) e mostra os pares
+      em uma janela: <b>confira cada linha</b>, troque a tabela onde estiver errada e só então clique em
+      <i>Adicionar</i>. Quando o programa não tem certeza de um par, deixa a linha em “não adicionar” para você
+      escolher. Quando a ligação é pelo tempo, você escolhe entre usar
       <i>o espectro mais próximo</i> do tempo da amostra ou <i>a média dos espectros em uma janela</i> de alguns
       minutos em volta dela.<br>
       O quadro <b>Analitos</b> lista uma linha para cada coluna de valores da tabela, com o menor e o maior valor
@@ -157,7 +163,9 @@ fora do que o modelo conhece.</figcaption></figure>
       não entrou na calibração.</li>
   <li>Métodos novos podem ser acrescentados sem alterar o programa: arquivos <code>.py</code> na pasta
       <code>plugins</code>, ao lado do programa. O arquivo <code>LEIA-ME.md</code> dessa pasta descreve o formato de
-      cada tipo de método, e a pasta <code>exemplos</code> traz um arquivo pronto para cada caso.</li>
+      cada tipo de método, e a pasta <code>exemplos</code> traz um arquivo pronto para cada caso. A pasta
+      <code>opcionais</code> traz o modelo de rede neural: treinar exige o PyTorch (só em uma cópia do repositório),
+      mas um modelo de rede já treinado pode ser usado aqui para estimar amostras.</li>
   <li><code>Multical.exe --autoteste relatorio.txt</code> verifica a instalação e grava o resultado no arquivo indicado.</li>
 </ul>
 

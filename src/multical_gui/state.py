@@ -92,14 +92,25 @@ class Project:
 
     # ---- import ----------------------------------------------------------
     def add_experiment(self, spectra_path, reference_path, name=None):
-        kind = "spp" if str(spectra_path).lower().endswith(".spp") else "txt"
-        name = (name or "").strip() or default_experiment_name(spectra_path)
-        taken = {e.name for e in self.experiments}
-        base, n = name, 2
-        while name in taken:
-            name, n = f"{base} ({n})", n + 1
-        self.experiments.append(Experiment(name, str(spectra_path), str(reference_path), kind))
+        self.add_experiments([(spectra_path, reference_path, name)])
+
+    def add_experiments(self, items):
+        """Add several experiments, given as (spectra_path, reference_path, name or None), and read the data once."""
+        for spectra_path, reference_path, name in items:
+            kind = "spp" if str(spectra_path).lower().endswith(".spp") else "txt"
+            name = (name or "").strip() or default_experiment_name(spectra_path)
+            taken = {e.name for e in self.experiments}
+            base, n = name, 2
+            while name in taken:
+                name, n = f"{base} ({n})", n + 1
+            self.experiments.append(Experiment(name, str(spectra_path), str(reference_path), kind))
         self.rebuild()
+
+    def has_spectra_file(self, path):
+        """True when an experiment already uses this spectra file."""
+        def same(p):
+            return os.path.normcase(os.path.abspath(str(p)))
+        return any(same(e.spectra_path) == same(path) for e in self.experiments)
 
     def remove_experiment(self, index):
         del self.experiments[index]

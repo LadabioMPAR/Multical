@@ -917,5 +917,177 @@ class TextSpectraAnalytesAndProjects(unittest.TestCase):
             del api.PLUGIN_ERRORS[:]
 
 
+@unittest.skipIf(QApplication is None, "PySide6 não está instalado")
+class SeveralFilesAtOnce(unittest.TestCase):
+    """Spectra files and tables of measured values chosen together are sorted into experiments."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.tmp = cls._tmp.name
+        cls.files = {name: _write_experiment(cls.tmp, name, seed) for seed, name in enumerate(("exp1", "exp2", "exp10"), start=1)}
+        from multical.io.spp import read_spp
+        series = read_spp(cls.files["exp1"][0])
+        cls.text = os.path.join(cls.tmp, "lote7_nonda.txt")             # spectra in text, no table with a similar name
+        header = "Time\t" + "\t".join(f"{w:.10g}" for w in series.wavelengths)
+        np.savetxt(cls.text, np.column_stack([np.arange(8) * 10.0 + 11.0, series.X[:8]]), fmt="%.12g", delimiter="\t",
+                   header=header, comments="")
+        cls.loose_table = os.path.join(cls.tmp, "medidas_do_laboratorio.csv")
+        with open(cls.files["exp2"][1], encoding="utf-8") as source, open(cls.loose_table, "w", encoding="utf-8") as target:
+            target.write(source.read())
+        cls.notes = os.path.join(cls.tmp, "anotacoes.txt")
+        with open(cls.notes, "w", encoding="utf-8") as handle:
+            handle.write("Experimento 1 feito na terca\nexp2 repetido\n")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def setUp(self):
+        from multical_gui.wizard import MainWindow
+        self.window = MainWindow()
+        self.window.show()
+        self.addCleanup(self.window.close)
+        self.project = self.window.project
+        self.imp = self.window.pages[1]
+        self.window.go_to(1)
+
+    def _all(self):
+        return [path for pair in self.files.values() for path in pair]
+
+    def test_files_are_told_apart_and_paired_by_name(self):
+        from multical_gui.file_pairs import file_kind, sort_files
+        self.assertEqual([file_kind(p) for p in (self.files["exp1"][0], self.files["exp1"][1], self.text, self.notes)],
+                         ["spectra", "table", "spectra", ""])
+        self.assertEqual(file_kind(os.path.join(self.tmp, "nao_existe.txt")), "")
+
+        shuffled = list(reversed(self._all())) + [self.notes, self.text, self.loose_table]
+        pairs, spare, ignored = sort_files(shuffled)
+        names = [(os.path.basename(s), t and os.path.basename(t)) for s, t in pairs]
+        self.assertEqual(names, [("exp1.spp", "exp1_refe.csv"), ("exp2.spp", "exp2_refe.csv"),      # exp2 before exp10,
+                                 ("exp10.spp", "exp10_refe.csv"), ("lote7_nonda.txt", None)])      # and 1 is not 10
+        self.assertEqual(([os.path.basename(p) for p in spare], [os.path.basename(p) for p in ignored]),
+                         (["medidas_do_laboratorio.csv"], ["anotacoes.txt"]))
+
+        # Two spectra files that fit the same table equally well: none is guessed.
+        copies = {}
+        for name, source in (("lote3_nonda.spp", 0), ("lote3_inf.spp", 0), ("lote3_refe.csv", 1), ("exp2_inf.spp", 0)):
+            copies[name] = os.path.join(self.tmp, name)
+            with open(self.files["exp2"][source], "rb") as origin, open(copies[name], "wb") as target:
+                target.write(origin.read())
+            self.addCleanup(os.remove, copies[name])
+        pairs, spare, _ = sort_files([copies["lote3_nonda.spp"], copies["lote3_inf.spp"], copies["lote3_refe.csv"]])
+        self.assertEqual([t for _, t in pairs], [None, None])
+        self.assertEqual(spare, [copies["lote3_refe.csv"]])
+        # The name that differs least from the table wins: exp2 goes with exp2_refe, exp2_inf stays without one.
+        pairs, spare, _ = sort_files([copies["exp2_inf.spp"], *self.files["exp2"]])
+        self.assertEqual([(os.path.basename(s), t and os.path.basename(t)) for s, t in pairs],
+                         [("exp2.spp", "exp2_refe.csv"), ("exp2_inf.spp", None)])
+        self.assertEqual(spare, [])
+        # One spectra file and one table: taken as a pair whatever the names.
+        self.assertEqual(sort_files([self.loose_table, self.text]), ([(self.text, self.loose_table)], [], []))
+
+    def test_pairs_are_shown_confirmed_and_added_in_one_go(self):
+        from multical_gui.state import Project
+        seen, rebuilds = {}, []
+        original = Project.rebuild
+
+        def counting(project):
+            rebuilds.append(1)
+            return original(project)
+
+        def confirm(dialog):
+            seen["rows"] = [(dialog.table.item(r, 0).text(), dialog.choices[r].currentText(), dialog.names[r].text())
+                            for r in range(dialog.table.rowCount())]
+            seen["button"] = dialog.buttons.button(dialog.buttons.StandardButton.Ok).text()
+            seen["status"], seen["notes"] = dialog.status.text(), dialog.notes.text()
+            if len(dialog.names) > 1:
+                dialog.names[1].setText("segundo lote")
+            return True
+
+        Project.rebuild = counting
+        self.addCleanup(setattr, Project, "rebuild", original)
+        added = self.imp.add_files(self._all() + [self.notes], confirm=confirm)
+        self.assertEqual(added, 3)
+        self.assertEqual(len(rebuilds), 1)                                       # the files are read once, not once per experiment
+        self.assertEqual(seen["rows"], [("exp1.spp", "exp1_refe.csv", "exp1"), ("exp2.spp", "exp2_refe.csv", "exp2"),
+                                        ("exp10.spp", "exp10_refe.csv", "exp10")])
+        self.assertEqual(seen["button"], "Adicionar 3 experimentos")
+        self.assertEqual(seen["status"], "")
+        self.assertIn("anotacoes.txt", seen["notes"])
+        self.assertEqual([e.name for e in self.project.experiments], ["exp1", "segundo lote", "exp10"])
+        self.assertEqual([(e.error, e.n_linked) for e in self.project.experiments], [("", 8)] * 3)
+        self.assertEqual(self.imp.table.rowCount(), 3)
+        self.assertEqual(self.project.dataset.n_samples, 24)
+        self.assertIn("3 experimento(s) adicionado(s)", self.window.message.text())
+        self.assertIsNone(self.imp.validate())
+
+        # The same files again: nothing to add; with a new one among them, only the new one is offered.
+        self.assertEqual(self.imp.add_files(self._all(), confirm=lambda dialog: self.fail("nothing to confirm")), 0)
+        self.assertIn("já estavam no projeto", self.window.message.text())
+        self.assertEqual(self.imp.add_files(self._all() + [self.text, self.loose_table], confirm=confirm), 0)   # no table chosen
+        self.assertEqual(seen["rows"], [("lote7_nonda.txt", "— não adicionar —", "lote7_nonda")])
+        self.assertIn("exp1.spp", seen["notes"])
+        self.assertEqual(len(self.project.experiments), 3)
+
+    def test_a_pair_can_be_corrected_and_mistakes_are_refused(self):
+        def choose(dialog, row, name):
+            dialog.choices[row].setCurrentIndex(dialog.choices[row].findText(name))
+
+        def correct(dialog):
+            ok = dialog.buttons.button(dialog.buttons.StandardButton.Ok)
+            self.assertEqual(dialog.choices[1].currentText(), "— não adicionar —")      # the text spectra had no match
+            self.assertIn("Sem tabela (não serão adicionados): lote7_nonda.txt", dialog.status.text())
+            self.assertIn("Tabelas sem uso: medidas_do_laboratorio.csv", dialog.status.text())
+            self.assertEqual((ok.text(), ok.isEnabled()), ("Adicionar 1 experimento", True))
+            choose(dialog, 1, "exp1_refe.csv")                                          # already used by exp1.spp
+            self.assertIn("mesma tabela foi escolhida", dialog.status.text())
+            self.assertEqual(dialog.status.level, "error")
+            self.assertFalse(ok.isEnabled())
+            choose(dialog, 1, "medidas_do_laboratorio.csv")
+            self.assertEqual((dialog.status.text(), ok.text(), ok.isEnabled()), ("", "Adicionar 2 experimentos", True))
+            return True
+
+        files = [*self.files["exp1"], self.text, self.loose_table]
+        self.assertEqual(self.imp.add_files(files, confirm=correct), 2)
+        self.assertEqual([(e.name, os.path.basename(e.reference_path), e.kind) for e in self.project.experiments],
+                         [("exp1", "exp1_refe.csv", "spp"), ("lote7_nonda", "medidas_do_laboratorio.csv", "txt")])
+
+        def spoil(dialog):
+            choose(dialog, 0, "exp10_refe.csv")
+            choose(dialog, 1, "exp10_refe.csv")
+            return True                                                                 # as if "add" could be pressed anyway
+
+        before = len(self.project.experiments)
+        self.assertEqual(self.imp.add_files([*self.files["exp2"], *self.files["exp10"]], confirm=spoil), 0)
+        self.assertEqual(self.imp.add_files([*self.files["exp2"], *self.files["exp10"]], confirm=lambda dialog: False), 0)
+        self.assertEqual(len(self.project.experiments), before)
+
+    def test_selections_without_spectra_or_without_tables_are_explained(self):
+        self.assertEqual(self.imp.add_files([self.files["exp1"][1], self.loose_table, self.notes]), 0)
+        self.assertIn("não há nenhum de espectros", self.window.message.text())
+        self.assertEqual(self.imp.add_files([self.files["exp1"][0], self.text]), 0)
+        self.assertIn("não há nenhuma tabela de valores medidos", self.window.message.text())
+        self.assertEqual(self.project.experiments, [])
+
+    def test_button_opens_one_file_dialog_for_all_the_files(self):
+        from unittest import mock
+
+        from PySide6.QtWidgets import QDialog, QFileDialog
+
+        from multical_gui.pages.import_page import PairsDialog
+        self.assertEqual(self.imp.add_several.text(), "Adicionar vários arquivos…")
+        with mock.patch.object(QFileDialog, "getOpenFileNames", return_value=(self._all(), "")) as chooser, \
+                mock.patch.object(PairsDialog, "exec", return_value=QDialog.Accepted):
+            self.imp.add_several.click()
+        self.assertEqual(chooser.call_count, 1)
+        self.assertEqual(len(self.project.experiments), 3)
+        self.assertEqual(self.imp._last_folder, os.path.dirname(self._all()[0]))
+        with mock.patch.object(QFileDialog, "getOpenFileNames", return_value=([], "")):      # cancelled: nothing happens
+            self.imp.add_several.click()
+        self.assertEqual(len(self.project.experiments), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

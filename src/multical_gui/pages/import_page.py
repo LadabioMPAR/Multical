@@ -3,20 +3,22 @@ import os
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton, QTableWidget, QTableWidgetItem,
-    QVBoxLayout,
+    QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFileDialog, QFormLayout, QGroupBox,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton, QTableWidget,
+    QTableWidgetItem, QVBoxLayout,
 )
 
 from multical import api
 from multical.api.assessment import number
 
+from ..file_pairs import sort_files
 from ..state import LINKED_BY, default_experiment_name
 from ..widgets import Banner
 from .base import Page
 
 SPECTRA_FILTER = "Espectros (*.spp *.txt);;Arquivos do equipamento (*.spp);;Texto (*.txt);;Todos os arquivos (*)"
 REFERENCE_FILTER = "Tabelas (*.txt *.csv *.tsv);;Todos os arquivos (*)"
+SEVERAL_FILTER = "Espectros e tabelas (*.spp *.txt *.csv *.tsv);;Todos os arquivos (*)"
 
 
 class AddExperimentDialog(QDialog):
@@ -75,10 +77,105 @@ class AddExperimentDialog(QDialog):
         return self.spectra.text().strip(), self.reference.text().strip(), self.name.text().strip()
 
 
+class PairsDialog(QDialog):
+    """
+    Shows which table of measured values the program would use with each spectra
+    file chosen, so the user confirms or corrects it before the experiments are added.
+    """
+    SKIP = "— não adicionar —"
+    COLUMNS = ("Arquivo de espectros", "Valores medidos", "Nome do experimento")
+
+    def __init__(self, pairs, tables, parent=None, notes=()):
+        super().__init__(parent)
+        self.setWindowTitle("Conferir os experimentos")
+        self.setMinimumSize(760, 380)
+        self._spectra = [spectra for spectra, _ in pairs]
+        self._tables = list(tables)
+        layout = QVBoxLayout(self)
+        intro = QLabel(
+            "O programa juntou cada arquivo de espectros à tabela de valores medidos de nome mais parecido. "
+            "Confira cada linha e corrija a tabela se for preciso.", objectName="hint")
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        self.table = QTableWidget(len(pairs), len(self.COLUMNS))
+        self.table.setHorizontalHeaderLabels(self.COLUMNS)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.choices, self.names = [], []
+        for row, (spectra, suggested) in enumerate(pairs):
+            item = QTableWidgetItem(os.path.basename(spectra))
+            item.setFlags(Qt.ItemIsEnabled)
+            item.setToolTip(spectra)
+            self.table.setItem(row, 0, item)
+            choice = QComboBox()
+            choice.addItem(self.SKIP, None)
+            for path in self._tables:
+                choice.addItem(os.path.basename(path), path)
+                choice.setItemData(choice.count() - 1, path, Qt.ToolTipRole)
+            choice.setCurrentIndex(self._tables.index(suggested) + 1 if suggested in self._tables else 0)
+            choice.currentIndexChanged.connect(self._update)
+            self.table.setCellWidget(row, 1, choice)
+            name = QLineEdit(default_experiment_name(spectra))
+            self.table.setCellWidget(row, 2, name)
+            self.choices.append(choice)
+            self.names.append(name)
+        layout.addWidget(self.table, 1)
+
+        self.status = Banner()
+        layout.addWidget(self.status)
+        self.notes = QLabel("\n".join(notes), objectName="hint")
+        self.notes.setWordWrap(True)
+        self.notes.setVisible(bool(notes))
+        layout.addWidget(self.notes)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.button(QDialogButtonBox.Cancel).setText("Cancelar")
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
+        self._update()
+
+    def values(self):
+        """[(spectra_path, table_path, name)] for the rows that have a table."""
+        return [(spectra, choice.currentData(), name.text().strip())
+                for spectra, choice, name in zip(self._spectra, self.choices, self.names) if choice.currentData()]
+
+    def problem(self):
+        """Why the experiments cannot be added as they are (None: they can)."""
+        chosen = [table for _, table, _ in self.values()]
+        if not chosen:
+            return "Escolha a tabela de valores medidos de pelo menos um arquivo de espectros."
+        repeated = sorted({os.path.basename(t) for t in chosen if chosen.count(t) > 1})
+        if repeated:
+            return f"A mesma tabela foi escolhida para mais de um arquivo de espectros: {', '.join(repeated)}."
+        return None
+
+    def _update(self):
+        problem, chosen = self.problem(), {table for _, table, _ in self.values()}
+        lines, level = [], "ok"
+        without = [os.path.basename(s) for s, c in zip(self._spectra, self.choices) if not c.currentData()]
+        spare = [os.path.basename(t) for t in self._tables if t not in chosen]
+        if without:
+            lines.append(f"Sem tabela (não serão adicionados): {', '.join(without)}.")
+        if spare:
+            lines.append(f"Tabelas sem uso: {', '.join(spare)}.")
+        if lines:
+            level = "warning"
+        if problem:
+            lines, level = [problem] + lines, "error"
+        self.status.set_message("\n".join(lines), level)
+        count = len(self.values())
+        button = self.buttons.button(QDialogButtonBox.Ok)
+        button.setText(f"Adicionar {count} experimento{'s' if count != 1 else ''}")
+        button.setEnabled(problem is None)
+
+
 class ImportPage(Page):
     title = "Importar dados"
     intro = ("Adicione cada experimento: o arquivo de espectros (.spp do equipamento ou .txt) e a tabela com os "
-             "valores medidos em laboratório. O programa liga cada amostra ao seu espectro e mostra abaixo os "
+             "valores medidos em laboratório. Com “Adicionar vários arquivos”, escolha de uma vez os espectros e as "
+             "tabelas de todos os experimentos. O programa liga cada amostra ao seu espectro e mostra abaixo os "
              "analitos encontrados, para você conferir e dar nome a cada um.")
 
     COLUMNS = ("Experimento", "Arquivo de espectros", "Valores medidos", "Espectros no arquivo", "Amostras ligadas", "Situação")
@@ -87,8 +184,13 @@ class ImportPage(Page):
     def build(self):
         buttons = QHBoxLayout()
         self.add = QPushButton("Adicionar experimento…", objectName="primary")
+        self.add_several = QPushButton("Adicionar vários arquivos…")
+        self.add_several.setToolTip(
+            "Escolha de uma vez os arquivos de espectros e as tabelas de valores medidos de vários experimentos.\n"
+            "O programa forma os pares pelo nome dos arquivos e mostra para você conferir.")
         self.remove = QPushButton("Remover selecionado")
         buttons.addWidget(self.add)
+        buttons.addWidget(self.add_several)
         buttons.addWidget(self.remove)
         buttons.addStretch(1)
         self.body.addLayout(buttons)
@@ -150,6 +252,7 @@ class ImportPage(Page):
         self.body.addWidget(self.problems)
 
         self.add.clicked.connect(self._ask_experiment)
+        self.add_several.clicked.connect(self._ask_files)
         self.remove.clicked.connect(self._remove_selected)
         self.exact.toggled.connect(self._matching_changed)
         self.radius.valueChanged.connect(self._matching_changed)
@@ -168,6 +271,50 @@ class ImportPage(Page):
             spectra, reference, name = dialog.values()
             self._last_folder = os.path.dirname(spectra)
             self.add_experiment(spectra, reference, name)
+
+    def _ask_files(self):
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Escolher os espectros e as tabelas de valores medidos", self._last_folder, SEVERAL_FILTER)
+        if paths:
+            self._last_folder = os.path.dirname(paths[0])
+            self.add_files(paths)
+
+    def add_files(self, paths, confirm=None):
+        """
+        Add the experiments found in `paths` (spectra files and tables of measured values, in any order).
+        The pairs are shown for the user to confirm; `confirm(dialog)` stands in for that in the tests.
+        Returns how many experiments were added.
+        """
+        pairs, tables, ignored = sort_files(paths)
+        notes = []
+        known = [spectra for spectra, _ in pairs if self.project.has_spectra_file(spectra)]
+        if known:
+            notes.append(f"Já estavam no projeto e ficaram de fora: {', '.join(os.path.basename(p) for p in known)}.")
+            pairs = [(spectra, table) for spectra, table in pairs if spectra not in known]
+        if ignored:
+            notes.append(f"Não são espectros nem tabelas: {', '.join(os.path.basename(p) for p in ignored)}.")
+        tables = tables + [table for _, table in pairs if table is not None]
+        problem = None
+        if not pairs:
+            problem = ("Todos os arquivos de espectros escolhidos já estavam no projeto." if known
+                       else "Entre os arquivos escolhidos não há nenhum de espectros (.spp ou .txt com um espectro por linha).")
+        elif not tables:
+            problem = ("Entre os arquivos escolhidos não há nenhuma tabela de valores medidos. "
+                       "Escolha, junto com os espectros, a tabela de cada experimento.")
+        if problem:
+            self.window_.message.setText(problem)
+            return 0
+        dialog = PairsDialog(pairs, sorted(tables, key=lambda p: os.path.basename(p).lower()), self, notes)
+        accepted = confirm(dialog) if confirm is not None else dialog.exec() == QDialog.Accepted
+        if not accepted or dialog.problem():
+            dialog.deleteLater()
+            return 0
+        items = dialog.values()
+        dialog.deleteLater()
+        self.project.add_experiments(items)
+        self.refresh()
+        self.window_.message.setText(f"{len(items)} experimento(s) adicionado(s).")
+        return len(items)
 
     def _remove_selected(self):
         row = self.table.currentRow()
