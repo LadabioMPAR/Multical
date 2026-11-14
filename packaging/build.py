@@ -70,8 +70,9 @@ def copy_extras():
     os.makedirs(plugins)
     source = os.path.join(ROOT, "plugins")
     shutil.copyfile(os.path.join(source, "LEIA-ME.md"), os.path.join(plugins, "LEIA-ME.md"))
-    shutil.copytree(os.path.join(source, "exemplos"), os.path.join(plugins, "exemplos"),
-                    ignore=shutil.ignore_patterns("__pycache__"))
+    for folder in ("exemplos", "opcionais"):
+        shutil.copytree(os.path.join(source, folder), os.path.join(plugins, folder),
+                        ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copyfile(os.path.join(source, "exemplo_log10.py"), os.path.join(plugins, "exemplos", "pretratamento_log10.py"))
     guide = os.path.join(ROOT, "docs")
     if os.path.isfile(os.path.join(guide, "guia_do_usuario.html")):

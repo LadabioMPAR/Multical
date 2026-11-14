@@ -19,8 +19,9 @@ precisa devolver. A pasta `exemplos` tem um arquivo pronto para cada caso.
 
 Regras da pasta:
 
-- Só os arquivos `.py` **diretamente** nesta pasta são carregados. A pasta
-  `exemplos` não é lida; por isso os exemplos não aparecem no programa.
+- Só os arquivos `.py` **diretamente** nesta pasta são carregados. As pastas
+  `exemplos` e `opcionais` não são lidas; por isso o que está nelas não aparece
+  no programa até ser copiado para cá.
 - Arquivos cujo nome começa com `_` são ignorados (útil para desativar um plugin).
 - Se um arquivo der erro ao carregar, o programa abre normalmente e mostra o
   nome do arquivo e o erro na tela inicial.
@@ -325,7 +326,25 @@ print(resultado.per_analyte["a"].best_rmsecv)
 print(api.predict(resultado, X[:3], dados.wavelengths))
 ```
 
-## 10. Cuidados
+## 10. Plugin opcional: rede neural
+
+`opcionais/rede_neural.py` acrescenta o modelo "Rede neural". Para ativar,
+copie o arquivo para esta pasta.
+
+- **Treinar** exige o PyTorch (`pip install torch`), que não vem no programa
+  instalado. O treino só funciona a partir de uma cópia do repositório, com o
+  Python onde o PyTorch foi instalado. Sem ele, o programa mostra uma mensagem
+  dizendo isso quando se clica em "Treinar modelo".
+- **Estimar amostras** com uma rede já treinada não exige o PyTorch: o arquivo
+  `.multical` guarda os pesos da rede como números, e a estimativa é calculada
+  pelo próprio plugin. Basta que `rede_neural.py` esteja na pasta `plugins`
+  da instalação onde o modelo for aberto.
+- O treino é o de `multical.models.ann_torch` (o mesmo dos scripts), com uma
+  rede por analito.
+- Com o plugin ativo e sem PyTorch, o autoteste acusa falha em "Modelos e
+  validações", porque ele tenta treinar todos os modelos registrados.
+
+## 11. Cuidados
 
 - **`id` único e definitivo.** O `id` vai para os projetos e para os arquivos
   de modelo. Se ele mudar, ou se o plugin for removido, esses arquivos deixam

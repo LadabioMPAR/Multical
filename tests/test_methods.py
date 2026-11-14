@@ -478,5 +478,20 @@ class WrongFormats(MethodsCase):
                 self.assertIn(message, str(caught.exception))
 
 
+class ReadmeExample(unittest.TestCase):
+    def test_python_example_of_the_readme_runs(self):
+        with open(os.path.join(REPO, "README.md"), encoding="utf-8") as handle:
+            code = handle.read().split("```python\n")[1].split("```")[0]
+        env = dict(os.environ, PYTHONPATH=os.path.join(REPO, "src"), PYTHONIOENCODING="utf-8", MULTICAL_PLUGINS="")
+        with tempfile.TemporaryDirectory() as tmp:       # the example writes model.multical where it runs
+            done = subprocess.run([sys.executable, "-W", "ignore", "-c", code], env=env, capture_output=True, text=True, cwd=tmp)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertTrue(os.path.isfile(os.path.join(tmp, "model.multical")))
+        lines = done.stdout.strip().splitlines()
+        self.assertTrue(lines[0].startswith("glucose RMSECV ") and "points used" in lines[0])
+        self.assertTrue(lines[1].startswith("xylose RMSECV "))
+        self.assertEqual(len(lines), 5)                  # two analytes, then three estimates
+
+
 if __name__ == "__main__":
     unittest.main()
