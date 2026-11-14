@@ -72,6 +72,11 @@ python packaging/build.py
 
 The result goes to `dist/`. `Multical.exe --autoteste report.txt` checks an installed copy and writes what it found.
 
+Windows Smart App Control may refuse an unsigned program. When a code-signing certificate is available, set
+`MULTICAL_CERT_THUMBPRINT` (certificate in the Windows store) or `MULTICAL_CERT_PFX` and `MULTICAL_CERT_PASSWORD`
+before building, and the program files, the installer and the uninstaller are signed with `signtool` (Windows SDK).
+The details are at the top of `packaging/build.py`.
+
 ## Python API
 
 ```python

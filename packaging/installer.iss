@@ -25,6 +25,11 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\Multical.exe
+#ifdef SignInstaller
+; build.py defines SignInstaller and passes the signing command as /Smultical=... when a certificate is configured
+SignTool=multical
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
