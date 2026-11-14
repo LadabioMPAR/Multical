@@ -398,6 +398,18 @@ O leitor de `.multical` também abre os `.pkl` antigos (`saving.py:133`, `:171`)
 
 ## 9. Perguntas abertas
 
+**Relatos de 2026-11-14: LOESS travando o programa e gráfico Q × T² ausente.**
+- **LOESS.** Causa reproduzida: `preprocessing/loess.py` ajusta um polinômio por ponto e por espectro (3,6 s por espectro de 8.801 pontos; cerca de 5 min para 79), e a prévia da tela 3 roda na própria janela, que ficava congelada (“não está respondendo”) até terminar. Não foi um erro do programa em si, e sim a janela parada por minutos; o relato do usuário foi de “crash”, e não vi a tela dele.
+  - Correção: `api/pretreatments.loess_rows` calcula os pesos de cada ponto uma vez e aplica a todos os espectros juntos. Mesmo resultado da função original (diferença relativa máxima de 3e-11 em 112 combinações de eixo, fração e grau; `np.polyfit` multiplica os resíduos pelos pesos, então o ajuste é ponderado pelo quadrado deles, e isso foi mantido). 79 espectros × 8.801 pontos: 3,7 s com fração 0,2 (10,6 s com fração 1). A função original não foi alterada; os scripts continuam iguais.
+  - A prévia mostra o cursor de espera enquanto calcula.
+  - **Limite que continua:** a prévia ainda roda na janela. Um passo lento (o LOESS com fração perto de 1, ou um plugin lento) ainda a deixa parada por alguns segundos. Na tela de estimar amostras, o LOESS custa cerca de 3 s a cada 50 espectros.
+- **Q × T².** O programa já calculava T² e Q para avisar de espectros diferentes ao estimar amostras, mas não mostrava o gráfico. Agora:
+  - Tela 5, aba **“Amostras atípicas (Q × T²)”**, visível para todos: as amostras de calibração do modelo de cada analito, com os limites e o nome das que ficam além deles; o quadro ao lado lista essas amostras. Para PLS é o *Influence Plot* dos scripts (`core/outliers.evaluate_and_plot_outliers`: escores do PLS do analito com o número de variáveis latentes escolhido, limites de 95%), conferido linha a linha. Para os outros modelos, que não têm variáveis latentes, usa-se o resumo em componentes principais que já julga os espectros novos (`api/domain.py`, limites de 99%).
+  - Tela “Estimar amostras”, aba **“Q × T²”**: os espectros estimados em relação aos limites do modelo.
+  - Exportação: `amostras_q_t2.csv`, `figuras/q_x_t2_<analito>.png` e uma linha por analito no relatório.
+  - `api.influence(result, analito)` devolve os valores.
+- **Testes:** 150 passam; 1 pulado (precisa de `MULTICAL_SPP_SAMPLES`).
+
 **Pedido de 2026-11-13: adicionar vários experimentos de uma vez.**
 - Botão **“Adicionar vários arquivos…”** na tela de importação: uma única janela de escolha, com seleção múltipla, para os espectros e as tabelas de todos os experimentos. O botão de um experimento por vez continua.
 - `src/multical_gui/file_pairs.py` separa os arquivos pelo conteúdo (`.spp` e textos com 30 colunas ou mais são espectros; textos com 2 a 29 colunas de números são tabelas; o resto é ignorado) e sugere os pares pelo nome: palavras e números em comum e, no empate, o que os nomes têm de diferente. Um par só é sugerido quando cada arquivo é a única melhor opção do outro; na dúvida (por exemplo `exp8_nonda` e `exp8_inf` para um só `exp8_refe`), a linha fica em “não adicionar”. Um arquivo de espectros e uma tabela, sozinhos, são tomados como par.

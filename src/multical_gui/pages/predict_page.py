@@ -117,6 +117,12 @@ class PredictPage(Page):
         chart_layout.addWidget(self.canvas, 1)
         self.tabs.addTab(self.table, "Tabela")
         self.tabs.addTab(chart, "Ao longo do tempo")
+        self.domain_canvas = PlotCanvas()
+        self.tabs.addTab(self.domain_canvas, "Q × T²")
+        self.tabs.setTabToolTip(2, (
+            "Cada espectro estimado comparado com os que criaram o modelo.\n"
+            "T²: quanto ele se afasta dentro do que o modelo usa. Q: quanto dele o modelo não descreve.\n"
+            "Além de um dos limites, a estimativa merece desconfiança."))
         self.body.addWidget(self.tabs, 1)
 
         self.model = None
@@ -256,8 +262,10 @@ class PredictPage(Page):
             self.table.setRowCount(0)
             self.table.setColumnCount(0)
             self.canvas.show_message("As estimativas aparecem aqui.")
+            self.domain_canvas.show_message("A comparação com os espectros do modelo aparece aqui.")
             self.analyte.blockSignals(False)
             return
+        self.domain_canvas.set_figure(plots.plot_prediction_domain(prediction))
         unit = f" ({prediction.units})" if prediction.units else ""
         headers = ["Amostra", "Tempo (min)"] + [f"{name}{unit}" for name in prediction.analytes] + ["Situação"]
         self.table.setColumnCount(len(headers))

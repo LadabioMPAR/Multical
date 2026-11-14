@@ -49,7 +49,7 @@ class ResultsPage(Page):
         column.addWidget(self.legend)
         self.warnings = Banner()
         column.addWidget(self.warnings)
-        column.addWidget(QLabel("Amostras com erro grande na validação:"))
+        column.addWidget(QLabel("Amostras que merecem conferência:"))
         self.suspects = QPlainTextEdit(readOnly=True)
         column.addWidget(self.suspects, 1)
 
@@ -65,6 +65,12 @@ class ResultsPage(Page):
         self.tabs.addTab(self.table, "Tabela completa")
         self.points = PlotCanvas()
         self.tabs.addTab(self.points, "Pontos usados")
+        self.influence = PlotCanvas()
+        self.tabs.addTab(self.influence, "Amostras atípicas (Q × T²)")
+        self.tabs.setTabToolTip(4, (
+            "T²: quanto a amostra se afasta das outras dentro do que o modelo usa.\n"
+            "Q: quanto do espectro o modelo não descreve.\n"
+            "Amostras além de um dos limites são diferentes das demais e merecem conferência."))
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(left)
@@ -108,7 +114,14 @@ class ResultsPage(Page):
             self.curve.set_figure(plots.plot_error_curve(result, item.analyte))
         else:
             self.curve.show_message("Este modelo foi testado com um único ajuste.")
-        self.suspects.setPlainText("\n".join(item.suspects) or "Nenhuma amostra se destacou.")
+        lines = ["Erro grande na validação:"] + ([f"  {s}" for s in item.suspects] or ["  nenhuma"])
+        try:
+            odd = api.influence(result, item.analyte).flagged()
+            self.influence.set_figure(plots.plot_influence(result, item.analyte))
+            lines += ["", "Espectro diferente dos demais (gráfico Q × T²):"] + ([f"  {name}" for name in odd] or ["  nenhuma"])
+        except ValueError as error:
+            self.influence.show_message(str(error))
+        self.suspects.setPlainText("\n".join(lines))
         if res.selected is not None:
             self.points.set_figure(plots.plot_selected_points(result, item.analyte))
 

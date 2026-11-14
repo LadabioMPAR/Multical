@@ -503,6 +503,62 @@ class MethodsFromTheRegistries(unittest.TestCase):
                 self.assertEqual(self.project.result.config.validation["id"], scheme)
                 self.window.go_to(4)
 
+    def test_q_t2_is_shown_for_calibration_samples_and_for_estimates(self):
+        from multical_gui.pages.predict_page import PredictPage
+        self.window.go_to(4)
+        self._train()
+        result = self.project.result
+        self.assertEqual(self.results.tabs.tabText(4), "Amostras atípicas (Q × T²)")
+        self.window.advanced.setChecked(False)
+        self.assertTrue(self.results.tabs.isTabVisible(4))               # not an advanced view: everyone sees it
+        self.window.advanced.setChecked(True)
+        data = api.influence(result, "gl")
+        title = self.results.influence.figure.axes[0].get_title()
+        self.assertIn(f"gl: {int(data.outside.sum())} de {len(result.sample_ids)} amostras além dos limites", title)
+        text = self.results.suspects.toPlainText()
+        self.assertIn("Erro grande na validação:", text)
+        self.assertIn("Espectro diferente dos demais (gráfico Q × T²):", text)
+        for name in data.flagged():
+            self.assertIn(name, text)
+        self.results.analytes.setCurrentRow(1)
+        self.assertIn("xy:", self.results.influence.figure.axes[0].get_title())
+
+        with tempfile.TemporaryDirectory() as tmp:                       # the same view for new spectra
+            path = api.save_model(result, os.path.join(tmp, "modelo"))
+            self.window.start_flow("predict")
+            page = next(p for p in self.window.pages if isinstance(p, PredictPage))
+            self.assertEqual(page.tabs.tabText(2), "Q × T²")
+            self.assertEqual(page.domain_canvas.figure.axes, [])         # nothing estimated yet: a sentence
+            self.assertTrue(page.load_model(path))
+            page.add_spectra(self.files[0][0])
+            page.every.setValue(5)
+            page.run()
+            end = time.time() + 60
+            while page.worker is not None and time.time() < end:
+                self.app.processEvents()
+                time.sleep(0.005)
+            self.app.processEvents()
+            prediction = page.prediction
+            self.assertIsNotNone(prediction)
+            axis = page.domain_canvas.figure.axes[0]
+            beyond = int((~prediction.inside).sum())                     # the spectrum itself, not the calibrated range
+            self.assertIn(f"{beyond} de {len(prediction.sample_ids)} espectros além dos limites", axis.get_title())
+            self.assertEqual(len(axis.lines), 2)                         # the two limits
+
+    def test_loess_can_be_added_to_the_recipe(self):
+        self.window.go_to(3)
+        self.pretreat.choices.setCurrentIndex(self.pretreat.choices.findData("loess"))
+        self.pretreat.add.click()
+        self.assertEqual([s["id"] for s in self.project.config.pretreatment], ["sg", "loess"])
+        self.assertIsNone(self.pretreat.validate())
+        self.assertEqual(len(self.pretreat.canvas.figure.axes), 2)       # before and after were drawn
+        self.assertIsNone(QApplication.overrideCursor())                 # the busy cursor was put back
+        self.pretreat.form._editors["alpha"].setValue(0.5)
+        self.assertEqual(self.project.config.pretreatment[1]["params"]["alpha"], 0.5)
+        self.window.go_to(4)
+        self._train()
+        self.assertEqual(self.project.result.config.pretreatment[1]["id"], "loess")
+
     def test_variable_selection_from_the_screen_to_the_model_file(self):
         from multical_gui.pages.model_page import duration
         from multical_gui.pages.predict_page import describe_model

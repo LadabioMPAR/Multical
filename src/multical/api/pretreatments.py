@@ -77,10 +77,70 @@ def _ma(X, wl, radius, mode):
     ],
 )
 def _loess(X, wl, alpha, order):
-    out = np.zeros_like(X)
-    for i in range(X.shape[0]):
-        out[i] = loess(wl, X[i], alpha, order)
-    return out, wl
+    return loess_rows(wl, X, alpha, order), wl
+
+
+LOESS_BLOCK = 128       # points smoothed at a time; bounds the memory used whatever the size of the spectra
+
+
+def loess_rows(x, Y, alpha, order=2):
+    """
+    `multical.preprocessing.loess.loess` applied to every row of `Y`, with the same result.
+
+    That function fits one small polynomial per point and per spectrum, which
+    takes seconds per spectrum on a grid of thousands of points. The smoothed
+    value at a point is a weighted sum of the neighbours whose weights depend
+    only on the axis, so here the weights are worked out once per point, for a
+    block of points at a time, and applied to all the spectra together.
+    """
+    x = np.asarray(x, dtype=float)
+    Y = np.atleast_2d(np.asarray(Y, dtype=float))
+    n = x.size
+    if alpha <= 0 or alpha > 1:
+        raise ValueError("A fração da vizinhança do LOESS deve ficar entre 0 e 1.")
+    span = np.max(x) - np.min(x) if n else 0.0
+    if span == 0:
+        return Y.copy()
+    order_of_x = np.argsort(x, kind="stable")      # neighbours are then a contiguous run of positions
+    xs = (x[order_of_x] - np.mean(x)) / span
+    Ys = Y[:, order_of_x]
+    q = int(min(max(np.floor(alpha * n), order + 3), n))
+    out = np.empty_like(Ys)
+    try:
+        for start in range(0, n, LOESS_BLOCK):
+            stop = min(start + LOESS_BLOCK, n)
+            lo, hi = max(0, start - (q - 1)), min(n, stop + q - 1)       # holds the q nearest points of every point of the block
+            signed = xs[None, lo:hi] - xs[start:stop, None]
+            distance = np.abs(signed)
+            reach = distance.max(axis=1) if q >= n else np.partition(distance, q - 1, axis=1)[:, q - 1]
+            reach = reach * max(alpha, 1.0)
+            if np.any(reach == 0):                  # q coincident points: left to the original code
+                raise np.linalg.LinAlgError
+            weight = (1.0 - np.minimum(distance / reach[:, None], 1.0) ** 3) ** 3
+            used = weight > 1e-10
+            # np.polyfit multiplies the residuals by the weights, so the squares are what weighs the fit.
+            v = np.where(used, weight ** 2, 0.0)
+            u = signed / reach[:, None]             # local coordinate, between -1 and 1 inside the window
+            powers = [np.ones_like(u)]
+            for _ in range(2 * order):
+                powers.append(powers[-1] * u)
+            moments = np.stack([(v * p).sum(axis=1) for p in powers], axis=1)             # (points, 2*order + 1)
+            index = np.arange(order + 1)
+            normal = moments[:, index[:, None] + index[None, :]]                           # (points, order+1, order+1)
+            few = used.sum(axis=1) <= order         # too few neighbours for the polynomial: their plain mean
+            normal[few] = np.eye(order + 1)
+            first = np.zeros((stop - start, order + 1, 1))
+            first[:, 0, 0] = 1.0
+            h = np.linalg.solve(normal, first)[:, :, 0]                                    # value of the fit at the point itself
+            smoother = v * sum(h[:, k:k + 1] * powers[k] for k in range(order + 1))
+            if np.any(few):
+                smoother[few] = used[few] / used[few].sum(axis=1, keepdims=True)
+            out[:, start:stop] = Ys[:, lo:hi] @ smoother.T
+    except np.linalg.LinAlgError:
+        return np.vstack([loess(x, row, alpha, order) for row in Y])
+    result = np.empty_like(out)
+    result[:, order_of_x] = out
+    return result
 
 
 @pretreatment(

@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from .assessment import candidate_name, number
+from .influence import influence
 
 
 def plot_spectra(wavelengths, X, title="Espectros", xlabel="Comprimento de onda", ylabel="Absorbância"):
@@ -102,6 +103,67 @@ def plot_selected_points(result, analyte):
     ax.plot(axis, mean, color="gray", linewidth=0.8, label="Espectro médio (tratado)")
     ax.plot(axis[used], mean[used], linestyle="none", marker="o", markersize=2.5, color="C3", label="Pontos usados pelo modelo")
     ax.set(title=f"{analyte}: {int(used.sum())} de {axis.size} pontos do espectro", xlabel=X_LABEL, ylabel="Sinal tratado")
+    ax.legend(fontsize=8, loc="best")
+    return fig
+
+
+T2_LABEL = "T² de Hotelling (distância dentro do que o modelo usa)"
+Q_LABEL = "Resíduo Q"       # short: it runs along the height of the figure
+MOST_LABELS = 15        # samples named on a Q × T² figure, the farthest first
+
+
+def _limits(ax, t2_limit, q_limit, confidence):
+    percent = f" ({confidence * 100:.0f}%)" if confidence else ""
+    if np.isfinite(t2_limit):
+        ax.axvline(t2_limit, color="black", linestyle="--", linewidth=1, label=f"Limite de T²{percent}")
+    if np.isfinite(q_limit):
+        ax.axhline(q_limit, color="black", linestyle=":", linewidth=1, label=f"Limite de Q{percent}")
+    ax.set(xlabel=T2_LABEL, ylabel=Q_LABEL)
+
+
+def plot_influence(result, analyte):
+    """Q × T² of the calibration samples for the model of one analyte; samples beyond a limit are named."""
+    data = influence(result, analyte)
+    outside = data.outside
+    fig = Figure(figsize=(6.5, 4.8), layout="constrained")
+    ax = fig.add_subplot()
+    ax.scatter(data.t2[~outside], data.q[~outside], alpha=0.7, label="Dentro dos limites")
+    if outside.any():
+        ax.scatter(data.t2[outside], data.q[outside], color="black", marker="x", label="Além de um limite")
+        positions = {name: i for i, name in enumerate(data.sample_ids)}
+        for name in data.flagged()[:MOST_LABELS]:
+            i = positions[name]
+            ax.annotate(name, (data.t2[i], data.q[i]), xytext=(5, 5), textcoords="offset points", fontsize=8)
+    _limits(ax, data.t2_limit, data.q_limit, data.confidence)
+    if data.source == "pls":
+        basis = f"PLS com {data.components} " + ("variável latente" if data.components == 1 else "variáveis latentes")
+    else:
+        basis = f"resumo dos espectros em {data.components} " + ("componente principal" if data.components == 1 else "componentes principais")
+    count = int(outside.sum())
+    ax.set_title(f"{analyte}: {count} de {len(data.sample_ids)} amostras além dos limites\n{basis}", fontsize=10)
+    ax.legend(fontsize=8, loc="best")
+    return fig
+
+
+def plot_prediction_domain(prediction):
+    """Q × T² of the estimated spectra against the limits of the model, one colour per experiment."""
+    fig = Figure(figsize=(6.5, 4.8), layout="constrained")
+    if prediction.t2 is None:
+        fig.text(0.5, 0.5, "Este modelo não guarda o resumo dos espectros\nnecessário para o gráfico Q × T².",
+                 ha="center", va="center", color="gray", fontsize=11)
+        return fig
+    ax = fig.add_subplot()
+    n = len(prediction.sample_ids)
+    groups = ["" for _ in range(n)] if prediction.groups is None else [str(g) for g in prediction.groups]
+    inside = np.asarray(prediction.inside, dtype=bool)
+    for number_, name in enumerate(dict.fromkeys(groups)):
+        rows = np.array([i for i, g in enumerate(groups) if g == name])
+        ax.scatter(prediction.t2[rows], prediction.q[rows], color=f"C{number_ % 10}", alpha=0.6, s=18, label=name or "Espectros")
+    if not inside.all():
+        ax.scatter(prediction.t2[~inside], prediction.q[~inside], color="red", marker="x", s=40,
+                   label="Diferente dos usados para criar o modelo")
+    _limits(ax, prediction.t2_limit, prediction.q_limit, None)
+    ax.set_title(f"{int((~inside).sum())} de {n} espectros além dos limites do modelo", fontsize=10)
     ax.legend(fontsize=8, loc="best")
     return fig
 

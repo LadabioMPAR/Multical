@@ -26,6 +26,8 @@ It can be used in three ways:
 *   **Model file** (`.multical`): everything needed to estimate new samples, stored as plain numbers. Each estimate
     comes with the model's typical error and a warning when the spectrum is unlike the calibration ones or the value is
     outside the calibrated range.
+*   **Q × T² (influence) plots**: of the calibration samples, to find spectra unlike the others, and of the estimated
+    spectra against the limits of the model.
 *   **Export**: model, tables (CSV), figures, PDF report and the configuration used.
 *   **Projects** (`.mcproj`) keep the choices made in the interface, so a calibration can be reopened and repeated.
 *   **Plugins**: new pretreatments, models, validation schemes and variable selections are added as `.py` files, with no

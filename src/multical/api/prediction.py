@@ -30,6 +30,8 @@ class Prediction:
     inside: Optional[np.ndarray]    # bool per sample: the spectrum looks like the calibration ones
     ranges: np.ndarray              # (n_analytes, 2): lowest and highest measured value in the calibration (NaN: unknown)
     in_range: np.ndarray            # (n_samples, n_analytes) bool: the estimate is within the calibrated range
+    t2_limit: Optional[float] = None   # limits that `inside` was judged against (None with t2 and q)
+    q_limit: Optional[float] = None
 
     @property
     def ok(self):
@@ -110,6 +112,7 @@ def predict_report(model, dataset, progress=None, cancel=None, chunk=50):
         analytes=list(model.analytes), units=model.units, sample_ids=list(dataset.sample_ids),
         groups=dataset.groups, times=dataset.times, Y=Y, typical_error=typical_errors(model),
         t2=t2, q=q, inside=inside, ranges=ranges, in_range=in_range,
+        t2_limit=float(domain["t2_limit"]) if domain else None, q_limit=float(domain["q_limit"]) if domain else None,
     )
 
 

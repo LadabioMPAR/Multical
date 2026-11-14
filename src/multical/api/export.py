@@ -17,6 +17,7 @@ from matplotlib.figure import Figure
 from . import plots
 from .assessment import LEVELS, assess, candidate_name, selection_notes
 from .bundle import save_model
+from .influence import influence
 
 EXPORT_ITEMS = {
     "model": "Modelo para uso em rotina (.multical)",
@@ -69,6 +70,24 @@ def _tables(result, folder):
             row += [result.Y[i, j], res.y_cv[res.best_index, i], res.y_cal[res.best_index, i]]
         predictions.append(row)
     files = []
+    try:
+        maps = [influence(result, name) for name in result.analytes]
+    except ValueError:              # a result without the summary of the spectra
+        maps = []
+    if maps:
+        header_q = ["amostra"]
+        for name in result.analytes:
+            header_q += [f"{name}_T2", f"{name}_Q", f"{name}_alem_dos_limites"]
+        rows_q = []
+        for i, sample in enumerate(result.sample_ids):
+            row = [sample]
+            for data in maps:
+                row += [float(data.t2[i]), float(data.q[i]), "sim" if data.outside[i] else ""]
+            rows_q.append(row)
+        limits = ["limite"]
+        for data in maps:
+            limits += [data.t2_limit, data.q_limit, ""]
+        files.append(_write_csv(os.path.join(folder, "amostras_q_t2.csv"), header_q, [limits] + rows_q))
     if any(result.per_analyte[name].selected is not None for name in result.analytes):
         points = []
         for i, position in enumerate(result.wavelengths):
@@ -104,6 +123,15 @@ def _summary_page(result):
     for item in assess(result):
         lines.append(f"[{LEVELS[item.level]}]  {item.analyte}: {item.summary}")
         lines += [f"        erro grande na validação – {s}" for s in item.suspects[:5]]
+    for name in result.analytes:
+        try:
+            odd = influence(result, name).flagged()
+        except ValueError:
+            break
+        if odd:
+            more = f" e mais {len(odd) - 8}" if len(odd) > 8 else ""
+            lines.append(textwrap.fill(f"Espectros além dos limites de Q × T² – {name}: {', '.join(odd[:8])}{more}", 105,
+                                       subsequent_indent="    "))
     notes = selection_notes(result)
     if notes:
         lines += ["", "Seleção de variáveis:"] + [textwrap.fill(note, 105, subsequent_indent="    ") for note in notes]
@@ -140,6 +168,8 @@ def export_run(result, folder, items=None):
                 figures.append((f"erro_por_ajuste_{_safe(name)}", plots.plot_error_curve(result, name)))
             if result.per_analyte[name].selected is not None:
                 figures.append((f"pontos_escolhidos_{_safe(name)}", plots.plot_selected_points(result, name)))
+            if result.domain or result.config.model["id"] == "pls":
+                figures.append((f"q_x_t2_{_safe(name)}", plots.plot_influence(result, name)))
     if "figures" in items:
         os.makedirs(os.path.join(folder, "figuras"), exist_ok=True)
         for stem, fig in figures:

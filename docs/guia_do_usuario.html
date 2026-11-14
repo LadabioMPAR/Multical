@@ -111,8 +111,18 @@ linha tracejada.</p>
   <tr><td><span class="dot" style="background:#e0a100"></span>Amarelo</td><td>Atenção: serve para acompanhar tendências, não para valores exatos.</td></tr>
   <tr><td><span class="dot" style="background:#cc3b3b"></span>Vermelho</td><td>Ruim: não use as estimativas. Fale com quem cuida dos modelos.</td></tr>
 </table>
-<p>A lista <i>Amostras com erro grande na validação</i> aponta amostras que vale conferir: pode ter havido erro de
-anotação, de medida ou de horário. Se for o caso, volte à etapa 2, desmarque a amostra e treine de novo.</p>
+<p>O quadro <i>Amostras que merecem conferência</i> aponta dois tipos de amostra:</p>
+<ul>
+  <li><b>erro grande na validação</b>: a estimativa ficou longe do valor medido. Pode ter havido erro de anotação,
+      de medida ou de horário;</li>
+  <li><b>espectro diferente dos demais</b>: são as amostras que ficam além de um dos limites na aba
+      <b>Amostras atípicas (Q × T²)</b>. No gráfico, cada ponto é uma amostra. Para a direita (<i>T²</i>) ficam as
+      amostras extremas, parecidas com as outras mas mais afastadas do centro; para cima (<i>resíduo Q</i>) ficam
+      as que têm no espectro algo que as outras não têm (bolha, sujeira na sonda, outro meio). As linhas
+      tracejadas são os limites, e as amostras além deles aparecem com o nome.</li>
+</ul>
+<p>Se a amostra estiver mesmo errada, volte à etapa 2, desmarque-a e treine de novo. Uma amostra atípica não é
+necessariamente ruim: pode ser só a de maior concentração.</p>
 <figure><img src="img/3_resultados.png" alt="Tela Resultados">
 <figcaption>Resultados: uma linha por analito, com a cor, o erro típico e o gráfico previsto × medido.</figcaption></figure>
 
@@ -123,7 +133,9 @@ anotação, de medida ou de horário. Se for o caso, volte à etapa 2, desmarque
       típico e a faixa de valores com que foi criado.</li>
   <li>Clique em <b>Adicionar arquivo</b> e escolha os espectros das amostras novas.</li>
   <li>Clique em <b>Estimar</b>. Em séries muito longas, “Usar um espectro a cada N” deixa o cálculo mais rápido.</li>
-  <li>Veja a tabela e o gráfico ao longo do tempo, e clique em <b>Salvar tabela (CSV)</b> para abrir no Excel.</li>
+  <li>Veja a tabela e o gráfico ao longo do tempo, e clique em <b>Salvar tabela (CSV)</b> para abrir no Excel.
+      A aba <b>Q × T²</b> mostra cada espectro estimado em relação aos limites do modelo: os que ficam além deles
+      são os marcados como “espectro diferente dos usados para criar o modelo”.</li>
 </ol>
 <p>A coluna <b>Situação</b> diz se dá para confiar em cada estimativa:</p>
 <ul>

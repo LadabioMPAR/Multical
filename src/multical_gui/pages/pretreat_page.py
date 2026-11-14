@@ -1,7 +1,7 @@
 """Screen 3: the pretreatment recipe, with the spectra before and after."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QGroupBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QSplitter, QVBoxLayout, QWidget,
+    QApplication, QComboBox, QGroupBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QSplitter, QVBoxLayout, QWidget,
 )
 
 from multical import api
@@ -162,6 +162,14 @@ class PretreatPage(Page):
             self.canvas.show_message("Importe os dados para ver o efeito do pré-tratamento.")
             self.error.set_message("")
             return
+        QApplication.setOverrideCursor(Qt.WaitCursor)       # some steps take seconds on long spectra
+        try:
+            X, wl, _ = self._apply(data)
+        finally:
+            QApplication.restoreOverrideCursor()
+
+    def _apply(self, data):
+        """The recipe applied to the spectra in use; the outcome (figure or message) goes to the screen."""
         try:
             X, wl, _ = api.fit_recipe(self.project.config.pretreatment, data.X, data.wavelengths)
             if X.shape[1] == 0:
@@ -170,14 +178,15 @@ class PretreatPage(Page):
             self._problem = str(error)
             self.error.set_message(self._problem, "error")
             self.canvas.show_message("A receita não pôde ser aplicada.")
-            return
+            return None, None, None
         except Exception as error:      # a method from a plugin may fail in any way; the screen must stay usable
             self._problem = f"Erro inesperado no pré-tratamento: {type(error).__name__}: {error}"
             self.error.set_message(self._problem, "error")
             self.canvas.show_message("A receita não pôde ser aplicada.")
-            return
+            return None, None, None
         self.error.set_message("")
         self.canvas.set_figure(plots.plot_before_after(data.wavelengths, data.X, wl, X))
+        return X, wl, None
 
     def validate(self):
         return self._problem
