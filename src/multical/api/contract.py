@@ -72,6 +72,19 @@ def check_predictions(item, values, n_rows):
     return values
 
 
+def check_settings_path(item, values, n_settings, n_rows):
+    """What `settings_path` returns: predictions for every setting, shape (n_settings, n_rows)."""
+    try:
+        values = np.asarray(values, dtype=float)
+    except (TypeError, ValueError):
+        raise ContractError(f"{_name(item)}: settings_path deve devolver números.") from None
+    if values.shape != (n_settings, n_rows):
+        raise ContractError(
+            f"{_name(item)}: settings_path devolveu uma matriz de formato {values.shape}; esperado "
+            f"({n_settings}, {n_rows}), uma linha por ajuste e uma coluna por espectro.")
+    return values
+
+
 def check_cv_path(item, values, max_k, n_rows):
     """What `cv_path` returns: predictions for every complexity, shape (max_k, n_rows)."""
     try:

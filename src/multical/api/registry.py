@@ -93,7 +93,10 @@ class Model:
     Otherwise the engine calls `fit(X, y, **params)`. Such a model may offer
     several settings to be tried by validation: `candidates(**params)` returns a
     list of (description, {param: value}) and the engine keeps the setting with
-    the lowest validation error.
+    the lowest validation error. After validating them, the engine asks
+    `refine(...)` for more settings near the best one, a few rounds; and it gets
+    the predictions of many settings at once from `settings_path(...)`, which a
+    model may override to share work between them.
 
     `scale_x = True` asks the engine to autoscale X with the mean and standard
     deviation of the whole calibration set before `fit`/`predict`.
@@ -108,6 +111,19 @@ class Model:
     def candidates(self, **params):
         """Settings to try, as [(description, {param: value}), ...]; None when there is a single setting."""
         return None
+
+    def refine(self, tried, errors, round, **params):
+        """
+        More settings to try, as `candidates` gives them, after the settings of
+        `tried` [(description, {param: value}), ...] got the validation `errors`;
+        `round` counts the refinements from 1. An empty list ends the search.
+        """
+        return []
+
+    def settings_path(self, X_train, y_train, X_val, settings, **params):
+        """Predictions on X_val for each of `settings` [{param: value}, ...], shape (len(settings), n_val)."""
+        return np.vstack([np.ravel(self.predict(self.fit(X_train, y_train, **{**params, **extra}), X_val))
+                          for extra in settings])
 
     def fit(self, X, y, **params):
         """Return the fitted state (dict of arrays and numbers)."""

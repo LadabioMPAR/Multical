@@ -19,12 +19,13 @@ It can be used in three ways:
 *   **Pretreatments**: spectral cut, Savitzky-Golay, moving average, LOESS, derivative, SNV, MSC, EMSC, baseline
     correction, autoscaling and mean centring, combined in a recipe that is learned on the calibration set and reapplied
     unchanged to new spectra.
-*   **Models**, one per analyte: PLS, PCR, SPA and SVR (and, as an optional plugin that needs PyTorch, a neural network).
+*   **Models**, one per analyte: PLS, PCR, SPA and SVR (C, epsilon and kernel width chosen by validation, on a wide
+    grid refined around the best setting), and, as an optional plugin that needs PyTorch, a neural network.
 *   **Validation**: k-fold (venetian, consecutive or random), leave-one-out, hold-out, Kennard-Stone / SPXY and
     leave-one-experiment-out. The number of latent variables is chosen by an F-test or by the lowest validation error.
 *   **Variable selection** per analyte: VIP, particle swarm (PSO) and simulated annealing.
 *   **Model file** (`.multical`): everything needed to estimate new samples, stored as plain numbers. Each estimate
-    comes with the model's typical error and a warning when the spectrum is unlike the calibration ones or the value is
+    comes with the model's validation error (RMSECV, or RMSEP for a separate test set) and a warning when the spectrum is unlike the calibration ones or the value is
     outside the calibrated range.
 *   **Q × T² (influence) plots**: of the calibration samples, to find spectra unlike the others, and of the estimated
     spectra against the limits of the model.

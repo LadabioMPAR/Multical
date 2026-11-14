@@ -14,13 +14,16 @@ import numpy as np
 from ..utils import zscore_matlab_style
 from ..var_selection.utils import select_k_ftest
 from .config import RunConfig
-from .contract import check_cv_path, check_predictions, check_selection, check_split, check_state
+from .contract import (
+    check_cv_path, check_predictions, check_selection, check_settings_path, check_split, check_state,
+)
 from .domain import fit_domain
 from .recipe import apply_recipe, fit_recipe
-from .registry import MODELS, SELECTORS, SPLITTERS
+from .registry import MODELS, SELECTORS, SPLITTERS, Model
 from .results import AnalyteResult, CalibrationResult
 
 SELECTION_SHARE = 0.9       # part of an analyte's progress taken by the variable selection, when there is one
+REFINE_ROUNDS = 2           # rounds of settings near the best one, for models that offer them (Model.refine)
 
 
 class CalibrationCancelled(Exception):
@@ -66,6 +69,12 @@ class SubsetError:
 def selection_seed(seed, position):
     """Seed of the variable selection of the analyte at `position` (None: not repeatable)."""
     return None if seed is None else (int(seed) + 7919 * (position + 1)) % (2 ** 32)
+
+
+def _setting_key(extra):
+    """A setting {param: value} as something that can be compared and put in a set."""
+    return tuple(sorted((name, round(float(value), 12) if isinstance(value, (int, float)) and not isinstance(value, bool)
+                         else value) for name, value in extra.items()))
 
 
 def _rmse(pred, y, mask):
@@ -143,27 +152,38 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
     else:
         max_k = None
         grid = model.candidates(**params) or None
-    labels = [label for label, _ in grid] if grid else None
+    base_settings = list(grid) if grid else [("", {})]
+    refines = bool(grid) and type(model).refine is not Model.refine
     n_cal_eff = smallest_train if splitter.kind == "holdout" else n
 
     def stop_if_cancelled():
         if cancel is not None and cancel():
             raise CalibrationCancelled()
 
-    def candidates_for(n_points):
+    def candidates_for(n_points, settings=base_settings):
         """Complexities (1..max, never more than the points in use) or settings tried."""
         if model.sweep:
             return np.arange(1, min(max_k, n_points) + 1)
-        return np.arange(1, len(grid) + 1) if grid else np.array([0])
+        return np.arange(1, len(settings) + 1) if grid else np.array([0])
 
-    def fit_setting(X_fit, y_fit, index):
-        """Fit the model with the settings of candidate `index` (models without a sweep)."""
-        extra = grid[index][1] if grid else {}
+    def fit_setting(X_fit, y_fit, extra):
+        """Fit the model with one setting {param: value} (models without a sweep)."""
         return check_state(model, model.fit(X_fit, y_fit, **{**params, **extra}))
 
-    def validate(X, y, on_fold=None):
+    def settings_predictions(X_fit, y_fit, X_out, settings):
+        """Predictions on X_out of the model fitted with each of `settings`, shape (len(settings), len(X_out))."""
+        if type(model).settings_path is Model.settings_path:
+            rows = []
+            for _, extra in settings:
+                stop_if_cancelled()
+                rows.append(check_predictions(model, model.predict(fit_setting(X_fit, y_fit, extra), X_out), len(X_out)))
+            return np.vstack(rows)
+        values = model.settings_path(X_fit, y_fit, X_out, [extra for _, extra in settings], **params)
+        return check_settings_path(model, values, len(settings), len(X_out))
+
+    def validate(X, y, settings=base_settings, on_fold=None):
         """Predictions of every candidate for the samples left out of the training, shape (n_candidates, n)."""
-        n_candidates = len(candidates_for(X.shape[1]))
+        n_candidates = len(candidates_for(X.shape[1], settings))
         y_cv = np.full((n_candidates, n), np.nan)
         for f, (tr, va) in enumerate(folds):
             stop_if_cancelled()
@@ -171,12 +191,30 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
                 y_cv[:, va] = check_cv_path(
                     model, model.cv_path(X[tr], y[tr], X[va], n_candidates, **params), n_candidates, len(va))
             else:
-                for c in range(n_candidates):
-                    stop_if_cancelled()
-                    y_cv[c, va] = check_predictions(model, model.predict(fit_setting(X[tr], y[tr], c), X[va]), len(va))
+                y_cv[:, va] = settings_predictions(X[tr], y[tr], X[va], settings)
             if on_fold is not None:
                 on_fold(f)
         return y_cv
+
+    def refined(X, y, y_cv, step):
+        """The settings tried and their predictions, after the rounds of settings near the best one."""
+        settings = list(base_settings)
+        if not refines:
+            return settings, y_cv
+        for number in range(1, REFINE_ROUNDS + 1):
+            stop_if_cancelled()
+            known = {_setting_key(extra) for _, extra in settings}
+            more = []
+            for label, extra in model.refine(settings, _rmse(y_cv, y, validated), number, **params) or []:
+                key = _setting_key(extra)
+                if key not in known:
+                    known.add(key)
+                    more.append((label, dict(extra)))
+            if not more:
+                break
+            y_cv = np.vstack([y_cv, validate(X, y, more, on_fold=lambda f: step(number, f))])
+            settings += more
+        return settings, y_cv
 
     def search_curve(X, y):
         """Validation error of every candidate with the points of X; the quick path of the variable selection."""
@@ -219,20 +257,21 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
             selected = check_selection(selector, chosen, Xs.shape[1])
             start = SELECTION_SHARE
         Xj = Xs if selected is None else Xs[:, selected]
-        candidates = candidates_for(Xj.shape[1])
-        steps = len(folds) + 1
+        steps = len(folds) * (1 + (REFINE_ROUNDS if refines else 0)) + 1
 
         def step(done, message):
             report(j, start + (1.0 - start) * done / steps, message)
 
         y_cv = validate(Xj, y, on_fold=lambda f: step(f + 1, f"{name}: validação {f + 1} de {len(folds)}"))
+        settings, y_cv = refined(Xj, y, y_cv, lambda number, f: step(
+            len(folds) * number + f + 1, f"{name}: refinando os ajustes perto do melhor ({number} de {REFINE_ROUNDS})"))
+        candidates = candidates_for(Xj.shape[1], settings)
 
         stop_if_cancelled()
         if model.sweep:
             y_cal = check_cv_path(model, model.cv_path(Xj, y, Xj, len(candidates), **params), len(candidates), n)
         else:
-            y_cal = np.vstack([check_predictions(model, model.predict(fit_setting(Xj, y, c), Xj), n)
-                               for c in range(len(candidates))])
+            y_cal = settings_predictions(Xj, y, Xj, settings)
 
         everyone = np.ones(n, dtype=bool)
         rmsecv = _rmse(y_cv, y, validated)
@@ -244,12 +283,13 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
         if model.sweep:
             state = check_state(model, model.fit(Xj, y, k=int(candidates[best_index]), **params))
         else:
-            state = fit_setting(Xj, y, best_index)
+            state = fit_setting(Xj, y, settings[best_index][1])
         step(steps, f"{name}: modelo final")
 
         per_analyte[name] = AnalyteResult(
             name=name, candidates=candidates, rmsecv=rmsecv, rmsec=rmsec, r2cv=r2cv, r2cal=r2cal,
-            y_cv=y_cv, y_cal=y_cal, best_index=best_index, model_state=state, labels=labels,
+            y_cv=y_cv, y_cal=y_cal, best_index=best_index, model_state=state,
+            labels=[label for label, _ in settings] if grid else None,
             selected=selected, full_rmsecv=full_rmsecv,
         )
 

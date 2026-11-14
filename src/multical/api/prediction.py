@@ -1,6 +1,7 @@
 """
-Estimating new samples with a model: the values, the typical error that goes
-with them and whether each spectrum is inside what the model knows.
+Estimating new samples with a model: the values, the validation error of the
+model (RMSECV or RMSEP) that goes with them and whether each spectrum is inside
+what the model knows.
 """
 import csv
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ from typing import List, Optional
 
 import numpy as np
 
+from .assessment import error_name
 from .calibrate import CalibrationCancelled, analyte_input, model_input
 from .contract import check_predictions
 from .domain import check_domain
@@ -24,7 +26,7 @@ class Prediction:
     groups: Optional[np.ndarray]
     times: Optional[np.ndarray]     # as in the dataset given (the interface uses minutes)
     Y: np.ndarray                   # (n_samples, n_analytes)
-    typical_error: np.ndarray       # validation error of each analyte's model (NaN when unknown)
+    typical_error: np.ndarray       # validation error (RMSECV/RMSEP) of each analyte's model (NaN when unknown)
     t2: Optional[np.ndarray]        # distances to the calibration spectra; None when the model has no summary of them
     q: Optional[np.ndarray]
     inside: Optional[np.ndarray]    # bool per sample: the spectrum looks like the calibration ones
@@ -32,6 +34,7 @@ class Prediction:
     in_range: np.ndarray            # (n_samples, n_analytes) bool: the estimate is within the calibrated range
     t2_limit: Optional[float] = None   # limits that `inside` was judged against (None with t2 and q)
     q_limit: Optional[float] = None
+    error_name: str = "RMSECV"         # what typical_error is: RMSECV, or RMSEP for a separate test set
 
     @property
     def ok(self):
@@ -56,7 +59,7 @@ class Prediction:
 
 
 def typical_errors(model):
-    """Validation error (RMSECV) of each analyte of a CalibrationResult or of a model read from a file."""
+    """Validation error (RMSECV or RMSEP) of each analyte of a CalibrationResult or of a model read from a file."""
     out = []
     for name in model.analytes:
         entry = model.per_analyte[name]
@@ -113,6 +116,7 @@ def predict_report(model, dataset, progress=None, cancel=None, chunk=50):
         groups=dataset.groups, times=dataset.times, Y=Y, typical_error=typical_errors(model),
         t2=t2, q=q, inside=inside, ranges=ranges, in_range=in_range,
         t2_limit=float(domain["t2_limit"]) if domain else None, q_limit=float(domain["q_limit"]) if domain else None,
+        error_name=error_name(model.config),
     )
 
 
@@ -125,7 +129,7 @@ def export_predictions(prediction, path):
     unit = f"_{prediction.units}" if prediction.units else ""
     header = ["amostra", "experimento", "tempo_min"]
     for name in prediction.analytes:
-        header += [f"{name}{unit}", f"{name}_erro_tipico"]
+        header += [f"{name}{unit}", f"{name}_{prediction.error_name.lower()}"]
     header += ["situacao", "distancia_T2", "residuo_Q"]
     with open(path, "w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.writer(handle, delimiter=";")

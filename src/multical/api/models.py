@@ -168,7 +168,20 @@ class SPAModel(Model):
 
 
 _SVR_KERNELS = ("rbf", "linear")
-_SVR_GRID = {"C": (1.0, 10.0, 100.0, 1000.0), "epsilon": (0.01, 0.1), "gamma_factor": (0.1, 1.0, 10.0)}
+# The first round of the automatic choice; then Model.refine looks closer to the best one.
+_SVR_GRID = {"C": (0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0), "epsilon": (0.001, 0.01, 0.1),
+             "gamma_factor": (0.01, 0.1, 1.0, 10.0)}
+_SVR_REFINE_STEP = 10 ** 0.5     # factor between neighbours in the first refinement; its square root in the next
+
+
+def _svr_label(kernel, C, epsilon, width):
+    text = f"C={C:g}; epsilon={epsilon:g}" + (f"; largura={width:g}" if kernel == "rbf" else "")
+    return text.replace(".", ",")      # decimal comma, as everywhere else on screen
+
+
+def _two_digits(value):
+    """Round to two significant digits, so the setting reads well and can be typed back as it is shown."""
+    return float(f"{value:.2g}")
 
 
 @register(MODELS)
@@ -178,51 +191,106 @@ class SVRModel(Model):
     samples, as `multical.models.svr.SVRModel`. The fitted model is kept as plain
     numbers (support vectors and coefficients) and predicted here, so the model
     file needs no pickled scikit-learn object.
+
+    The kernel matrix is computed here and handed to scikit-learn ("precomputed"):
+    the distances between spectra are the same for every C, epsilon and width,
+    so they are computed once for all the settings tried on a training set.
+
+    Automatic choice: C, epsilon and the width are tried on a wide grid
+    (72 combinations with the rbf kernel), then twice more close to the best one.
     """
     id = "svr"
     label = "SVR (máquina de vetores de suporte)"
+    solver_tol = 1e-3       # stopping tolerance of the libsvm solver (scikit-learn's default)
     params = (
-        Param("tune", "Escolher os ajustes automaticamente", "bool", default=True,
-              help="Testa várias combinações de C, epsilon e largura e fica com a de menor erro de validação."),
+        Param("tune", "Escolher C, epsilon e largura automaticamente", "bool", default=True,
+              help="Testa 72 combinações espaçadas de C, epsilon e largura, depois refina duas vezes perto da "
+                   "melhor, e fica com a de menor erro de validação."),
         Param("kernel", "Tipo de curva (kernel)", "choice", default="rbf", choices=_SVR_KERNELS, advanced=True,
               help="rbf: relações curvas; linear: relação proporcional."),
         Param("C", "C (rigidez do ajuste)", "float", default=100.0, min=1e-6, advanced=True,
-              help="Usado quando a escolha automática está desligada."),
+              help="Usado quando a escolha automática está desligada.", active_when=("tune", False)),
         Param("epsilon", "Epsilon (tolerância)", "float", default=0.1, min=0.0, advanced=True,
-              help="Usado quando a escolha automática está desligada."),
+              help="Usado quando a escolha automática está desligada.", active_when=("tune", False)),
         Param("gamma_factor", "Largura do kernel (vezes o padrão)", "float", default=1.0, min=1e-9, advanced=True,
-              help="1 é o valor padrão do scikit-learn ('scale'). Usado quando a escolha automática está desligada."),
+              help="1 é o valor padrão do scikit-learn ('scale'). Usado quando a escolha automática está desligada.",
+              active_when=("tune", False)),
     )
 
     def candidates(self, tune, kernel, C, epsilon, gamma_factor):
         if not tune:
             return None
         widths = _SVR_GRID["gamma_factor"] if kernel == "rbf" else (1.0,)
-        out = []
-        for c in _SVR_GRID["C"]:
-            for eps in _SVR_GRID["epsilon"]:
-                for width in widths:
-                    text = f"C={c:g}; epsilon={eps:g}" + (f"; largura={width:g}" if kernel == "rbf" else "")
-                    text = text.replace(".", ",")      # decimal comma, as everywhere else on screen
-                    out.append((text, {"C": c, "epsilon": eps, "gamma_factor": width}))
-        return out
+        return [(_svr_label(kernel, c, eps, width), {"C": c, "epsilon": eps, "gamma_factor": width})
+                for c in _SVR_GRID["C"] for eps in _SVR_GRID["epsilon"] for width in widths]
 
-    def fit(self, X, y, tune, kernel, C, epsilon, gamma_factor):
-        from sklearn.svm import SVR
+    def refine(self, tried, errors, round, tune, kernel, C, epsilon, gamma_factor):
+        # The neighbours of the best setting, on a logarithmic scale, closer at each round.
+        if not tune:
+            return []
+        best = tried[int(np.argmin(errors))][1]
+        factor = _SVR_REFINE_STEP ** (1.0 / 2 ** (round - 1))
+
+        def around(value):
+            return sorted({_two_digits(value / factor), value, _two_digits(value * factor)})
+
+        widths = around(best["gamma_factor"]) if kernel == "rbf" else [best["gamma_factor"]]
+        return [(_svr_label(kernel, c, eps, width), {"C": c, "epsilon": eps, "gamma_factor": width})
+                for c in around(best["C"]) for eps in around(best["epsilon"]) for width in widths]
+
+    @staticmethod
+    def _scaled(X, y):
         y = np.ravel(y)
         x_mean, x_std = X.mean(axis=0), X.std(axis=0)
         x_std = np.where(x_std == 0, 1.0, x_std)
         y_mean, y_std = float(y.mean()), float(y.std()) or 1.0
         Xn = (X - x_mean) / x_std
-        gamma = gamma_factor / (Xn.shape[1] * (Xn.var() or 1.0))       # scikit-learn's "scale", times the factor
-        svr = SVR(kernel=kernel, C=C, epsilon=epsilon, gamma=gamma).fit(Xn, (y - y_mean) / y_std)
-        state = {"x_mean": x_mean, "x_std": x_std, "y_mean": y_mean, "y_std": y_std,
-                 "intercept": float(svr.intercept_[0]), "gamma": float(gamma), "linear": int(kernel == "linear")}
+        scale = {"x_mean": x_mean, "x_std": x_std, "y_mean": y_mean, "y_std": y_std}
+        return Xn, (y - y_mean) / y_std, scale
+
+    @staticmethod
+    def _gamma(Xn, width):
+        return width / (Xn.shape[1] * (Xn.var() or 1.0))        # scikit-learn's "scale", times the factor
+
+    @staticmethod
+    def _products(A, B, kernel):
+        """What the kernel is made from: products (linear) or squared distances (rbf) between rows of A and B."""
+        products = A @ B.T
         if kernel == "linear":
-            state["weights"] = (svr.dual_coef_ @ svr.support_vectors_).ravel()
+            return products
+        return np.maximum((A ** 2).sum(axis=1)[:, None] + (B ** 2).sum(axis=1)[None, :] - 2.0 * products, 0.0)
+
+    @staticmethod
+    def _kernel(products, kernel, gamma):
+        return products if kernel == "linear" else np.exp(-gamma * products)
+
+    def fit(self, X, y, tune, kernel, C, epsilon, gamma_factor):
+        from sklearn.svm import SVR
+        Xn, yn, state = self._scaled(X, y)
+        gamma = self._gamma(Xn, gamma_factor)
+        kernel_matrix = self._kernel(self._products(Xn, Xn, kernel), kernel, gamma)
+        svr = SVR(kernel="precomputed", C=C, epsilon=epsilon, tol=self.solver_tol).fit(kernel_matrix, yn)
+        support, dual = Xn[svr.support_], svr.dual_coef_.ravel()
+        state.update({"intercept": float(svr.intercept_[0]), "gamma": float(gamma), "linear": int(kernel == "linear")})
+        if kernel == "linear":
+            state["weights"] = dual @ support
         else:
-            state["support"], state["dual"] = np.asarray(svr.support_vectors_), svr.dual_coef_.ravel()
+            state["support"], state["dual"] = support, dual
         return state
+
+    def settings_path(self, X_train, y_train, X_val, settings, tune, kernel, C, epsilon, gamma_factor):
+        from sklearn.svm import SVR
+        Xn, yn, scale = self._scaled(X_train, y_train)
+        Vn = (X_val - scale["x_mean"]) / scale["x_std"]
+        train, val = self._products(Xn, Xn, kernel), self._products(Vn, Xn, kernel)
+        out = np.empty((len(settings), X_val.shape[0]))
+        for i, extra in enumerate(settings):
+            values = {"C": C, "epsilon": epsilon, "gamma_factor": gamma_factor, **extra}
+            gamma = self._gamma(Xn, values["gamma_factor"])
+            svr = SVR(kernel="precomputed", C=values["C"], epsilon=values["epsilon"], tol=self.solver_tol).fit(
+                self._kernel(train, kernel, gamma), yn)
+            out[i] = svr.predict(self._kernel(val, kernel, gamma)) * scale["y_std"] + scale["y_mean"]
+        return out
 
     def predict(self, state, X):
         Xn = (X - state["x_mean"]) / state["x_std"]

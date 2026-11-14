@@ -30,8 +30,9 @@ def _dot(color):
 
 class ResultsPage(Page):
     title = "Resultados"
-    intro = ("Cada linha resume um modelo. O “erro típico” é quanto a estimativa costuma se afastar do valor "
-             "medido em amostras que o modelo não viu no treino.")
+    intro = ("Cada linha resume um modelo. O RMSECV (raiz do erro quadrático médio da validação cruzada) mede o "
+             "quanto a estimativa se afasta do valor medido nas amostras que ficaram de fora do treino; com um "
+             "conjunto de teste separado, o mesmo cálculo se chama RMSEP.")
 
     def build(self):
         left = QWidget()

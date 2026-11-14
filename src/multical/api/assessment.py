@@ -10,12 +10,12 @@ from typing import List
 
 import numpy as np
 
-from .registry import MODELS
+from .registry import MODELS, SPLITTERS
 
 R2_GOOD = 0.90            # validation R² at or above this: "bom"
 R2_ATTENTION = 0.70       # at or above this: "atenção"; below: "ruim"
 FEW_SAMPLES = 20          # fewer calibration samples than this raises a warning
-LARGE_ERROR_FACTOR = 2.5  # a validation error above this many times the typical error flags the sample
+LARGE_ERROR_FACTOR = 2.5  # a validation error above this many times the RMSECV flags the sample
 
 LEVELS = {"bom": "Bom", "atencao": "Atenção", "ruim": "Ruim"}
 
@@ -23,6 +23,18 @@ LEVELS = {"bom": "Bom", "atencao": "Atenção", "ruim": "Ruim"}
 def number(value, digits=3):
     """Format with significant digits and a decimal comma."""
     return f"{value:.{digits}g}".replace(".", ",")
+
+
+def error_name(config):
+    """
+    Name of the validation error of a calibration: RMSECV (root mean squared
+    error of cross-validation) or, when the samples left out form one separate
+    test set, RMSEP (root mean squared error of prediction).
+    """
+    validation = getattr(config, "validation", None) or {}
+    if validation.get("id") in SPLITTERS and SPLITTERS.get(validation["id"]).kind == "holdout":
+        return "RMSEP"
+    return "RMSECV"
 
 
 @dataclass
@@ -37,12 +49,13 @@ def assess(result):
     """One AnalyteAssessment per analyte of a CalibrationResult."""
     unit = f" {result.units}" if result.units else ""
     one, many = MODELS.get(result.config.model["id"]).sweep_label
+    rmse = error_name(result.config)
     out = []
     for j, name in enumerate(result.analytes):
         res = result.per_analyte[name]
         r2 = res.best_r2cv
         level = "bom" if r2 >= R2_GOOD else "atencao" if r2 >= R2_ATTENTION else "ruim"
-        parts = [f"erro típico ±{number(res.best_rmsecv)}{unit}", f"R² de validação {number(r2)}"]
+        parts = [f"{rmse} {number(res.best_rmsecv)}{unit}", f"R² de validação {number(r2)}"]
         if res.best_k is not None:
             parts.append(f"{res.best_k} {one if res.best_k == 1 else many}")
         elif res.best_label is not None:
@@ -66,14 +79,15 @@ def assess(result):
 def selection_notes(result):
     """Sentences about a variable selection: what it changed and how to read the error that comes after it."""
     unit = f" {result.units}" if result.units else ""
+    rmse = error_name(result.config)
     notes = []
     for name in result.analytes:
         res = result.per_analyte[name]
         if res.selected is None or res.full_rmsecv is None:
             continue
         notes.append(
-            f"{name}: erro típico ±{number(res.best_rmsecv)}{unit} com {res.n_selected} pontos do espectro; "
-            f"com todos os {res.selected.size} pontos era ±{number(res.full_rmsecv)}{unit}.")
+            f"{name}: {rmse} {number(res.best_rmsecv)}{unit} com {res.n_selected} pontos do espectro; "
+            f"com todos os {res.selected.size} pontos era {number(res.full_rmsecv)}{unit}.")
     if notes:
         notes.append(
             "Os pontos foram escolhidos olhando o erro de validação; por isso esse erro tende a parecer menor do que "
@@ -119,7 +133,8 @@ def candidate_name(result):
 def candidate_table(result, analyte):
     """(headers, rows of text) with the error of every candidate tried for one analyte."""
     res = result.per_analyte[analyte]
-    headers = [candidate_name(result), "Erro de validação", "R² de validação", "Erro de calibração", "R² de calibração"]
+    headers = [candidate_name(result), error_name(result.config), "R² de validação", "RMSEC (calibração)",
+               "R² de calibração"]
     rows = []
     for i, value in enumerate(res.candidates):
         name = res.labels[i] if res.labels is not None else ("único" if int(value) == 0 else str(int(value)))

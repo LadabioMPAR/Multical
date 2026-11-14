@@ -10,7 +10,9 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -79,27 +81,56 @@ class LegacyEquivalence(MethodsCase):
             api.run_calibration(self.dataset, self._config("spa", {"max_k": 3, "cini": 5000}))
 
     def test_svr_matches_the_scikit_learn_wrapper(self):
+        # The kernel is computed here and given to scikit-learn as "precomputed". The solver stops within its
+        # tolerance (1e-3 by default), so two ways of computing the same kernel may stop at slightly different
+        # points: with the default the estimates agree to the tolerance, with a tight one to rounding.
+        from sklearn.svm import SVR
+        svr_class = type(api.MODELS.get("svr"))
         for kernel, C, epsilon in (("rbf", 10.0, 0.05), ("linear", 1.0, 0.1)):
             params = {"tune": False, "kernel": kernel, "C": C, "epsilon": epsilon, "gamma_factor": 1.0}
             result = api.run_calibration(self.dataset, self._config("svr", params))
+            with mock.patch.object(svr_class, "solver_tol", 1e-10):
+                tight = api.run_calibration(self.dataset, self._config("svr", params))
             for j, name in enumerate(ANALYTES):
                 y = self.Y[:, j]
-                expected = np.empty(30)
+                expected, exact = np.empty(30), np.empty(30)
                 for train, val in self.folds:
                     expected[val] = LegacySVR().fit_predict(self.X[train], y[train], self.X[val], C=C, epsilon=epsilon,
                                                             gamma="scale", kernel=kernel).ravel()
-                np.testing.assert_allclose(result.per_analyte[name].y_cv[0], expected, rtol=1e-6, atol=1e-8)
+                    mean, std = self.X[train].mean(axis=0), self.X[train].std(axis=0)
+                    Xn, Vn = (self.X[train] - mean) / std, (self.X[val] - mean) / std
+                    model = SVR(kernel=kernel, C=C, epsilon=epsilon, gamma="scale", tol=1e-10)
+                    exact[val] = model.fit(Xn, (y[train] - y[train].mean()) / y[train].std()).predict(Vn) \
+                        * y[train].std() + y[train].mean()
+                np.testing.assert_allclose(result.per_analyte[name].y_cv[0], expected, rtol=0, atol=2e-3 * np.ptp(y))
+                np.testing.assert_allclose(tight.per_analyte[name].y_cv[0], exact, rtol=1e-7, atol=1e-8)
                 self.assertIsNone(result.per_analyte[name].best_k)
                 self.assertIsNone(result.per_analyte[name].best_label)
+
+    def test_svr_settings_at_once_match_one_at_a_time(self):
+        model = api.MODELS.get("svr")
+        train, val = self.folds[0]
+        y = self.Y[:, 1]
+        for kernel in ("rbf", "linear"):
+            params = {"tune": True, "kernel": kernel, "C": 1.0, "epsilon": 0.1, "gamma_factor": 1.0}
+            settings = [extra for _, extra in model.candidates(**params)][::5]
+            together = model.settings_path(self.X[train], y[train], self.X[val], settings, **params)
+            for row, extra in zip(together, settings):
+                alone = model.predict(model.fit(self.X[train], y[train], **{**params, **extra}), self.X[val])
+                np.testing.assert_allclose(row, alone, rtol=1e-9, atol=1e-10)
 
 
 class SettingsTriedByValidation(MethodsCase):
     def test_svr_keeps_the_setting_with_the_lowest_validation_error(self):
         result = api.run_calibration(self.dataset, self._config("svr", analytes=["gl"]))
         res = result.per_analyte["gl"]
-        self.assertEqual(len(res.labels), 24)                      # 4 x 2 x 3 combinations
-        self.assertEqual(res.y_cv.shape, (24, 30))
+        tried = len(res.labels)
+        self.assertGreater(tried, 72)                              # 6 x 3 x 4 combinations, then the refinements
+        self.assertLessEqual(tried, 72 + 2 * 26)
+        self.assertEqual(len(set(res.labels)), tried)              # nothing is tried twice
+        self.assertEqual(res.y_cv.shape, (tried, 30))
         self.assertEqual(res.best_index, int(np.argmin(res.rmsecv)))
+        self.assertLessEqual(res.best_rmsecv, res.rmsecv[:72].min())   # refining can only help
         self.assertTrue(res.best_label.startswith("C="))
         self.assertIsNone(res.best_k)
         # the chosen setting is the one used in the final model
@@ -112,10 +143,37 @@ class SettingsTriedByValidation(MethodsCase):
         item = api.assess(result)[0]
         self.assertIn("ajuste escolhido: C=", item.summary)
         headers, rows = api.assessment.candidate_table(result, "gl")
-        self.assertEqual((headers[0], len(rows)), ("Ajuste testado", 24))
+        self.assertEqual((headers[0], len(rows)), ("Ajuste testado", tried))
         self.assertEqual(sum("(escolhido)" in row[0] for row in rows), 1)
         linear = api.run_calibration(self.dataset, self._config("svr", {"kernel": "linear"}, analytes=["gl"]))
-        self.assertEqual(len(linear.per_analyte["gl"].labels), 8)   # the width does not apply to a straight line
+        labels = linear.per_analyte["gl"].labels
+        self.assertTrue(all("largura" not in label for label in labels))    # the width does not apply to a straight line
+        self.assertGreaterEqual(len(labels), 18)
+
+    def test_refinement_looks_around_the_best_setting(self):
+        model = api.MODELS.get("svr")
+        params = {"tune": True, "kernel": "rbf", "C": 1.0, "epsilon": 0.1, "gamma_factor": 1.0}
+        tried = model.candidates(**params)
+        errors = np.ones(len(tried))
+        best = next(i for i, (_, extra) in enumerate(tried)
+                    if extra == {"C": 100.0, "epsilon": 0.01, "gamma_factor": 1.0})
+        errors[best] = 0.5
+        first = [extra for _, extra in model.refine(tried, errors, 1, **params)]
+        self.assertEqual(sorted({e["C"] for e in first}), [32.0, 100.0, 320.0])
+        self.assertEqual(sorted({e["gamma_factor"] for e in first}), [0.32, 1.0, 3.2])
+        self.assertEqual(sorted({e["epsilon"] for e in first}), [0.0032, 0.01, 0.032])
+        second = [extra for _, extra in model.refine(tried, errors, 2, **params)]
+        self.assertEqual(sorted({e["C"] for e in second}), [56.0, 100.0, 180.0])
+        self.assertEqual(model.refine(tried, errors, 1, **{**params, "tune": False}), [])
+
+    def test_automatic_svr_is_quick_on_long_spectra(self):
+        rng = np.random.RandomState(3)
+        X = rng.randn(60, 4000).cumsum(axis=1)
+        Y = np.column_stack([X[:, 500] - X[:, 3000], X[:, 1500]]) + rng.randn(60, 2) * 0.1
+        data = api.Dataset(X, np.linspace(4000, 9000, 4000), Y, analytes=["a", "b"])
+        start = time.perf_counter()
+        api.run_calibration(data, self._config("svr", analytes=["a"]))
+        self.assertLess(time.perf_counter() - start, 60)        # was about 0,25 s per setting and training set
 
     def test_wording_follows_the_model(self):
         for model, word in (("pls", "variáve"), ("pcr", "componente"), ("spa", "ponto")):

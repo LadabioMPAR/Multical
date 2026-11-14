@@ -7,7 +7,7 @@ the GUI can embed the figure or save it to a file.
 import numpy as np
 from matplotlib.figure import Figure
 
-from .assessment import candidate_name, number
+from .assessment import error_name, candidate_name, number
 from .influence import influence
 
 
@@ -25,7 +25,7 @@ def plot_error_curve(result, analyte):
     unit = f" ({result.units})" if result.units else ""
     fig = Figure(figsize=(6, 4), layout="constrained")
     ax = fig.add_subplot()
-    ax.plot(res.candidates, res.rmsecv, marker="o", label="Validação (RMSECV)")
+    ax.plot(res.candidates, res.rmsecv, marker="o", label=f"Validação ({error_name(result.config)})")
     ax.plot(res.candidates, res.rmsec, marker="o", linestyle="--", label="Calibração (RMSEC)")
     ax.plot(res.candidates[res.best_index], res.rmsecv[res.best_index], "k*", markersize=14, label="Escolhido")
     name = candidate_name(result)
@@ -52,7 +52,8 @@ def plot_predicted_vs_measured(result, analyte):
     ax.scatter(measured, predicted, alpha=0.7)
     ax.plot([lo, hi], [lo, hi], "k--", label="Ideal")
     ax.set(
-        title=f"{analyte}: erro típico ±{number(res.best_rmsecv)} {result.units}".rstrip() + f", R² = {number(res.best_r2cv)}",
+        title=f"{analyte}: {error_name(result.config)} = {number(res.best_rmsecv)} {result.units}".rstrip()
+              + f", R² = {number(res.best_r2cv)}",
         xlabel=f"Medido{unit}", ylabel=f"Previsto{unit}",
     )
     ax.legend()
@@ -62,7 +63,31 @@ def plot_predicted_vs_measured(result, analyte):
 X_LABEL = "Número de onda (cm⁻¹)"
 
 
-def plot_spectra_by_group(wavelengths, X, groups=None, highlight=None, title="Espectros", ylabel="Absorbância"):
+HIGHLIGHT = "destaque"      # gid of the line that draws the highlighted spectrum
+
+
+def set_highlight(fig, wavelengths, X, highlight=None, label="Selecionada"):
+    """Draw spectrum `highlight` of X on top of a figure of `plot_spectra_by_group` (None: no spectrum), in place."""
+    ax = fig.axes[0]
+    line = next(item for item in ax.lines if item.get_gid() == HIGHLIGHT)
+    X = np.atleast_2d(np.asarray(X))
+    if highlight is not None and 0 <= highlight < X.shape[0]:
+        line.set_data(np.asarray(wavelengths), X[highlight])
+        line.set_label(label)
+        line.set_visible(True)
+    else:
+        line.set_data([], [])
+        line.set_label("_nolegend_")
+        line.set_visible(False)
+    shown = [item for item in ax.lines if not item.get_label().startswith("_")]
+    if shown:
+        ax.legend(fontsize=8, loc="best")
+    elif ax.get_legend() is not None:
+        ax.get_legend().remove()
+
+
+def plot_spectra_by_group(wavelengths, X, groups=None, highlight=None, title="Espectros", ylabel="Absorbância",
+                          highlight_label="Selecionada"):
     """Every spectrum, one colour per experiment; `highlight` is the position of a spectrum to draw on top."""
     X = np.atleast_2d(np.asarray(X))
     fig = Figure(figsize=(7, 4.5), layout="constrained")
@@ -73,11 +98,9 @@ def plot_spectra_by_group(wavelengths, X, groups=None, highlight=None, title="Es
         lines = ax.plot(np.asarray(wavelengths), X[rows].T, color=f"C{number % 10}", linewidth=0.7, alpha=0.8)
         if name:
             lines[0].set_label(name)
-    if highlight is not None and 0 <= highlight < X.shape[0]:
-        ax.plot(np.asarray(wavelengths), X[highlight], color="black", linewidth=2.0, label="Selecionada")
+    ax.plot([], [], color="black", linewidth=2.0, gid=HIGHLIGHT)
     ax.set(title=title, xlabel=X_LABEL, ylabel=ylabel)
-    if groups is not None or highlight is not None:
-        ax.legend(fontsize=8, loc="best")
+    set_highlight(fig, wavelengths, X, highlight, highlight_label)
     return fig
 
 
@@ -169,7 +192,7 @@ def plot_prediction_domain(prediction):
 
 
 def plot_prediction_over_time(prediction, analyte):
-    """Estimates of one analyte along the time, one line per experiment, with the typical error as a band."""
+    """Estimates of one analyte along the time, one line per experiment, with ± the model's RMSECV as a band."""
     j = prediction.analytes.index(analyte)
     unit = f" ({prediction.units})" if prediction.units else ""
     n = len(prediction.sample_ids)
@@ -185,7 +208,8 @@ def plot_prediction_over_time(prediction, analyte):
         color = f"C{number % 10}"
         ax.plot(x[rows], prediction.Y[rows, j], color=color, linewidth=1.2, marker="o", markersize=2.5, label=name or None)
         if error == error:
-            ax.fill_between(x[rows], prediction.Y[rows, j] - error, prediction.Y[rows, j] + error, color=color, alpha=0.15)
+            ax.fill_between(x[rows], prediction.Y[rows, j] - error, prediction.Y[rows, j] + error, color=color, alpha=0.15,
+                            label=f"± {prediction.error_name}" if number == 0 else None)
     if not ok.all():
         ax.plot(x[~ok], prediction.Y[~ok, j], linestyle="none", marker="x", color="red", markersize=6,
                 label="Fora do que o modelo conhece")

@@ -96,7 +96,7 @@ class Report(PredictionCase):
             with open(path, encoding="utf-8-sig") as handle:
                 lines = handle.read().splitlines()
             self.assertEqual(len(lines), 7)
-            self.assertTrue(lines[0].startswith("amostra;experimento;tempo_min;cb_g/L;cb_erro_tipico;gl_g/L"))
+            self.assertTrue(lines[0].startswith("amostra;experimento;tempo_min;cb_g/L;cb_rmsecv;gl_g/L"))
             self.assertEqual(lines[1].split(";")[:3], ["amostra_1", "lote", "0"])
             self.assertEqual(lines[1].split(";")[-3], "dentro do que o modelo conhece")
             self.assertIn("espectro diferente", lines[6].split(";")[-3])

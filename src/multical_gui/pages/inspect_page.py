@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
 from multical import api
 from multical.api import plots
 
-from ..widgets import PlotCanvas
+from ..widgets import PlotCanvas, nearest_curve
 from .base import Page
 
 MIN_SAMPLES = 6
@@ -14,8 +14,8 @@ MIN_SAMPLES = 6
 
 class InspectPage(Page):
     title = "Inspecionar espectros"
-    intro = ("Confira se os espectros fazem sentido. Clique em uma amostra para destacá-la no gráfico e "
-             "desmarque as que não devem entrar no modelo. Nada é removido dos arquivos.")
+    intro = ("Confira se os espectros fazem sentido. Clique em uma amostra na lista, ou em um espectro no gráfico, "
+             "para destacá-la, e desmarque as que não devem entrar no modelo. Nada é removido dos arquivos.")
 
     def build(self):
         left = QWidget()
@@ -41,10 +41,12 @@ class InspectPage(Page):
         self.body.addWidget(splitter, 1)
 
         self.samples.itemChanged.connect(self._checks_changed)
-        self.samples.currentRowChanged.connect(lambda _row: self._plot())
+        self.samples.currentRowChanged.connect(lambda _row: self._show_selected())
+        self.canvas.clicked.connect(self._plot_clicked)
         self.include_all.clicked.connect(lambda: self._set_all(lambda row: True))
         self.drop_flagged.clicked.connect(lambda: self._set_all(lambda row: row not in self._flags))
         self._flags = {}
+        self._shown = None      # samples of the spectra in the plot, to change only the highlight when they are the same
 
     def enter(self):
         data = self.project.dataset
@@ -84,19 +86,47 @@ class InspectPage(Page):
         self._plot()
         self.window_.refresh_nav()
 
+    def _highlighted(self, data):
+        """(position in `data`, name) of the sample chosen in the list; (None, "") when it is not in use."""
+        row = self.samples.currentRow()
+        if row < 0:
+            return None, ""
+        sample = self.project.dataset.sample_ids[row]
+        return (data.sample_ids.index(sample), sample) if sample in data.sample_ids else (None, "")
+
     def _plot(self):
         data = self.project.active_dataset()
         if data is None or data.n_samples == 0:
+            self._shown = None
             self.canvas.show_message("Nenhuma amostra em uso.")
             return
-        highlight = None
-        row = self.samples.currentRow()
-        if row >= 0:
-            sample = self.project.dataset.sample_ids[row]
-            if sample in data.sample_ids:
-                highlight = data.sample_ids.index(sample)
+        highlight, name = self._highlighted(data)
         self.canvas.set_figure(plots.plot_spectra_by_group(
-            data.wavelengths, data.X, data.groups, highlight, title=f"Espectros em uso ({data.n_samples})"))
+            data.wavelengths, data.X, data.groups, highlight, title=f"Espectros em uso ({data.n_samples})",
+            highlight_label=f"Selecionada: {name}"))
+        self._shown = list(data.sample_ids)
+
+    def _show_selected(self):
+        """Move the highlight to the sample chosen in the list, keeping the zoom of the plot."""
+        data = self.project.active_dataset()
+        if data is None or self._shown != list(data.sample_ids):
+            self._plot()
+            return
+        highlight, name = self._highlighted(data)
+        plots.set_highlight(self.canvas.figure, data.wavelengths, data.X, highlight, f"Selecionada: {name}")
+        self.canvas.redraw()
+
+    def _plot_clicked(self, event):
+        """Choose in the list the spectrum that passes under the mouse."""
+        data = self.project.active_dataset()
+        if data is None or self._shown != list(data.sample_ids):
+            return
+        position = nearest_curve(event.inaxes, data.wavelengths, data.X, event.x, event.y)
+        if position is None:
+            return
+        row = self.project.dataset.sample_ids.index(data.sample_ids[position])
+        self.samples.setCurrentRow(row)
+        self.samples.scrollToItem(self.samples.item(row))
 
     def validate(self):
         data = self.project.dataset

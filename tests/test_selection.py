@@ -289,7 +289,7 @@ class EngineWithSelection(SelectionCase):
             self.assertIn(f"{n_points} de {self.wl.size} pontos do espectro", item.summary)
         notes = api.selection_notes(result)
         self.assertEqual(len(notes), 3)
-        self.assertIn("com todos os 150 pontos era ±", notes[0])
+        self.assertIn("com todos os 150 pontos era ", notes[0])
         self.assertIn("tende a parecer menor", notes[-1])
         self.assertEqual(api.selection_notes(self._run()), [])
         with tempfile.TemporaryDirectory() as tmp:

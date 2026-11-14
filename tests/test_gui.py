@@ -204,7 +204,7 @@ class WizardEndToEnd(unittest.TestCase):
         self.assertGreater(result.per_analyte["gl"].best_r2cv, 0.9)
 
         self.assertEqual(self.results.analytes.count(), 2)
-        self.assertIn("erro típico ±", self.results.analytes.item(0).text())
+        self.assertIn("RMSECV ", self.results.analytes.item(0).text())
         self.assertFalse(self.results.tabs.isTabVisible(2))
         self.results.analytes.setCurrentRow(1)
         self.assertEqual(self.results.table.rowCount(), len(result.per_analyte["xy"].candidates))
@@ -232,6 +232,58 @@ class WizardEndToEnd(unittest.TestCase):
         self.inspect.include_all.click()
         self.assertIsNone(self.project.result)
         self.assertFalse(self.window.steps.item(5).flags() & Qt.ItemIsEnabled)
+
+    def test_a_spectrum_is_chosen_by_clicking_on_it(self):
+        from matplotlib.backend_bases import MouseEvent
+        self._import_all()
+        self.window.go_to(2)
+        self.inspect.samples.item(0).setCheckState(Qt.Unchecked)      # positions in the plot differ from the list
+        data = self.project.active_dataset()
+        canvas = self.inspect.canvas
+        ax = canvas.figure.axes[0]
+        canvas.figure.canvas.draw()
+
+        def click(position, column):
+            x, y = ax.transData.transform((data.wavelengths[column], data.X[position, column]))
+            event = MouseEvent("button_press_event", canvas.figure.canvas, x, y + 1, button=1)
+            event.inaxes = ax
+            canvas._pressed(event)
+
+        target = 10
+        others = np.delete(data.X, target, axis=0)
+        column = int(np.argmax(np.min(np.abs(others - data.X[target]), axis=0)))   # where it stands apart
+        click(target, column)
+        row = self.inspect.samples.currentRow()
+        self.assertEqual(self.project.dataset.sample_ids[row], data.sample_ids[target])
+        line = next(item for item in ax.lines if item.get_gid() == "destaque")
+        np.testing.assert_array_equal(line.get_ydata(), data.X[target])
+        self.assertIn(data.sample_ids[target], line.get_label())
+
+        ax.set_xlim(data.wavelengths[140], data.wavelengths[160])     # a zoom survives choosing another one
+        canvas.figure.canvas.draw()
+        self.inspect.samples.setCurrentRow(3)
+        self.assertIs(canvas.figure.axes[0], ax)
+        self.assertEqual(ax.get_xlim(), (data.wavelengths[140], data.wavelengths[160]))
+        np.testing.assert_array_equal(line.get_ydata(), self.project.dataset.X[3])
+
+        far = MouseEvent("button_press_event", canvas.figure.canvas, *ax.transAxes.transform((0.5, 1.5)), button=1)
+        far.inaxes = ax
+        canvas._pressed(far)                                           # nowhere near a spectrum: nothing changes
+        self.assertEqual(self.inspect.samples.currentRow(), 3)
+
+    def test_nearest_curve(self):
+        from matplotlib.figure import Figure
+        from multical_gui.widgets import nearest_curve
+        figure = Figure(figsize=(4, 3), dpi=100)
+        ax = figure.add_subplot()
+        x = np.linspace(9000, 4000, 200)                               # decreasing, as wavenumbers often come
+        Y = np.vstack([np.zeros(200), np.ones(200), np.full(200, 2.0)])
+        ax.plot(x, Y.T)
+        figure.canvas.draw()
+        px, py = ax.transData.transform((6000, 1.02))
+        self.assertEqual(nearest_curve(ax, x, Y, px, py), 1)
+        px, py = ax.transData.transform((6000, 0.5))
+        self.assertIsNone(nearest_curve(ax, x, Y, px, py))              # halfway between two curves
 
     def test_training_can_be_cancelled_and_errors_are_shown(self):
         self._import_all()
@@ -312,7 +364,7 @@ class UseAModel(unittest.TestCase):
 
         self.assertTrue(self.page.load_model(self.model_path))
         self.assertIn("gl, xy · g/L · criado com 24 amostras", self.page.model_info.text())
-        self.assertIn("gl: erro típico ±", self.page.model_info.text())
+        self.assertIn("gl: RMSECV ", self.page.model_info.text())
         self.assertFalse(self.page.run_button.isEnabled())           # still no spectra
         self.page.add_spectra(self.files[0][0])
         self.page.add_spectra(self.files[0][0])                        # the same file twice counts once
@@ -477,6 +529,20 @@ class MethodsFromTheRegistries(unittest.TestCase):
         self.window.go_to(4)
         self._train()
         self.assertEqual(self.project.result.config.pretreatment[1], {"id": "log10", "params": {"offset": 2.5}})
+
+    def test_svr_fields_follow_the_automatic_choice(self):
+        self.window.go_to(4)
+        self.window.advanced.setChecked(True)
+        self.model.model.setCurrentIndex(self.model.model.findData("svr"))
+        editors = self.model.model_form._editors
+        self.assertTrue(editors["tune"].isChecked())
+        self.assertFalse(any(editors[name].isEnabled() for name in ("C", "epsilon", "gamma_factor")))
+        self.assertTrue(editors["kernel"].isEnabled())
+        self.assertNotIn("epsilon (tolerância)", self.model.summary.text())
+        editors["tune"].setChecked(False)
+        self.assertTrue(all(editors[name].isEnabled() for name in ("C", "epsilon", "gamma_factor")))
+        self.assertIn("epsilon (tolerância)", self.model.summary.text())
+        self.assertFalse(self.project.config.model["params"]["tune"])
 
     def test_every_model_and_validation_scheme_trains_from_the_screen(self):
         self.window.go_to(4)

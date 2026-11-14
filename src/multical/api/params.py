@@ -23,6 +23,11 @@ class Param:
     choices: Optional[Sequence] = None
     help: str = ""                 # plain-language explanation
     advanced: bool = False         # True: shown only in "Avançado" mode
+    active_when: Optional[tuple] = None   # (other param, value): used only when that param has that value
+
+    def is_active(self, values):
+        """Whether this parameter is used, given the values of all of them."""
+        return self.active_when is None or values.get(self.active_when[0]) == self.active_when[1]
 
     def __post_init__(self):
         if self.kind not in KINDS:

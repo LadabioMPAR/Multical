@@ -102,8 +102,9 @@ precisa de atenção. No quadro Analitos, cada coluna da tabela recebe um nome.<
 </ul>
 
 <h2>Entender os resultados</h2>
-<p>Cada linha resume o modelo de um analito. O <b>erro típico</b> é quanto a estimativa costuma se afastar do valor
-medido, em amostras que ficaram de fora do treino. O gráfico <i>Previsto × medido</i> deve ter os pontos perto da
+<p>Cada linha resume o modelo de um analito. O <b>RMSECV</b> (raiz do erro quadrático médio da validação cruzada)
+mede o quanto a estimativa se afasta do valor medido, nas amostras que ficaram de fora do treino, na unidade do analito.
+Quando a validação usa um conjunto de teste separado, o mesmo cálculo se chama <b>RMSEP</b>. O gráfico <i>Previsto × medido</i> deve ter os pontos perto da
 linha tracejada.</p>
 <table>
   <tr><th>Cor</th><th>Significado</th></tr>
@@ -124,13 +125,13 @@ linha tracejada.</p>
 <p>Se a amostra estiver mesmo errada, volte à etapa 2, desmarque-a e treine de novo. Uma amostra atípica não é
 necessariamente ruim: pode ser só a de maior concentração.</p>
 <figure><img src="img/3_resultados.png" alt="Tela Resultados">
-<figcaption>Resultados: uma linha por analito, com a cor, o erro típico e o gráfico previsto × medido.</figcaption></figure>
+<figcaption>Resultados: uma linha por analito, com a cor, o RMSECV e o gráfico previsto × medido.</figcaption></figure>
 
 <h2>Usar um modelo pronto</h2>
 <ol>
   <li>Na tela inicial, clique em <b>Usar um modelo pronto</b>.</li>
-  <li>Clique em <b>Abrir modelo</b> e escolha o arquivo <code>.multical</code>. A tela mostra o que ele estima, o erro
-      típico e a faixa de valores com que foi criado.</li>
+  <li>Clique em <b>Abrir modelo</b> e escolha o arquivo <code>.multical</code>. A tela mostra o que ele estima, o RMSECV
+      de cada analito e a faixa de valores com que foi criado.</li>
   <li>Clique em <b>Adicionar arquivo</b> e escolha os espectros das amostras novas.</li>
   <li>Clique em <b>Estimar</b>. Em séries muito longas, “Usar um espectro a cada N” deixa o cálculo mais rápido.</li>
   <li>Veja a tabela e o gráfico ao longo do tempo, e clique em <b>Salvar tabela (CSV)</b> para abrir no Excel.
@@ -146,7 +147,7 @@ necessariamente ruim: pode ser só a de maior concentração.</p>
       da estimativa.</li>
 </ul>
 <figure><img src="img/4_estimar.png" alt="Tela Estimar amostras">
-<figcaption>Estimar amostras: a faixa clara em volta da curva é o erro típico; os “x” vermelhos marcam as amostras
+<figcaption>Estimar amostras: a faixa clara em volta da curva é ± RMSECV; os “x” vermelhos marcam as amostras
 fora do que o modelo conhece.</figcaption></figure>
 
 <h2>Se algo der errado</h2>

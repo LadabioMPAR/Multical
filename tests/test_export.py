@@ -52,9 +52,9 @@ class ExportCase(unittest.TestCase):
         self.assertEqual([i.analyte for i in items], list(ANALYTES))
         for item in items:
             self.assertIn(item.level, ("bom", "atencao", "ruim"))
-            self.assertIn("erro típico ±", item.summary)
+            self.assertIn("RMSECV ", item.summary)
             self.assertIn("g/L", item.summary)
-            self.assertNotIn(".", item.summary.split("±")[1].split(" ")[0])     # decimal comma
+            self.assertNotIn(".", item.summary.split("RMSECV ")[1].split(" ")[0])     # decimal comma
         self.assertEqual(api.dataset_warnings(self.dataset), [])
         self.assertEqual(len(api.dataset_warnings(self.dataset.subset(np.arange(8)))), 1)
 

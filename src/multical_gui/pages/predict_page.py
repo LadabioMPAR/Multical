@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from multical import api
 from multical.api import plots
-from multical.api.assessment import number
+from multical.api.assessment import error_name, number
 from multical.api.prediction import calibrated_ranges, typical_errors
 
 from ..widgets import Banner, PlotCanvas
@@ -36,7 +36,7 @@ def describe_model(model):
     for name, error, (low, high) in zip(model.analytes, typical_errors(model), calibrated_ranges(model)):
         parts = []
         if error == error:      # not NaN
-            parts.append(f"erro típico ±{number(error)}{unit}")
+            parts.append(f"{error_name(model.config)} {number(error)}{unit}")
         if low == low:
             parts.append(f"calibrado de {number(low)} a {number(high)}{unit}")
         selected = getattr(model.per_analyte[name], "selected", None)
