@@ -8,7 +8,7 @@ from .recipe import normalize_recipe
 from .registry import MODELS, SELECTORS, SPLITTERS
 
 FORMAT_VERSION = 2     # 2: variable selection; written only when one is chosen, so older programs still read the rest
-SELECTION_RULES = ("ftest", "min")
+SELECTION_RULES = ("ftest", "haaland", "min")
 
 
 def default_pretreatment():
@@ -22,7 +22,7 @@ class RunConfig:
     pretreatment: List[dict] = field(default_factory=default_pretreatment)
     model: dict = field(default_factory=lambda: {"id": "pls", "params": {}})
     validation: dict = field(default_factory=lambda: {"id": "kfold", "params": {}})
-    selection: str = "ftest"          # "ftest": Osten F-test; "min": lowest validation error
+    selection: str = "ftest"          # "ftest": Osten F-test; "haaland": Haaland & Thomas F-test; "min": lowest validation error
     seed: Optional[int] = 0           # seed for schemes that draw samples at random
     analytes: Optional[List[str]] = None   # None: every analyte in the data
     # {"id": ..., "params": {...}}: choose, per analyte, which points of the spectrum the model uses; None: all of them
@@ -31,7 +31,7 @@ class RunConfig:
     def resolved(self):
         """Validated copy with every parameter filled in (defaults included)."""
         if self.selection not in SELECTION_RULES:
-            raise ValueError(f"Regra de escolha desconhecida: {self.selection!r}. Use 'ftest' ou 'min'.")
+            raise ValueError(f"Regra de escolha desconhecida: {self.selection!r}. Use 'ftest', 'haaland' ou 'min'.")
         model = MODELS.get(self.model["id"])
         splitter = SPLITTERS.get(self.validation["id"])
         chosen = None

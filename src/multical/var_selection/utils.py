@@ -145,8 +145,29 @@ def select_k_ftest(RMSECV, n_cal):
             # Check if this new target (k+1) is higher than current best
             if (k_val + 1) > best_k:
                 best_k = k_val + 1
-                
+
     return best_k
+
+def select_k_haaland(RMSECV, n_cal, alpha=0.25):
+    """
+    Selects the optimal k using the Haaland & Thomas (1988) F-test,
+    Anal. Chem. 60(11), 1193-1202, doi:10.1021/ac00162a020.
+    Compares each k with k* (minimum RMSECV): F = PRESS_k / PRESS_k*,
+    F_crit = F(1 - alpha; n, n). Returns the smallest k <= k* with F < F_crit.
+    RMSECV^2 = PRESS / n, so the ratio is the same with RMSECV^2.
+    """
+    RMSECV = np.asarray(RMSECV, dtype=float)
+    k_min_idx = int(np.argmin(RMSECV))
+    rmse_sq_min = RMSECV[k_min_idx]**2
+    eps = 1e-10 if rmse_sq_min == 0 else 0
+    n = max(int(n_cal), 1)
+    f_crit_val = f_dist.ppf(1 - alpha, n, n)
+
+    for k_idx in range(k_min_idx + 1):
+        F_stat = RMSECV[k_idx]**2 / (rmse_sq_min + eps)
+        if F_stat < f_crit_val:
+            return k_idx + 1
+    return k_min_idx + 1
 
 def pso_worker_wrapper(args):
     # Unpack arguments

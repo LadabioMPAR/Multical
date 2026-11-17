@@ -23,7 +23,7 @@ from multical.api import plots
 from multical.core.saving import load_and_predict_pls, train_and_save_model_pls
 from multical.io.txt_pair import read_txt_pairs
 from multical.preprocessing.pipeline import apply_pretreatment
-from multical.var_selection import calculate_rmsecv_fast, select_k_ftest
+from multical.var_selection import calculate_rmsecv_fast, select_k_ftest, select_k_haaland
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GOLDEN_PATH = os.path.join(HERE, "golden", "reference.npz")
@@ -135,6 +135,23 @@ class CalibrationEquivalence(ApiTestCase):
         result = api.run_calibration(self.dataset, _config(selection="min"))
         for res in result.per_analyte.values():
             self.assertEqual(res.best_index, int(np.argmin(res.rmsecv)))
+
+    def test_haaland_rule_picks_smallest_k_close_to_the_minimum(self):
+        result = api.run_calibration(self.dataset, _config(selection="haaland"))
+        n = self.X.shape[0]
+        for name, res in result.per_analyte.items():
+            with self.subTest(analyte=name):
+                self.assertEqual(res.best_k, select_k_haaland(res.rmsecv, n))
+                self.assertLessEqual(res.best_index, int(np.argmin(res.rmsecv)))
+
+    def test_haaland_by_hand(self):
+        from scipy.stats import f as f_dist
+        crit = f_dist.ppf(0.75, 20, 20)                    # about 1.43
+        rmse_min = 1.0
+        curve = [3.0, np.sqrt(crit) * 0.99, 1.1, rmse_min, 1.2]
+        self.assertEqual(select_k_haaland(curve, 20), 2)   # k=2 is within F_crit of the minimum at k=4
+        self.assertEqual(select_k_haaland([2.0, 1.0], 20), 2)
+        self.assertEqual(select_k_haaland([1.0, 2.0, 3.0], 20), 1)
 
     def test_leave_one_out_equals_kfold_with_n_parts(self):
         n = self.X.shape[0]

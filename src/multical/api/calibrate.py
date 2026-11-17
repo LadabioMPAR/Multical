@@ -12,7 +12,7 @@ Rules fixed for this layer:
 import numpy as np
 
 from ..utils import zscore_matlab_style
-from ..var_selection.utils import select_k_ftest
+from ..var_selection.utils import select_k_ftest, select_k_haaland
 from .config import RunConfig
 from .contract import (
     check_cv_path, check_predictions, check_selection, check_settings_path, check_split, check_state,
@@ -230,6 +230,8 @@ def run_calibration(dataset, config=None, progress=None, cancel=None):
             return 0
         if config.selection == "ftest" and model.sweep:      # the F-test only makes sense for a growing complexity
             return int(select_k_ftest(rmsecv, n_cal_eff)) - 1
+        if config.selection == "haaland" and model.sweep:
+            return int(select_k_haaland(rmsecv, n_cal_eff)) - 1
         return int(np.argmin(rmsecv))
 
     def report(position, fraction, message):

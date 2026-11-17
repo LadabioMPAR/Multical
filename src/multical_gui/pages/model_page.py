@@ -13,7 +13,8 @@ from ..widgets import Banner, ParamForm, describe_params
 from ..worker import CalibrationWorker
 from .base import Page
 
-SELECTION_RULES = (("ftest", "Teste F: o modelo mais simples que não perde precisão (recomendado)"),
+SELECTION_RULES = (("ftest", "Teste F de Osten: o modelo mais simples que não perde precisão (recomendado)"),
+                   ("haaland", "Teste F de Haaland e Thomas: o menor modelo tão bom quanto o de menor erro"),
                    ("min", "Menor erro de validação"))
 NO_SELECTION = "Não usar: o modelo usa todos os pontos do espectro"
 SELECTION_HINT = ("A seleção de variáveis repete a validação centenas ou milhares de vezes para cada analito: "
