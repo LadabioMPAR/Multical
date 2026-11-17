@@ -15,7 +15,7 @@ class MulticalEngine:
     def __init__(self):
         pass
         
-    def run(self, Selecao, optkini, lini, kmax, nc, cname, unid, x0, absor0, frac_test, dadosteste, OptimModel, pretreat_list, analysis_list=None, output_dir=None, outlier=0, use_ftest=True, colors=None, times=None, plots_dir=None, data_dir=None):
+    def run(self, Selecao, optkini, lini, kmax, nc, cname, unid, x0, absor0, frac_test, dadosteste, OptimModel, pretreat_list, analysis_list=None, output_dir=None, outlier=0, use_ftest=True, colors=None, times=None, plots_dir=None, data_dir=None, ftest_method='osten'):
         """
         Main execution engine.
         """
@@ -80,13 +80,14 @@ class MulticalEngine:
         
         RMSECV, RMSECV_conc, RMSEcal, RMSEcal_conc, RMSEtest, RMSEtest_conc, R2CV, R2cal, best_k_ftest = self.run_cv(
             Selecao, x, absor, kmax, OptimModel, nc, cname, frac_test, 
-            output_dir=output_dir, outlier=outlier, use_ftest=use_ftest, colors=colors
+            output_dir=output_dir, outlier=outlier, use_ftest=use_ftest, colors=colors,
+            ftest_method=ftest_method
         )
-        
+
         return RMSECV, RMSECV_conc, RMSEcal, RMSEcal_conc, RMSEtest, RMSEtest_conc, R2CV, R2cal, best_k_ftest
 
 
-    def run_cv(self, Selecao, x, absor, kmax, OptimModel, nc, cname, frac_test, output_dir=None, outlier=0, use_ftest=True, colors=None):
+    def run_cv(self, Selecao, x, absor, kmax, OptimModel, nc, cname, frac_test, output_dir=None, outlier=0, use_ftest=True, colors=None, ftest_method='osten'):
         """
         Runs Cross-Validation logic.
         """
@@ -372,11 +373,76 @@ class MulticalEngine:
             minimos = np.vstack([min_rmse, min_idx])
             np.savetxt(os.path.join(d_dir, 'minimos.txt'), minimos, fmt='%g', delimiter='\t')
         
-        # --- Pre-calculate Model Selection (Osten F-test) ---
+        # --- Pre-calculate Model Selection (F-test) ---
+        # ftest_method:
+        #   'osten'   -> Osten, D. W. (1988). J. Chemometrics 2(1), 39-48.
+        #                doi:10.1002/cem.1180020106
+        #                Compares k vs k+1: F = (PRESS_k - PRESS_k+1) / (PRESS_k+1 / (n-k-1)),
+        #                F_crit = F(0.95; 1, n-k-1).
+        #   'haaland' -> Haaland, D. M. & Thomas, E. V. (1988). Anal. Chem. 60(11), 1193-1202.
+        #                doi:10.1021/ac00162a020
+        #                Compares each k vs k* (min PRESS): F = PRESS_k / PRESS_k*,
+        #                F_crit = F(0.75; n, n). Picks the smallest k <= k* with F < F_crit.
+        # RMSECV^2 = PRESS / n, so the ratios below are the same as with PRESS.
         best_k_ftest = {} # Dictionary to store best k for each component if f-test used
         f_test_results = {} # Store results for plotting later
 
-        if use_ftest:
+        ftest_method = str(ftest_method).lower()
+        if use_ftest and ftest_method not in ('osten', 'haaland'):
+            raise ValueError(f"ftest_method must be 'osten' or 'haaland' (got: {ftest_method!r})")
+
+        if is_holdout and train_idx_holdout is not None:
+            n_cal_eff = len(train_idx_holdout)
+        else:
+            n_cal_eff = nd
+
+        if use_ftest and ftest_method == 'haaland':
+            print(f"\n--- Model Selection (Haaland & Thomas F-test, alpha = 0.25) ---")
+            f_crit_h = f_dist.ppf(0.75, n_cal_eff, n_cal_eff)  # same for every k
+            for j in range(nc):
+                k_min_idx = int(np.argmin(RMSECV_conc[:, j]))
+                k_min = k_min_idx + 1
+                rmse_sq_min = RMSECV_conc[k_min_idx, j]**2
+                eps = 1e-10 if rmse_sq_min == 0 else 0
+
+                k_steps = list(range(1, kmax + 1))
+                f_values = [RMSECV_conc[k - 1, j]**2 / (rmse_sq_min + eps) for k in k_steps]
+                f_crits = [f_crit_h] * len(k_steps)
+
+                # Smallest k (up to k*) whose PRESS is not significantly larger than PRESS(k*)
+                best_k = k_min
+                reason = f"Global minimum (k*={k_min})"
+                for k in range(1, k_min + 1):
+                    if f_values[k - 1] < f_crit_h:
+                        best_k = k
+                        reason = f"Smallest k with F < F_crit (k*={k_min})"
+                        break
+
+                best_k_ftest[j] = best_k
+                f_test_results[j] = {
+                    'method': 'haaland',
+                    'f_values': f_values,
+                    'f_crits': f_crits,
+                    'k_steps': k_steps,
+                    'best_k': best_k,
+                    'reason': reason
+                }
+
+                print(f"Component {j+1} ({cname[j]}): F-test suggested k={best_k} (Global Min k={k_min})")
+                print(f" Detailed F-test stats for {cname[j]} (F = PRESS_k / PRESS_k*, df = {n_cal_eff}, {n_cal_eff}):")
+                print(" k      | F_calc | F_crit | F < F_crit? | Action")
+                for k in k_steps:
+                    f_val = f_values[k - 1]
+                    below = f_val < f_crit_h
+                    if k == best_k:
+                        action = "SELECTED"
+                    elif k > k_min:
+                        action = "Above k* (not tested)"
+                    else:
+                        action = "Not significantly worse" if below else "Significantly worse"
+                    print(f" {k:<6} | {f_val:.4f} | {f_crit_h:.4f} | {str(below):<11} | {action}")
+
+        if use_ftest and ftest_method == 'osten':
             print(f"\n--- Model Selection (Osten F-test - Dissertation Method) ---")
             for j in range(nc):
                 best_k_idx_rmse = np.argmin(RMSECV_conc[:, j])
@@ -395,11 +461,6 @@ class MulticalEngine:
                     
                     if rmse_sq_k_plus_1 == 0: eps = 1e-10
                     else: eps = 0
-                    
-                    if is_holdout and train_idx_holdout is not None:
-                        n_cal_eff = len(train_idx_holdout)
-                    else:
-                        n_cal_eff = nd
 
                     df2 = n_cal_eff - k_val - 1
                     if df2 <= 0: df2 = 1 
@@ -431,6 +492,7 @@ class MulticalEngine:
 
                 best_k_ftest[j] = best_k
                 f_test_results[j] = {
+                    'method': 'osten',
                     'f_values': f_values,
                     'f_crits': f_crits,
                     'k_steps': k_steps,
@@ -549,9 +611,12 @@ class MulticalEngine:
                 ax_f = axes_f[j]
                 c_curr = colors[j] if j < len(colors) else 'blue'
                 ax_f.plot(k_steps, f_values, color=c_curr, marker='o', linestyle='-', label=r'$F_{calc}$')
-                ax_f.plot(k_steps, f_crits, 'k--', label=r'$F_{crit} (95\%)$')
-                
-                ax_f.set_xlabel('Latent Variables (k) vs (k+1)')
+                if stats.get('method') == 'haaland':
+                    ax_f.plot(k_steps, f_crits, 'k--', label=r'$F_{crit} (75\%)$')
+                    ax_f.set_xlabel('Latent Variables (k) vs k* (min RMSECV)')
+                else:
+                    ax_f.plot(k_steps, f_crits, 'k--', label=r'$F_{crit} (95\%)$')
+                    ax_f.set_xlabel('Latent Variables (k) vs (k+1)')
                 ax_f.set_ylabel('F Statistic')
                 ax_f.set_title(f'F-Test Selection - {cname[j]}')
                 ax_f.legend()
