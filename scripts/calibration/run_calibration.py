@@ -75,7 +75,8 @@ OUTLIER_CONF_LEVEL = 0.95
 REMOVE_OUTLIERS = False
 
 OUTLIER_REMOVAL = 0     # (Deprecated legacy setting) 0 = Off, 1 = On (Student t-test on residuals)
-USE_F_TEST = True       # Use Osten F-test for automatic model selection (Optimal k)
+USE_F_TEST = True       # Use an F-test for automatic model selection (Optimal k)
+F_TEST_METHOD = 'osten' # 'osten' (Osten 1988, k vs k+1) or 'haaland' (Haaland & Thomas 1988, k vs min PRESS)
 PRE_ANALYSIS = [['LB'], ['PCA']] # Analyses to run before calibration
 
 # --- 7. Publication Plot Settings ---
@@ -301,7 +302,7 @@ def main():
         MODEL_TYPE, SPA_OPT_K_INI, SPA_L_INI, MAX_LATENT_VARS, nc, ANALYTES, UNITS, 
         x0, absor0, TEST_SPLIT, MANUAL_TEST_SET, OptimModel, PRETREATMENT, 
         analysis_list=PRE_ANALYSIS, output_dir=RESULTS_DIR, outlier=OUTLIER_REMOVAL, 
-        use_ftest=USE_F_TEST, colors=COLORS
+        use_ftest=USE_F_TEST, colors=COLORS, ftest_method=F_TEST_METHOD
     )
 
     # --- Outlier Evaluation Post-Calibration ---
